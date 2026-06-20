@@ -65,15 +65,19 @@ XTTS Studio — полностью офлайн инструмент для си
 
 
 XTTS Studio/
-├── engine/
-├── gui.py
-├── images/
-├── library/
-├── models/
-├── outputs/
-├── logs/
-├── ffmpeg/
-└── python/
+├── engine/ # ядро TTS (обработка, логика, пайплайн)
+├── gui.py # главное окно интерфейса
+├── icon.png # иконка приложения
+├── settings.json # настройки пользователя
+├── word_rules.json# словарь произношений
+│
+├── ffmpeg/ # встроенный FFmpeg
+├── library/ # библиотека голосов
+├── reference/ # входные аудио-референсы
+├── outputs/ # готовые аудио файлы
+├── logs/ # логи работы
+├── models/ # модели XTTS (не включать в GitHub)
+└── python/ # portable Python runtime
 
 
 ---
