@@ -11,7 +11,7 @@ XTTS Studio — полностью офлайн инструмент для си
 
 ---
 
-👉 [📥 Download XTTS Studio (Google Drive)](https://drive.google.com/file/d/1pO7RmUkNwHyBfMURSP-IzJA3oyxw2NiT/view?usp=drive_link)
+👉 [📥 Download XTTS Studio (Google Drive)](https://drive.google.com/file/d/135YopLnZjzQAOWb63aI7KNLT-asHRZU5/view?usp=drive_link)
 
 ---
 
