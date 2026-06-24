@@ -1,267 +1,176 @@
 import re
 
-from engine.text_utils import is_list_item as _is_list_item
-from engine.text_utils import has_inline_list as _has_inline_list
-
-
-# =========================
-# ENUMERATION HELPERS
-# =========================
-def _is_short_enum_sentence(text: str, max_len: int = 80, max_words: int = 10) -> bool:
-    """Короткое предложение, пригодное для семантической группы."""
-    t = (text or "").strip()
-    if not t:
-        return False
-    if len(t) > max_len:
-        return False
-    if len(re.findall(r'\S+', t)) > max_words:
-        return False
-    return True
-
-
-def _ends_with_colon(text: str) -> bool:
-    """Заканчивается ли предложение двоеточием (с возможной завершающей пунктуацией/кавычкой)."""
-    t = (text or "").rstrip(" \"')]}»”")
-    return t.endswith(":")
-
 
 class TextChunker:
     def __init__(self):
-        self.max_chunk_size   = 180
-        self.min_chunk_size   = 40
-        self.list_merge_limit = 160
-        # Лимит для семантической группы (перечисление, серия коротких фраз).
-        # Может превышать max_chunk_size, но безопасно для XTTS inference.
-        self.enum_group_limit = 200
+        # =========================
+        # LIMITS
+        # =========================
+        self.max_size = 175
+        self.target_size = 150
+        self.min_size = 50
 
-    def chunk_text(self, text):
-        sentences = self._split_into_sentences(text)
+        # =========================
+        # PROSODY SAFETY RULES
+        # =========================
 
-        # NEW: связываем перечисления и серии в логические блоки,
-        # чтобы XTTS видел их как один интонационный контекст
-        sentences = self._group_enumerations(sentences)
-
-        raw_chunks = []
-        for sentence in sentences:
-            raw_chunks.extend(self._split_long_sentence(sentence))
-
-        raw_chunks = self._merge_list_items(raw_chunks)
-        merged = self._merge_short_chunks(raw_chunks)
-
-        result = []
-        for c in merged:
-            c = c.strip()
-            if c and c[-1] not in ".!?":
-                c += "."
-            result.append(c)
-        return [c for c in result if c]
-
-    # =========================
-    # SENTENCE SPLITTING
-    # =========================
-    def _split_into_sentences(self, text: str) -> list:
-        """
-        Режет на предложения, защищая от ложных разрывов на:
-        - многоточиях '...' (после нормализатора это бывшее тире,
-          а также авторская пауза — НЕ граница предложения);
-        - аббревиатурах из 2+ заглавных букв
-          (XTTS, TTS, AI, API, GPU, ЦРУ, МГУ, СССР ...);
-        - типичных сокращениях (т.е., т.к., т.д., и.о. ...).
-        """
-        # 1) защищаем многоточия (бывшие тире / авторская пауза)
-        protected = text.replace("...", "<ELLIPSIS>")
-
-        # 2) скрываем точки после ALL_CAPS аббревиатур (латиница и кириллица)
-        protected = re.sub(
-            r'\b([A-ZА-ЯЁ]{2,})\.',
-            r'\1<DOT>',
-            protected
+        # ❌ НЕЛЬЗЯ НАЧИНАТЬ ЧАНК С ЭТОГО (самая частая причина “задыхания”)
+        self.bad_start_tokens = (
+            "и", "а", "но", "или",
+            "который", "которая", "которое", "которые",
+            "что", "где", "когда",
+            "это", "такие", "таким", "такая",
+            "включая", "например"
         )
 
-        # 3) скрываем точки в типичных русских/английских сокращениях
-        #    т.е., т.к., т.д., и.о., а.к.а. и т.п.
-        protected = re.sub(
-            r'\b([а-яёa-z]{1,4})\.\s+(?=[а-яёa-z])',
-            lambda m: m.group(0).replace('.', '<DOT>', 1),
-            protected
+        # ❌ НЕЛЬЗЯ ЗАКАНЧИВАТЬ ЧАНК НА ЭТО
+        self.bad_end_tokens = (
+            "и", "а", "но", "или",
+            "который", "которая", "которое", "которые"
         )
 
-        # 4) режем по концам предложений
-        sentences = re.split(r'(?<=[.!?])\s+', protected)
+        # 🔥 СИЛЬНЫЕ РАЗРЫВЫ (идеальные точки реза)
+        self.hard_break = r"[.!?]"
 
-        # 5) восстанавливаем все замены
-        sentences = [
-            s.replace('<DOT>', '.').replace('<ELLIPSIS>', '...')
-            for s in sentences
-        ]
-        return sentences
+        # 🟡 СРЕДНИЕ РАЗРЫВЫ
+        self.soft_break = r"[;—]"
+
+        # 🟠 СЛАБЫЕ РАЗРЫВЫ
+        self.weak_break = r","
+
 
     # =========================
-    # NEW: ENUMERATION GROUPING
+    # SENTENCE SPLIT (SAFE)
     # =========================
-    def _group_enumerations(self, sentences: list) -> list:
-        """
-        Склеивает связанные по смыслу короткие предложения в один блок,
-        чтобы XTTS воспринимал их как единый интонационный контекст:
+    def _split_sentences(self, text):
+        text = text.replace("...", "<ELL>")
+        parts = re.split(r"(?<=[.!?])\s+", text)
+        return [p.replace("<ELL>", "...") for p in parts if p.strip()]
 
-        ТРИГГЕР 1 — двоеточие:
-            "...работает по принципу: Скачал. Распаковал. Запустил."
-            После предложения с ':' собираем все короткие подряд идущие
-            предложения, пока укладываемся в enum_group_limit.
+    # =========================
+    # BAD START CHECK
+    # =========================
+    def _is_bad_start(self, chunk: str) -> bool:
+        c = chunk.strip().lower()
+        return any(c.startswith(tok + " ") or c == tok for tok in self.bad_start_tokens)
 
-        ТРИГГЕР 2 — серия коротких предложений:
-            "Скачал. Распаковал. Запустил."
-            Два и более коротких предложений подряд считаются перечислением.
+    # =========================
+    # BAD END CHECK
+    # =========================
+    def _is_bad_end(self, chunk: str) -> bool:
+        c = chunk.strip().lower()
+        return any(c.endswith(" " + tok) or c == tok for tok in self.bad_end_tokens)
 
-        Длинные предложения (обычная проза) обрабатываются как раньше.
-        """
-        result = []
-        n = len(sentences)
-        i = 0
+    # =========================
+    # SCORE CUT POSITION
+    # =========================
+    def _score(self, text, pos):
+        char = text[pos] if pos < len(text) else ""
+        dist = abs(pos - self.target_size)
 
-        while i < n:
-            current = (sentences[i] or "").strip()
-            if not current:
-                i += 1
-                continue
+        score = 0
 
-            after_colon = _ends_with_colon(current)
-            next_text = (sentences[i + 1] or "").strip() if i + 1 < n else ""
-            next_is_short = _is_short_enum_sentence(next_text)
-            current_short = _is_short_enum_sentence(current)
+        if char in ".!?":
+            score += 100
+        elif char in ";":
+            score += 70
+        elif char in "—":
+            score += 60
+        elif char == ":":
+            score += 65
+        elif char == ",":
+            score += 20
 
-            # триггер: ":" + короткое следующее ИЛИ серия коротких
-            start_group = (after_colon and next_is_short) or \
-                          (current_short and next_is_short)
+        score -= dist * 0.25
+        return score
 
-            if start_group:
-                group = [current]
-                group_len = len(current)
-                j = i + 1
+    # =========================
+    # SMART SPLIT
+    # =========================
+    def _split_long(self, text):
+        if len(text) <= self.max_size:
+            return [text]
 
-                while j < n:
-                    nxt = (sentences[j] or "").strip()
-                    if not nxt:
-                        j += 1
-                        continue
+        out = []
+        remaining = text
 
-                    # длинное предложение завершает группу
-                    if not _is_short_enum_sentence(nxt):
-                        break
+        while len(remaining) > self.max_size:
 
-                    new_len = group_len + 1 + len(nxt)
-                    if new_len > self.enum_group_limit:
-                        break
+            window_end = min(len(remaining), self.max_size)
+            candidates = []
 
-                    group.append(nxt)
-                    group_len = new_len
-                    j += 1
+            for m in re.finditer(r"[.!?;,—:]", remaining[:window_end]):
+                pos = m.start()
 
-                if len(group) >= 2:
-                    result.append(" ".join(group))
-                    i = j
+                if pos < self.min_size:
                     continue
 
-            result.append(current)
-            i += 1
+                candidates.append((pos, self._score(remaining, pos)))
 
-        return result
+            if candidates:
+                best = max(candidates, key=lambda x: x[1])
+                cut = best[0] + 1
+            else:
+                cut = remaining.rfind(" ", self.min_size, window_end)
+                if cut == -1:
+                    cut = remaining.rfind(" ", 0, window_end)
+                if cut == -1:
+                    cut = window_end
+
+            chunk = remaining[:cut].strip()
+            remaining = remaining[cut:].strip()
+
+            # 🔥 FIX: remove bad start continuity
+            if out and self._is_bad_start(chunk):
+                out[-1] = out[-1] + " " + chunk
+            else:
+                out.append(chunk)
+
+        if remaining:
+            out.append(remaining.strip())
+
+        return out
 
     # =========================
-    # MERGE LIST ITEMS
+    # MERGE SAFETY
     # =========================
-    def _merge_list_items(self, chunks: list) -> list:
-        result = []
-        buffer = ""
+    def _merge(self, chunks):
+        out = []
+        buf = ""
 
-        for chunk in chunks:
-            chunk = chunk.strip()
-            if not chunk:
+        for c in chunks:
+            c = c.strip()
+            if not c:
                 continue
 
-            is_item = _is_list_item(chunk)
+            if len(buf) < self.min_size:
+                buf = (buf + " " + c).strip()
+                continue
 
-            if is_item:
-                candidate = (buffer + " " + chunk).strip() if buffer else chunk
-                if len(candidate) <= self.list_merge_limit:
-                    buffer = candidate
+            if len(buf) + len(c) <= self.max_size:
+                buf = (buf + " " + c).strip()
+            else:
+                if not self._is_bad_end(buf):
+                    out.append(buf)
+                    buf = c
                 else:
-                    if buffer:
-                        result.append(buffer)
-                    buffer = chunk
-            else:
-                if buffer:
-                    result.append(buffer)
-                    buffer = ""
-                result.append(chunk)
+                    buf = buf + " " + c
 
-        if buffer:
-            result.append(buffer)
+        if buf:
+            out.append(buf)
 
-        return result
+        return out
 
     # =========================
-    # SPLIT LONG SENTENCE
+    # PUBLIC
     # =========================
-    def _split_long_sentence(self, sentence):
-        if len(sentence) <= self.max_chunk_size:
-            return [sentence]
+    def chunk_text(self, text: str):
+        sentences = self._split_sentences(text)
 
-        # Защита семантической группы: если внутри уже несколько
-        # предложений (точки/!/?) и общий размер в пределах
-        # enum_group_limit — НЕ режем, это перечисление.
-        period_count = sentence.count('.') + sentence.count('!') + sentence.count('?')
-        if period_count >= 2 and len(sentence) <= self.enum_group_limit:
-            return [sentence]
+        chunks = []
+        for s in sentences:
+            chunks.extend(self._split_long(s))
 
-        if _has_inline_list(sentence) and len(sentence) <= self.list_merge_limit:
-            return [sentence]
+        chunks = self._merge(chunks)
 
-        parts = re.split(r'[,;:]', sentence)
-        result = []
-        buffer = ""
-        for part in parts:
-            part = part.strip()
-            if not part:
-                continue
-            candidate = (buffer + ", " + part).strip(", ")
-            if len(candidate) <= self.max_chunk_size + 30:
-                buffer = candidate
-            else:
-                if buffer and len(part) < 30:
-                    buffer = candidate
-                else:
-                    if buffer:
-                        result.append(buffer.strip())
-                    buffer = part
-        if buffer:
-            result.append(buffer.strip())
-        return result
-
-    # =========================
-    # MERGE SHORT CHUNKS
-    # =========================
-    def _merge_short_chunks(self, chunks):
-        result = []
-        buffer = ""
-
-        for chunk in chunks:
-            chunk = chunk.strip()
-            if not chunk:
-                continue
-
-            if len(buffer) < self.min_chunk_size:
-                buffer = (buffer + " " + chunk).strip()
-                continue
-
-            if len(buffer) + len(chunk) + 1 <= self.max_chunk_size:
-                buffer = (buffer + " " + chunk).strip()
-            else:
-                if buffer:
-                    result.append(buffer)
-                buffer = chunk
-
-        if buffer:
-            result.append(buffer)
-
-        return result
+        return [c.strip() for c in chunks if c.strip()]

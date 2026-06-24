@@ -103,17 +103,15 @@ class ToolTip:
 # =========================
 # ROOT
 # =========================
-from tkinter import PhotoImage
-import os
 
 root = TkinterDnD.Tk()
 
-ICON_PATH = r"C:\XTTS Studio\icon.png"
+ICON_PATH = r"C:\XTTS_Studio\icon.png"
 
 try:
     if os.path.isfile(ICON_PATH):
-        icon = PhotoImage(file=ICON_PATH)
-        root.iconphoto(True, icon)
+        root.icon_img = tk.PhotoImage(file=ICON_PATH)
+        root.iconphoto(True, root.icon_img)
 except Exception as e:
     print(f"[ICON ERROR] {e}")
 
@@ -124,7 +122,7 @@ root.configure(bg=Colors.BG_DARK)
 
 try:
     from ctypes import windll
-    #windll.shcore.SetProcessDpiAwareness(2)  # per-monitor DPI вместо system DPI
+    windll.shcore.SetProcessDpiAwareness(2)  # per-monitor DPI вместо system DPI
 except Exception:
     pass
 
@@ -210,6 +208,7 @@ import threading as _threading_gui
 _textbox_updated = _threading_gui.Event()
 
 word_replacer_enabled = tk.BooleanVar(value=True)
+lang_split_enabled = tk.BooleanVar(value=True)
 
 ref_var = tk.StringVar()
 status_var = tk.StringVar(value="🔄 Инициализация модели...")
@@ -378,11 +377,323 @@ def clear_chunk_highlight():
         pass
 
 def open_outputs_folder():
+    """Открывает окно управления аудио-файлами."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    try:
-        os.startfile(OUTPUT_DIR)
-    except Exception:
-        messagebox.showinfo("Папка", OUTPUT_DIR)
+
+    win = tk.Toplevel(root)
+    win.title("🎵 Аудио файлы")
+    win.geometry("680x480")
+    win.resizable(True, True)
+    win.configure(bg=Colors.BG_DARK)
+    win.grab_set()
+
+# --- Плеер ---
+    player_frame = tk.Frame(win, bg=Colors.BG_CARD)
+    player_frame.pack(fill="x", padx=10, pady=(10, 0))
+
+    player_label = tk.Label(
+        player_frame, text="Нет файла",
+        bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+        font=("Segoe UI", 9), anchor="w", width=42
+    )
+    player_label.pack(side="left", padx=(6, 0))
+
+    _player_state = {"playing": False, "path": None, "pos": 0.0, "after_id": None}
+
+    def _tick():
+        if not PYGAME_OK:
+            return
+        try:
+            if pygame.mixer.music.get_busy():
+                _player_state["pos"] += 0.2
+                pct = min(100, int(_player_state["pos"] / max(_player_state["duration"], 0.1) * 100))
+                seek_var.set(pct)
+                pos_label.config(text=_fmt(_player_state["pos"]))
+                _player_state["after_id"] = win.after(200, _tick)
+            else:
+                _player_state["playing"] = False
+                btn_play.config(text="▶")
+                _player_state["after_id"] = None
+        except Exception:
+            pass
+
+    def _fmt(sec):
+        sec = max(0, int(sec))
+        return f"{sec // 60}:{sec % 60:02d}"
+
+    def _load_and_play(path, from_pos=0.0):
+        if not PYGAME_OK:
+            return
+        try:
+            if _player_state["after_id"]:
+                win.after_cancel(_player_state["after_id"])
+                _player_state["after_id"] = None
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(path)
+            pygame.mixer.music.play(start=from_pos)
+            _player_state["playing"] = True
+            _player_state["path"] = path
+            _player_state["pos"] = from_pos
+
+            # длительность через pygame если возможно, иначе через soundfile
+            try:
+                import soundfile as sf
+                info = sf.info(path)
+                _player_state["duration"] = info.duration
+                dur_label.config(text=_fmt(info.duration))
+            except Exception:
+                _player_state["duration"] = 999.0
+                dur_label.config(text="?")
+
+            fname = os.path.basename(path)
+            player_label.config(
+                text=(fname[:38] + "…") if len(fname) > 40 else fname,
+                fg=Colors.TEXT_MAIN
+            )
+            btn_play.config(text="⏸")
+            seek_var.set(0)
+            _tick()
+        except Exception as e:
+            player_label.config(text=f"Ошибка: {e}", fg=Colors.TEXT_ERROR)
+
+    def play_selected():
+        path = get_selected_path()
+        if not path or not os.path.isfile(path):
+            return
+        _load_and_play(path, 0.0)
+
+    def toggle_play():
+        if not PYGAME_OK:
+            return
+        if _player_state["playing"]:
+            pygame.mixer.music.pause()
+            _player_state["playing"] = False
+            btn_play.config(text="▶")
+            if _player_state["after_id"]:
+                win.after_cancel(_player_state["after_id"])
+                _player_state["after_id"] = None
+        else:
+            if _player_state["path"]:
+                pygame.mixer.music.unpause()
+                _player_state["playing"] = True
+                btn_play.config(text="⏸")
+                _tick()
+
+    def seek_back():
+        if not _player_state["path"]:
+            return
+        _load_and_play(_player_state["path"], max(0.0, _player_state["pos"] - 5))
+
+    def seek_fwd():
+        if not _player_state["path"]:
+            return
+        _load_and_play(_player_state["path"], _player_state["pos"] + 5)
+
+    def on_seek_drag(val):
+        if not _player_state["path"] or not _player_state.get("duration"):
+            return
+        new_pos = float(val) / 100.0 * _player_state["duration"]
+        _load_and_play(_player_state["path"], new_pos)
+
+    # кнопки плеера
+    ctrl_frame = tk.Frame(player_frame, bg=Colors.BG_CARD)
+    ctrl_frame.pack(side="right", padx=4)
+
+    create_button(ctrl_frame, "⏪", seek_back, bg=Colors.BG_INPUT, width=3).pack(side="left", padx=2)
+    btn_play = create_button(ctrl_frame, "▶", toggle_play, bg=Colors.BG_ACTIVE, width=3)
+    btn_play.pack(side="left", padx=2)
+    create_button(ctrl_frame, "⏩", seek_fwd,  bg=Colors.BG_INPUT, width=3).pack(side="left", padx=2)
+
+    pos_label = tk.Label(ctrl_frame, text="0:00", bg=Colors.BG_CARD,
+                         fg=Colors.TEXT_DIM, font=("Consolas", 9), width=4)
+    pos_label.pack(side="left", padx=(4, 0))
+
+    dur_label = tk.Label(ctrl_frame, text="0:00", bg=Colors.BG_CARD,
+                         fg=Colors.TEXT_DIM, font=("Consolas", 9), width=4)
+    dur_label.pack(side="left")
+
+    # прогресс-бар / seekbar
+    seek_var = tk.IntVar(value=0)
+    seek_bar = ttk.Scale(
+        win, from_=0, to=100, orient="horizontal",
+        variable=seek_var, command=on_seek_drag
+    )
+    seek_bar.pack(fill="x", padx=10, pady=(4, 0))
+
+    # --- Toolbar ---
+    toolbar = tk.Frame(win, bg=Colors.BG_CARD)
+    toolbar.pack(fill="x", padx=10, pady=(6, 0))
+
+    def refresh_list():
+        files_listbox.delete(0, tk.END)
+        try:
+            files = sorted(
+                [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".wav")],
+                key=lambda f: os.path.getmtime(os.path.join(OUTPUT_DIR, f)),
+                reverse=True
+            )
+        except Exception:
+            files = []
+        for f in files:
+            p = os.path.join(OUTPUT_DIR, f)
+            size_kb = os.path.getsize(p) // 1024
+            files_listbox.insert(tk.END, f"🎵  {f}   [{size_kb} KB]")
+        lbl_count.config(text=f"Файлов: {len(files)}")
+
+    def get_selected_path():
+        sel = files_listbox.curselection()
+        if not sel:
+            return None
+        raw = files_listbox.get(sel[0])
+        fname = raw.strip().lstrip("🎵").strip()
+        fname = fname[:fname.rfind("[")].strip()
+        return os.path.join(OUTPUT_DIR, fname)
+
+    def open_folder():
+        try:
+            os.startfile(OUTPUT_DIR)
+        except Exception:
+            messagebox.showinfo("Папка", OUTPUT_DIR, parent=win)
+
+    def delete_selected():
+        path = get_selected_path()
+        if not path:
+            return
+        fname = os.path.basename(path)
+        if messagebox.askyesno("Удалить?", f"Удалить файл:\n{fname}?", parent=win):
+            if _player_state.get("path") == path:
+                try:
+                    pygame.mixer.music.stop()
+                except Exception:
+                    pass
+                _player_state["playing"] = False
+                _player_state["path"] = None
+                btn_play.config(text="▶")
+                player_label.config(text="Нет файла", fg=Colors.TEXT_DIM)
+            try:
+                os.remove(path)
+            except Exception as e:
+                messagebox.showerror("❌", str(e), parent=win)
+            refresh_list()
+
+    def clear_cache():
+        cache_dirs = [
+            os.path.join(BASE_DIR, "reference"),
+            os.path.join(BASE_DIR, "cache"),
+            os.path.join(OUTPUT_DIR, "_cache"),
+        ]
+        removed = 0
+        for d in cache_dirs:
+            if not os.path.isdir(d):
+                continue
+            for f in os.listdir(d):
+                if f.endswith(".pth") or f.endswith(".cache") or f.endswith(".wav"):
+                    try:
+                        os.remove(os.path.join(d, f))
+                        removed += 1
+                    except Exception:
+                        pass
+        messagebox.showinfo(
+            "Кэш очищен",
+            f"Удалено файлов кэша: {removed}" if removed else "Кэш уже пуст.",
+            parent=win
+        )
+
+    def delete_all():
+        files = [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".wav")]
+        if not files:
+            messagebox.showinfo("Пусто", "Нет файлов для удаления.", parent=win)
+            return
+        if messagebox.askyesno("Удалить всё?", f"Удалить все {len(files)} WAV-файлов?", parent=win):
+            if _player_state.get("path"):
+                try:
+                    pygame.mixer.music.stop()
+                except Exception:
+                    pass
+                _player_state["playing"] = False
+                _player_state["path"] = None
+                btn_play.config(text="▶")
+                player_label.config(text="Нет файла", fg=Colors.TEXT_DIM)
+            for f in files:
+                try:
+                    os.remove(os.path.join(OUTPUT_DIR, f))
+                except Exception:
+                    pass
+            refresh_list()
+
+    create_button(toolbar, "▶ Играть",       play_selected,  bg=Colors.BG_ACTIVE).pack(side="left", padx=(0, 4))
+    create_button(toolbar, "🗑 Удалить",      delete_selected, bg=Colors.BG_DANGER).pack(side="left", padx=(0, 4))
+    create_button(toolbar, "📂 Открыть папку", open_folder,   bg=Colors.BG_INPUT).pack(side="left",  padx=(0, 4))
+    create_button(toolbar, "🗑 Удалить все",  delete_all,     bg=Colors.BG_DANGER).pack(side="left",  padx=(0,12))
+    create_button(toolbar, "🧹 Очистить кэш", clear_cache,    bg=Colors.BG_INPUT).pack(side="left")
+
+    lbl_count = tk.Label(toolbar, text="Файлов: 0", bg=Colors.BG_CARD,
+                         fg=Colors.TEXT_DIM, font=("Segoe UI", 9))
+    lbl_count.pack(side="right", padx=6)
+
+    # останавливаем плеер при закрытии окна
+    def on_close():
+        try:
+            if _player_state["after_id"]:
+                win.after_cancel(_player_state["after_id"])
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
+        win.destroy()
+
+    win.protocol("WM_DELETE_WINDOW", on_close)
+
+    # --- Список файлов ---
+    list_frame = tk.Frame(win, bg=Colors.BG_DARK)
+    list_frame.pack(fill="both", expand=True, padx=10, pady=8)
+
+    scrollbar = tk.Scrollbar(list_frame, bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
+    scrollbar.pack(side="right", fill="y")
+
+    files_listbox = tk.Listbox(
+        list_frame,
+        yscrollcommand=scrollbar.set,
+        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+        selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
+        relief="flat", highlightthickness=0,
+        font=("Consolas", 10), activestyle="none"
+    )
+    files_listbox.pack(fill="both", expand=True)
+    scrollbar.config(command=files_listbox.yview)
+    files_listbox.bind("<Double-Button-1>", lambda e: play_selected())
+
+    refresh_list()
+
+# =========================
+# OUTPUT NAMING
+# =========================
+def _make_output_name(text: str) -> str:
+    """Генерирует имя файла из первых слов текста с защитой от дублей."""
+    import unicodedata
+    # Берём первые ~40 символов текста
+    snippet = text.strip()[:60]
+    # Убираем переносы строк
+    snippet = snippet.replace("\n", " ").replace("\r", "")
+    # Оставляем буквы, цифры, пробелы
+    allowed = []
+    for ch in snippet:
+        cat = unicodedata.category(ch)
+        if cat.startswith("L") or cat.startswith("N") or ch == " ":
+            allowed.append(ch)
+    name = "".join(allowed).strip()
+    # Обрезаем по последнему пробелу чтобы не резать слово
+    if len(name) > 40:
+        cut = name[:40].rsplit(" ", 1)
+        name = cut[0] if len(cut) > 1 else name[:40]
+    name = name.strip() or "output"
+    # Защита от дублей: name.wav → name (1).wav → name (2).wav
+    base = os.path.join(OUTPUT_DIR, name)
+    candidate = f"{base}.wav"
+    counter = 1
+    while os.path.exists(candidate):
+        candidate = f"{base} ({counter}).wav"
+        counter += 1
+    return candidate
 
 # =========================
 # QUEUE
@@ -927,8 +1238,15 @@ def open_word_replacer():
 
     def refresh():
         listbox.delete(0, tk.END)
-        for word, replacement in word_replacer.rules.items():
-            listbox.insert(tk.END, f"{word}  →  {replacement}")
+
+        for category, data in word_replacer.data.items():
+            if category == "meta":
+                continue
+
+            for word, value in data.items():
+                text = value["text"] if isinstance(value, dict) else value
+                listbox.insert(tk.END, f"{word}  →  {text}")
+
     refresh()
 
     input_frame = tk.Frame(win, bg=Colors.BG_CARD)
@@ -1059,6 +1377,7 @@ def generate():
         quality_params={
             **{k: v.get() for k, v in params.items()},
             "word_replacer_enabled": word_replacer_enabled.get(),
+            "lang_split_enabled": lang_split_enabled.get(),
         }
     )
 
@@ -1136,6 +1455,23 @@ def pick_language():
             selectcolor=Colors.ACCENT, activebackground=Colors.BG_HOVER,
             font=("Segoe UI", 9, "bold"), relief="flat", cursor="hand2"
         ).grid(row=i // 6, column=i % 6, padx=3, pady=3)
+
+    tk.Frame(win, bg=Colors.BG_CARD, height=1).pack(fill="x", padx=15, pady=(5,0))
+    split_row = tk.Frame(win, bg=Colors.BG_CARD)
+    split_row.pack(fill="x", padx=15, pady=(8, 0))
+    cb = tk.Checkbutton(
+        split_row,
+        text="🔀 Авто-переключение языка",
+        variable=lang_split_enabled,
+        bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+        selectcolor=Colors.BG_INPUT,
+        activebackground=Colors.BG_CARD,
+        activeforeground=Colors.TEXT_MAIN,
+        font=("Segoe UI", 9),
+        cursor="hand2"
+    )
+    cb.pack(side="left")
+    ToolTip(cb, "Английские слова читаются на английском автоматически.\nПри отключении иностранные слова будут читаться некорректно.")
 
     tk.Button(
         win, text="✓ Закрыть", command=lambda: [win.destroy(), save_settings()],
@@ -1439,6 +1775,7 @@ def save_settings():
         "quality": quality_var.get(),
         "ref_path": ref_var.get(),
         "word_replacer_enabled": word_replacer_enabled.get(),
+        "lang_split_enabled": lang_split_enabled.get(),
         "quality_params": {
             preset: {k: v.get() for k, v in params.items()}
             for preset, params in quality_params.items()
@@ -1464,6 +1801,8 @@ def apply_settings(data):
             ref_var.set(path)
     if "word_replacer_enabled" in data:
         word_replacer_enabled.set(data["word_replacer_enabled"])
+    if "lang_split_enabled" in data:
+        lang_split_enabled.set(data["lang_split_enabled"])
     if "quality_params" in data:
         for preset, params in data["quality_params"].items():
             if preset in quality_params:

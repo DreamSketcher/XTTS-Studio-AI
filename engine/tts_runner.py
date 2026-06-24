@@ -1,8 +1,9 @@
+from typing import List, Tuple
 import re
 import os
 import sys
 from datetime import datetime
-from engine.prosody_layer import create_prosody_layer
+from .prosody_layer import create_prosody_layer
 from .word_replacer import WordReplacer
 from .text_utils import is_list_item as _is_list_item
 
@@ -29,9 +30,10 @@ os.environ["TTS_SKIP_UPDATE"] = "1"
 # OPTIONAL BACKEND
 # =========================
 try:
-    from pydub import AudioSegment
+    from pydub import AudioSegment  # type: ignore
     PYDUB_OK = True
 except ImportError:
+    AudioSegment = None  # type: ignore
     PYDUB_OK = False
 
 # =========================
@@ -55,12 +57,38 @@ def path(*args):
     return os.path.join(BASE_DIR, *args)
 
 # =========================
+# OUTPUT NAMING
+# =========================
+import unicodedata as _unicodedata
+
+def _make_output_name(text: str, output_dir: str) -> str:
+    """Имя файла из первых слов исходного текста, защита от дублей."""
+    snippet = (text or "").strip().replace("\n", " ").replace("\r", "")[:80]
+    allowed = []
+    for ch in snippet:
+        cat = _unicodedata.category(ch)
+        if cat.startswith("L") or cat.startswith("N") or ch == " ":
+            allowed.append(ch)
+    name = "".join(allowed).strip()
+    if len(name) > 48:
+        cut = name[:48].rsplit(" ", 1)
+        name = cut[0] if len(cut) > 1 else name[:48]
+    name = name.strip() or "output"
+    base = os.path.join(output_dir, name)
+    candidate = f"{base}.wav"
+    counter = 1
+    while os.path.exists(candidate):
+        candidate = f"{base} ({counter}).wav"
+        counter += 1
+    return candidate
+
+# =========================
 # FFMPEG
 # =========================
 FFMPEG_DIR = path("ffmpeg", "bin")
 os.environ["PATH"] = FFMPEG_DIR + os.pathsep + os.environ.get("PATH", "")
 
-if PYDUB_OK:
+if PYDUB_OK and AudioSegment is not None:
     AudioSegment.converter = path("ffmpeg", "bin", "ffmpeg.exe")
     AudioSegment.ffprobe   = path("ffmpeg", "bin", "ffprobe.exe")
 
@@ -86,6 +114,16 @@ _tts_lock = _threading.Lock()
 def detect_lang_adaptive(text: str) -> str:
     return "ru" if any('\u0400' <= c <= '\u04FF' for c in text) else "en"
 
+_device = None
+
+def detect_device() -> str:
+    global _device
+    if _device is None:
+        import torch  # type: ignore
+        _device = "cuda" if torch.cuda.is_available() else "cpu"
+    return _device
+
+
 def get_tts():
     global _tts_instance
 
@@ -93,16 +131,16 @@ def get_tts():
         if _tts_instance is None:
             print("[XTTS] Loading model...")
 
-            from TTS.api import TTS
+            from TTS.api import TTS  # type: ignore
 
-            if not os.path.exists(MODEL_DIR):
-                raise RuntimeError(f"Model not found: {MODEL_DIR}")
+            device = detect_device()
 
             _tts_instance = TTS(
                 model_path=MODEL_DIR,
                 config_path=os.path.join(MODEL_DIR, "config.json"),
-                gpu=False
-            )
+            ).to(device)
+
+            print(f"[XTTS] Model loaded ({device.upper()})")
 
     return _tts_instance
 
@@ -116,20 +154,23 @@ class _Cancelled(Exception):
 # EMBEDDING CACHE
 # =========================
 def _get_embedding(tts, ref_wav, cache_path):
+    import torch  # type: ignore
+    device = detect_device()
+
     if os.path.exists(cache_path):
         try:
-            import torch
-            data = torch.load(cache_path, map_location="cpu")
+            data = torch.load(cache_path, map_location=device)
             print("[XTTS] Embedding loaded from cache")
             return data["gpt_cond_latent"], data["speaker_embedding"]
         except Exception as e:
             print(f"[XTTS] Cache load failed, recomputing: {e}")
 
     print("[XTTS] Computing embedding...")
-    import torch
     gpt_cond_latent, speaker_embedding = (
         tts.synthesizer.tts_model.get_conditioning_latents(audio_path=ref_wav)
     )
+    gpt_cond_latent = gpt_cond_latent.to(device)
+    speaker_embedding = speaker_embedding.to(device)
     try:
         torch.save({
             "gpt_cond_latent":   gpt_cond_latent,
@@ -147,10 +188,7 @@ def _get_embedding(tts, ref_wav, cache_path):
 import hashlib
 
 def _chunk_cache_key(chunk: str, lang: str, preset: dict, speed: float) -> str:
-    """Уникальный ключ чанка на основе текста + параметров генерации."""
-    # v2: инвалидируем старый cache, потому что раньше cache мог обходить QC
-    # и возвращать уже забракованные/неровные чанки.
-    raw = f"v2_qc_loudness_map|{chunk}|{lang}|{speed}|{sorted(preset.items())}"
+    raw = f"v3_lang_split|{chunk}|{lang}|{speed}|{sorted(preset.items())}"
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
 def _chunk_cache_path(output_dir: str, key: str) -> str:
@@ -212,6 +250,153 @@ def _adjust_params_for_chunk(base_params: dict, chunk_idx: int,
         if "repetition_penalty" in params:
             params["repetition_penalty"] = max(params["repetition_penalty"] - 1.0, 5.0)
     return params
+
+# =========================
+# LANGUAGE SPLIT (v2 — fixed)
+# =========================
+import re
+from typing import List, Tuple
+
+# Примечание по архитектуре:
+# word_replacer.apply() вызывается ДО _split_by_language() в раннере и уже
+# транслитерирует ИЗВЕСТНЫЕ термины (built-in словарь, включая многословные
+# фразы типа "speaker embedding", + авто-кэш капс-аббревиатур) в кириллицу.
+#
+# Всё, что остаётся латиницей и доходит до этой функции, — либо неизвестный
+# словарю термин, либо случайное английское слово. Намеренное решение:
+# короткие EN-сегменты (< 3 слов) ВСЕГДА поглощаются в соседний RU-текст,
+# даже если это похоже на технический термин (pydub, wav, soundfile).
+#
+# Причина: изолированный inference-вызов XTTS на 1-2 словах статистически
+# даёт значительно больше артефактов (повторы, обрывы, "билиберда"), чем
+# чуть менее точное произношение термина русской фонетикой внутри потока
+# речи. Стабильность синтеза приоритетнее идеального произношения коротких
+# терминов. Только сегменты из 3+ слов остаются отдельным EN-вызовом —
+# на такой длине inference достаточно стабилен, и разборчивость важнее.
+#
+# Если термин должен звучать по-английски даже будучи коротким — правильное
+# место для этого фикса: BUILTIN_DICTIONARY в word_replacer.py (явная
+# транслитерация), а не эта функция.
+
+_TOKEN_RE = re.compile(
+    r'(?P<en>[A-Za-z][A-Za-z0-9\-]*)'
+    r'|(?P<ru>[А-Яа-яЁё]+)'
+    r'|(?P<num>\d+)'
+    r'|(?P<punct>[^\w\s])'
+    r'|(?P<space>\s+)',
+    re.UNICODE
+)
+
+
+def _count_real_words(chunk: str) -> int:
+    return sum(
+        1 for w in re.findall(r'[A-Za-zА-Яа-яЁё]+', chunk)
+        if len(w) >= 1
+    )
+
+
+
+def _split_by_language(text: str) -> List[Tuple[str, str]]:
+    if not text.strip():
+        return []
+
+    raw_tokens = [
+        (m.group(0), m.lastgroup) for m in _TOKEN_RE.finditer(text)
+    ]
+    if not raw_tokens:
+        return []
+
+    classified = []
+    for tok, kind in raw_tokens:
+        if kind == "space":
+            classified.append((tok, "space"))
+        elif kind == "en":
+            classified.append((tok, "en"))
+        elif kind == "ru":
+            classified.append((tok, "ru"))
+        else:
+            classified.append((tok, None))
+
+    if not classified:
+        return []
+
+    last_lang = None
+    for i, (tok, lang) in enumerate(classified):
+        if lang is not None and lang != "space":
+            last_lang = lang
+        elif lang is None:
+            classified[i] = (tok, last_lang)
+
+    next_lang = None
+    for i in range(len(classified) - 1, -1, -1):
+        _, lang = classified[i]
+        if lang is not None and lang != "space":
+            next_lang = lang
+        elif lang is None and next_lang is not None:
+            classified[i] = (classified[i][0], next_lang)
+    classified = [
+        (tok, lang if lang is not None else "ru")
+        for tok, lang in classified
+    ]
+
+    merged = []
+    for tok, lang in classified:
+        if lang == "space":
+            # Пробел наследует язык контекста, не создаёт новую границу
+            if merged:
+                merged[-1][0] += tok
+            continue
+        if merged and merged[-1][1] == lang:
+            merged[-1][0] += tok
+        else:
+            merged.append([tok, lang])
+
+    changed = True
+    max_iterations = len(merged) + 1
+    iteration = 0
+
+    while changed and iteration < max_iterations:
+        changed = False
+        iteration += 1
+        result = []
+        i = 0
+
+        while i < len(merged):
+            chunk, lang = merged[i]
+
+            should_absorb = (
+                lang == "en"
+                and _count_real_words(chunk) < 3
+            )
+
+            if not should_absorb:
+                result.append([chunk, lang])
+                i += 1
+                continue
+
+            absorbed = False
+
+            if result and result[-1][1] == "ru":
+                result[-1][0] += " " + chunk
+                changed = True
+                absorbed = True
+            elif i + 1 < len(merged) and merged[i + 1][1] == "ru":
+                merged[i + 1][0] = chunk + " " + merged[i + 1][0]
+                changed = True
+                absorbed = True
+
+            if not absorbed:
+                result.append([chunk, lang])
+
+            i += 1
+
+        merged = result
+
+    return [
+        (re.sub(r' {2,}', ' ', chunk).strip(), lang)
+        for chunk, lang in merged
+        if chunk.strip()
+    ]
 
 # =========================
 # TEXT -> GUI CHUNK MAP
@@ -311,7 +496,7 @@ def _build_chunk_text_map(full_text: str, chunks: list) -> list:
 # CHUNK QUALITY VALIDATORS
 # =========================
 def _wav_to_mono_float(wav):
-    import numpy as np
+    import numpy as np  # type: ignore
 
     arr = np.asarray(wav, dtype=np.float32)
 
@@ -336,7 +521,7 @@ def _detect_repeats(
     Детектирует зацикливание/повторы.
     Возвращает True, если обнаружен брак.
     """
-    import numpy as np
+    import numpy as np  # type: ignore
 
     arr = _wav_to_mono_float(wav)
     sample_rate = int(sample_rate or 24000)
@@ -406,7 +591,7 @@ def _validate_duration(
     Возвращает True, если чанк подозрительный/бракованный.
     """
     import re
-    import numpy as np
+    import numpy as np  # type: ignore
 
     arr = _wav_to_mono_float(wav)
     sample_rate = int(sample_rate or 24000)
@@ -558,12 +743,12 @@ def _adaptive_trim(
 # =========================
 # LOUDNESS NORMALIZATION (numpy, no deps)
 # =========================
-def _normalize_loudness(seg: "AudioSegment", target_lufs: float = -23.0) -> "AudioSegment":
+def _normalize_loudness(seg, target_lufs: float = -23.0):
     """
     Выравнивание громкости чанков по активной речи.
     Используется RMS-gate + защита от клиппинга.
     """
-    import numpy as np
+    import numpy as np  # type: ignore
 
     if seg is None or len(seg) <= 0:
         return seg
@@ -630,7 +815,7 @@ def _normalize_numpy_audio(data, target_dbfs: float = -23.0):
     """
     Fallback-нормализация для режима без pydub.
     """
-    import numpy as np
+    import numpy as np  # type: ignore
 
     arr = np.asarray(data, dtype=np.float32)
 
@@ -686,7 +871,7 @@ def run_tts(
     quality_params=None
 ):
     def cancelled() -> bool:
-        return callable(is_cancelled) and is_cancelled()
+        return bool(callable(is_cancelled) and is_cancelled())
 
     def send(stage, progress=None, text_msg=None, final=None):
         if status_callback:
@@ -769,8 +954,8 @@ def run_tts(
         )
         prosody_intensity = quality_params.get("prosody_intensity", prosody_preset["intensity"]) if quality_params else prosody_preset["intensity"]
         prosody_engine = create_prosody_layer(
-            mode=prosody_preset["mode"],
-            intensity=prosody_intensity,
+            mode=str(prosody_preset["mode"]),
+            intensity=float(prosody_intensity),
             breath_length="medium"
         )
         # #4: process_chunks учитывает контекст серий list-item чанков
@@ -781,8 +966,7 @@ def run_tts(
         output_dir = path("outputs")
         os.makedirs(output_dir, exist_ok=True)
 
-        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        final_path = os.path.join(output_dir, f"output_{ts}.wav")
+        final_path = _make_output_name(raw_text or text, output_dir)
 
         total = max(len(chunks), 1)
         chunk_items = []
@@ -838,6 +1022,7 @@ def run_tts(
                 preset.pop("qc_enabled", None)
                 preset.pop("de_esser_intensity", None)
                 preset.pop("word_replacer_enabled", None)
+                preset.pop("lang_split_enabled", None)
 
                 # #2: temperature schedule — компенсация угасания на перечислениях
                 preset = _adjust_params_for_chunk(preset, i, total, chunk)
@@ -845,10 +1030,11 @@ def run_tts(
                 no_pause_flag = "[NO_PAUSE]" in chunk
                 clean_chunk = chunk.replace("[NO_PAUSE]", "").strip()
 
+                print(f"[WR] word_replacer_enabled={quality_params.get('word_replacer_enabled') if quality_params else None}")
                 if quality_params is None or quality_params.get("word_replacer_enabled", True):
                     clean_chunk = word_replacer.apply(clean_chunk)
 
-                import soundfile as sf
+                import soundfile as sf  # type: ignore
 
                 # =========================
                 # CHUNK CACHE — проверяем до генерации
@@ -881,40 +1067,64 @@ def run_tts(
                 max_attempts = 3 if qc_enabled else 1
                 wav = None
 
-                for attempt in range(max_attempts):
-                    out = tts.synthesizer.tts_model.inference(
-                        text=clean_chunk,
-                        language=lang,
-                        gpt_cond_latent=gpt_cond_latent,
-                        speaker_embedding=speaker_embedding,
-                        speed=speed_value,
-                        **preset
-                    )
+                # Разбиваем на подчанки по языку только если язык auto
+                lang_split = quality_params.get("lang_split_enabled", True) if quality_params else True
+                if language == "auto" and lang_split:
+                    subchunks = _split_by_language(clean_chunk)
+                else:
+                    subchunks = [(clean_chunk, lang)]
+                print(f"[LANG] lang_split={lang_split} language={language} subchunks={[(t[:20], l) for t, l in subchunks]}")
 
-                    candidate = out["wav"]
+                import numpy as np  # type: ignore
+                wav_parts = []
 
-                    has_repeats = _detect_repeats(candidate)
-                    bad_duration = _validate_duration(candidate, chunk)
+                for sub_text, sub_lang in subchunks:
+                    sub_preset = dict(preset)
+                    sub_wav = None
+                    candidate = None
 
-                    if not has_repeats and not bad_duration:
-                        wav = candidate
-                        break
+                    for attempt in range(max_attempts):
+                        out = tts.synthesizer.tts_model.inference(
+                            text=sub_text,
+                            language=sub_lang,
+                            gpt_cond_latent=gpt_cond_latent,
+                            speaker_embedding=speaker_embedding,
+                            speed=speed_value,
+                            **sub_preset
+                        )
 
-                    print(
-                        f"[QC] Chunk {i+1} attempt {attempt+1}/{max_attempts} rejected"
-                        f" (repeats={has_repeats}, bad_duration={bad_duration})"
-                    )
+                        candidate = out["wav"]
+                        if hasattr(candidate, 'device'):
+                            candidate = candidate.cpu()
 
-                    # слегка меняем temperature для следующей попытки
-                    if "temperature" in preset:
-                        preset["temperature"] = min(preset["temperature"] + 0.05, 0.95)
+                        has_repeats = _detect_repeats(candidate)
+                        bad_duration = _validate_duration(candidate, sub_text)
 
-                if wav is None:
-                    print(f"[QC] Chunk {i+1} — all attempts failed, using last result")
-                    wav = candidate
+                        if not has_repeats and not bad_duration:
+                            sub_wav = candidate
+                            break
+
+                        print(
+                            f"[QC] Chunk {i+1} sub '{sub_text}' attempt {attempt+1}/{max_attempts} rejected"
+                            f" (repeats={has_repeats}, bad_duration={bad_duration})"
+                        )
+
+                        if "temperature" in sub_preset:
+                            sub_preset["temperature"] = min(sub_preset["temperature"] + 0.05, 0.95)
+
+                    if sub_wav is None:
+                        print(f"[QC] sub '{sub_text}' — all attempts failed, using last result")
+                        sub_wav = candidate
+
+                    if sub_wav is not None:
+                        wav_parts.append(np.array(sub_wav, dtype=np.float32))
+
+                if wav_parts:
+                    wav = np.concatenate(wav_parts).tolist()
+                else:
+                    wav = []
 
                 # Не режем здесь, если доступен pydub.
-                # Adaptive trim будет выполнен позже при merge.
                 if not PYDUB_OK:
                     if trim_mode not in ("off", "none", "disable", "disabled", "false", "0"):
                         trim_samples = int(24000 * trim_ms / 1000)
@@ -955,7 +1165,7 @@ def run_tts(
         send("merge", 90, "Сборка аудио...")
 
         if PYDUB_OK and chunk_items:
-            combined = AudioSegment.empty()
+            combined = AudioSegment.empty()  # type: ignore
 
             valid_segments = []
             valid_chunks = []
@@ -968,7 +1178,7 @@ def run_tts(
 
             for i, item in enumerate(chunk_items):
                 try:
-                    seg = AudioSegment.from_wav(item["path"])
+                    seg = AudioSegment.from_wav(item["path"])  # type: ignore
 
                     if len(seg) < 50:
                         continue
@@ -1001,7 +1211,7 @@ def run_tts(
                     else:
                         next_chunk = valid_chunks[i + 1] if i + 1 < len(valid_chunks) else ""
                         pause_ms = pause_engine.get_pause_ms(valid_chunks[i], next_chunk)
-                        combined += AudioSegment.silent(pause_ms)
+                        combined += AudioSegment.silent(pause_ms)  # type: ignore
 
             # De-essing — подавление избыточных шипящих на финальном файле
             de_esser_intensity = quality_params.get("de_esser_intensity", 1.0) if quality_params else 1.0
@@ -1012,7 +1222,7 @@ def run_tts(
                 except Exception as e:
                     print(f"[De-esser] Failed, skipping: {e}")
 
-            combined += AudioSegment.silent(200)
+            combined += AudioSegment.silent(200)  # type: ignore
             combined = combined.fade_out(80)
 
             if combined.dBFS != float("-inf"):
@@ -1027,9 +1237,9 @@ def run_tts(
                 raise RuntimeError("No audio chunks generated")
 
             try:
-                import soundfile as sf
+                import soundfile as sf  # type: ignore
                 
-                import numpy as np
+                import numpy as np  # type: ignore
 
                 audio_parts = []
                 sample_rate = None
