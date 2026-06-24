@@ -102,7 +102,7 @@ OpenAI → ОпенЭйАй
 
 ## 💻 Требования
 
-- Windows 10 / 11  
+- Windows  
 - x64 CPU / GPU
 
 ---
