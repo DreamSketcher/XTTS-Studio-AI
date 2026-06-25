@@ -27,7 +27,11 @@ class TaskManager:
     # ПОЛУЧИТЬ ОЧЕРЕДЬ ДЛЯ UI
     # =========================
     def get_queue(self):
-        return list(self.q.queue)
+        result = []
+        if self.current_task is not None:
+            result.append(self.current_task)
+        result.extend(list(self.q.queue))
+        return result
 
     # =========================
     # ОТМЕНА ЗАДАЧИ

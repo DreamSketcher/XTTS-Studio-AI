@@ -903,10 +903,22 @@ def update_queue_view():
             "queued": "⏳", "running": "▶", "done": "✔",
             "error": "❌", "cancelled": "⛔",
         }
-        for task in task_manager.get_queue():
-            icon = status_icons.get(task.status, "•")
+        queue = task_manager.get_queue()
+        active_set = False
+        for i, task in enumerate(queue):
             name = task.text[:30].replace("\n", " ")
+            if not active_set and task.status in ("queued", "running"):
+                icon = "▶"
+                active_set = True
+            else:
+                icon = status_icons.get(task.status, "•")
             queue_listbox.insert(tk.END, f"{icon} {name} | {task.progress}%")
+            if icon == "▶":
+                queue_listbox.itemconfig(i, fg=Colors.TEXT_SUCCESS)
+            elif task.status == "done":
+                queue_listbox.itemconfig(i, fg=Colors.TEXT_DIM)
+            elif task.status == "error":
+                queue_listbox.itemconfig(i, fg=Colors.TEXT_ERROR)
     except Exception:
         pass
 
@@ -1728,6 +1740,278 @@ def open_word_replacer():
     win.protocol("WM_DELETE_WINDOW", close_window)
 
 # =========================
+# BATCH PROCESSING
+# =========================
+def open_batch_window():
+    win = tk.Toplevel(root)
+    win.title("📦 Пакетная обработка")
+    win.geometry("660x520")
+    win.minsize(560, 400)
+    win.resizable(True, True)
+    win.configure(bg=Colors.BG_DARK)
+    win.grab_set()
+
+    _files = []        # list of (src_txt, dst_wav)
+    _status_vars = []  # list of tk.StringVar
+
+    def _unique_wav(base: str) -> str:
+        candidate = os.path.join(OUTPUT_DIR, f"{base}.wav")
+        counter = 1
+        while os.path.exists(candidate):
+            candidate = os.path.join(OUTPUT_DIR, f"{base} ({counter}).wav")
+            counter += 1
+        return candidate
+
+    def _refresh_rows():
+        for w in scroll_inner.winfo_children():
+            w.destroy()
+        _status_vars.clear()
+
+        if not _files:
+            tk.Label(scroll_inner, text="Выберите папку или файлы ⬆",
+                     bg=Colors.BG_DARK, fg=Colors.TEXT_DIM,
+                     font=("Segoe UI", 11)).pack(pady=60)
+            count_lbl.config(text="0 файлов")
+            btn_run.config(state="disabled")
+            return
+
+        for i, (src, dst) in enumerate(_files):
+            sv = tk.StringVar(value="⏳ Ожидает")
+            _status_vars.append(sv)
+
+            row = tk.Frame(scroll_inner, bg=Colors.BG_CARD,
+                           highlightthickness=1,
+                           highlightbackground=Colors.BORDER)
+            row.pack(fill="x", padx=8, pady=2)
+
+            tk.Label(row, text=f"{i+1}.", width=3,
+                     bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+                     font=("Consolas", 9)).pack(side="left", padx=(6, 2), pady=6)
+
+            tk.Label(row, text=os.path.basename(src), anchor="w",
+                     bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+                     font=("Segoe UI", 9)).pack(side="left", fill="x",
+                                                expand=True, pady=6)
+
+            tk.Label(row, textvariable=sv, width=14, anchor="e",
+                     bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+                     font=("Consolas", 8)).pack(side="right", padx=8)
+
+        count_lbl.config(text=f"{len(_files)} файлов")
+        btn_run.config(state="normal")
+
+    def _pick_folder():
+        folder = filedialog.askdirectory(title="Выбрать папку с TXT-файлами")
+        if not folder:
+            return
+        txts = sorted(f for f in os.listdir(folder) if f.lower().endswith(".txt"))
+        if not txts:
+            messagebox.showinfo("📂 Пусто", "В папке нет .txt файлов", parent=win)
+            return
+        _files.clear()
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        for fname in txts:
+            src = os.path.join(folder, fname)
+            base = os.path.splitext(fname)[0]
+            _files.append((src, _unique_wav(base)))
+        _refresh_rows()
+
+    def _pick_files():
+        paths = filedialog.askopenfilenames(
+            title="Выбрать TXT-файлы",
+            filetypes=[("TXT", "*.txt")]
+        )
+        if not paths:
+            return
+        _files.clear()
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        for p in sorted(paths):
+            base = os.path.splitext(os.path.basename(p))[0]
+            _files.append((p, _unique_wav(base)))
+        _refresh_rows()
+
+    def _start_status_tracker():
+        def _tick():
+            if not win.winfo_exists():
+                return
+            queue = task_manager.get_queue()
+            for i, (src, dst) in enumerate(_files):
+                if i >= len(_status_vars):
+                    break
+                sv = _status_vars[i]
+                for t in queue:
+                    if (t.quality_params or {}).get("output_path_override") == dst:
+                        if t.status == "done":
+                            win.after(0, lambda s=sv: s.set("✔ Готово"))
+                        elif t.status == "error":
+                            win.after(0, lambda s=sv: s.set("❌ Ошибка"))
+                        elif t.status == "cancelled":
+                            win.after(0, lambda s=sv: s.set("⛔ Отменено"))
+                        elif t.status in ("running", "generate", "merge",
+                                          "chunking", "normalize", "reference"):
+                            win.after(0, lambda s=sv, p=t.progress: s.set(f"▶ {p}%"))
+                        elif t.status == "queued":
+                            win.after(0, lambda s=sv: s.set("▶ В очереди"))
+                        break
+            try:
+                win.after(400, _tick)
+            except Exception:
+                pass
+        _tick()
+
+    def _run_batch():
+        ref = clean_path(ref_var.get().strip())
+        if not ref or not os.path.isfile(ref):
+            messagebox.showerror("❌ Ошибка",
+                                 "Сначала выберите голос-референс", parent=win)
+            return
+        if not _files:
+            return
+
+        quality_name = quality_var.get()
+        if quality_name not in quality_params:
+            quality_name = "Высокое качество"
+        params = quality_params[quality_name]
+
+        btn_run.config(state="disabled")
+        btn_folder.config(state="disabled")
+        btn_files.config(state="disabled")
+
+        for i, (src, dst) in enumerate(_files):
+            try:
+                with open(src, "r", encoding="utf-8") as f:
+                    raw = f.read()
+            except Exception as e:
+                if i < len(_status_vars):
+                    _status_vars[i].set("❌ Ошибка")
+                print(f"[Batch] Cannot read {src}: {e}")
+                continue
+
+            text = normalize_text(raw)
+            if not text.strip():
+                if i < len(_status_vars):
+                    _status_vars[i].set("⚠ Пустой")
+                continue
+
+            if i < len(_status_vars):
+                _status_vars[i].set("▶ В очереди")
+
+            task = Task(
+                text=text,
+                raw_text=raw.strip(),
+                voice=ref,
+                speed=params["speed"].get(),
+                language=lang_var.get(),
+                quality=quality_name,
+                quality_params={
+                    **{k: v.get() for k, v in params.items()},
+                    "word_replacer_enabled": word_replacer_enabled.get(),
+                    "lang_split_enabled": lang_split_enabled.get(),
+                    "output_path_override": dst,
+                }
+            )
+            task_manager.add_task(task)
+
+        win.after(500, lambda: (
+            btn_folder.config(state="normal"),
+            btn_files.config(state="normal"),
+        ))
+        _start_status_tracker()
+
+    # ── LAYOUT ───────────────────────────────────────────────────────────────
+    toolbar = tk.Frame(win, bg=Colors.BG_CARD, pady=6)
+    toolbar.pack(fill="x")
+
+    def _tb_btn(text, cmd):
+        b = tk.Button(toolbar, text=text, command=cmd,
+                      bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+                      activebackground=Colors.BG_HOVER,
+                      activeforeground=Colors.TEXT_MAIN,
+                      relief="flat", bd=0, font=("Segoe UI", 9),
+                      padx=10, pady=4, cursor="hand2")
+        b.bind("<Enter>", lambda e: b.config(bg=Colors.BG_HOVER))
+        b.bind("<Leave>", lambda e: b.config(bg=Colors.BG_INPUT))
+        return b
+
+    btn_folder = _tb_btn("📂 Выбрать папку", _pick_folder)
+    btn_folder.pack(side="left", padx=(10, 4))
+
+    btn_files = _tb_btn("📄 Выбрать файлы", _pick_files)
+    btn_files.pack(side="left", padx=(0, 4))
+
+    count_lbl = tk.Label(toolbar, text="0 файлов",
+                         bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+                         font=("Segoe UI", 9))
+    count_lbl.pack(side="left", padx=8)
+
+    # текущий голос — справа в тулбаре
+    tk.Label(toolbar, text="Голос:", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+             font=("Segoe UI", 8)).pack(side="right", padx=(0, 2))
+    tk.Label(toolbar, textvariable=ref_var, bg=Colors.BG_CARD,
+             fg=Colors.ACCENT, font=("Segoe UI", 8),
+             width=24, anchor="e").pack(side="right", padx=(0, 10))
+
+    tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
+
+    # список файлов (прокручиваемый)
+    list_outer = tk.Frame(win, bg=Colors.BG_DARK)
+    list_outer.pack(fill="both", expand=True)
+
+    canvas = tk.Canvas(list_outer, bg=Colors.BG_DARK, bd=0, highlightthickness=0)
+    scrollbar = tk.Scrollbar(list_outer, orient="vertical",
+                             command=canvas.yview,
+                             bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
+    canvas.configure(yscrollcommand=scrollbar.set)
+    scrollbar.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
+
+    scroll_inner = tk.Frame(canvas, bg=Colors.BG_DARK)
+    cw = canvas.create_window((0, 0), window=scroll_inner, anchor="nw")
+
+    scroll_inner.bind("<Configure>",
+                      lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.bind("<Configure>",
+                lambda e: canvas.itemconfig(cw, width=e.width))
+
+    def _on_mousewheel(e):
+        try:
+            if canvas.winfo_exists():
+                canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+        except Exception:
+            pass
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+    tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
+
+    # нижняя панель
+    bottom = tk.Frame(win, bg=Colors.BG_CARD, pady=8)
+    bottom.pack(fill="x", side="bottom")
+
+    tk.Label(bottom, text="Пресет:", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+             font=("Segoe UI", 9)).pack(side="left", padx=(12, 4))
+    tk.Label(bottom, textvariable=quality_var, bg=Colors.BG_CARD,
+             fg=Colors.TEXT_MAIN,
+             font=("Segoe UI", 9, "bold")).pack(side="left")
+
+    btn_run = tk.Button(
+        bottom, text="🚀 Запустить пакет",
+        command=_run_batch,
+        bg=Colors.BG_ACTIVE, fg=Colors.TEXT_MAIN,
+        activebackground="#2ea043", activeforeground=Colors.TEXT_MAIN,
+        relief="flat", bd=0, font=("Segoe UI", 10, "bold"),
+        padx=18, pady=5, cursor="hand2", state="disabled"
+    )
+    btn_run.pack(side="right", padx=12)
+
+    def _on_close():
+        canvas.unbind_all("<MouseWheel>")
+        win.destroy()
+    win.protocol("WM_DELETE_WINDOW", _on_close)
+
+    # начальный placeholder
+    _refresh_rows()
+
+# =========================
 # CANCEL / GENERATE
 # =========================
 def cancel_task():
@@ -1802,8 +2086,8 @@ def generate():
     set_stage("QUEUED")
     set_progress(0)
     task_manager.add_task(current_task)
+    root.after(0, update_queue_view)
     save_settings()
-
 # =========================
 # CONSOLE
 # =========================
@@ -2390,17 +2674,31 @@ play_btn.pack(side="left", padx=(0, 3))
 create_button(voice_btn_row, "⏩", seek_forward, bg=Colors.BG_INPUT, width=3).pack(side="left")
 
 # Queue
-queue_card = create_card(left_panel, "📋 Очередь задач")
+queue_card = create_card(left_panel, "")
 queue_card.pack(fill="x", pady=(0, 8))
 
+tk.Label(
+    queue_card,
+    text="📋 Очередь задач",
+    bg=Colors.BG_CARD,
+    fg=Colors.TEXT_MAIN,
+    font=("Segoe UI", 9, "bold"),
+    anchor="w"
+).pack(fill="x", padx=10, pady=(7, 3))
+
 queue_listbox = tk.Listbox(
-    queue_card, height=5,
+    queue_card, height=7,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
     selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
     relief="flat", highlightthickness=0, font=("Consolas", 8),
     activestyle="none", exportselection=False
 )
-queue_listbox.pack(fill="x", padx=10, pady=(3, 7))
+queue_listbox.pack(fill="x", padx=10, pady=(0, 4))
+
+batch_btn_row = tk.Frame(queue_card, bg=Colors.BG_CARD)
+batch_btn_row.pack(fill="x", padx=10, pady=(0, 7))
+create_button(batch_btn_row, "📦 Пакетная обработка", open_batch_window,
+              bg=Colors.BG_INPUT).pack(fill="x")
 
 # =========================
 # CONSOLE (MOVED TO LEFT PANEL UNDER QUEUE)
@@ -2455,8 +2753,22 @@ tk.Frame(left_panel, bg=Colors.BG_DARK).pack(fill="both", expand=True)
 # =========================
 
 # Text — НАВЕРХ
-text_card = create_card(right_panel, "📝 Текст")
+text_card = create_card(right_panel, "")
 text_card.pack(fill="both", expand=True, pady=(0, 10))
+
+text_header = tk.Frame(text_card, bg=Colors.BG_CARD)
+text_header.pack(fill="x", padx=10, pady=(7, 0))
+
+tk.Label(
+    text_header,
+    text="📝 Текст",
+    bg=Colors.BG_CARD,
+    fg=Colors.TEXT_MAIN,
+    font=("Segoe UI", 11, "bold"),
+    anchor="w"
+).pack(side="left")
+
+create_button(text_header, "❓ Справка", show_help, bg=Colors.BG_INPUT).pack(side="right")
 text_box = tk.Text(
     text_card,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN, insertbackground=Colors.TEXT_MAIN,
@@ -2479,11 +2791,10 @@ text_btn_frame = tk.Frame(text_card, bg=Colors.BG_CARD)
 text_btn_frame.pack(fill="x", padx=10, pady=(0, 4))
 create_button(text_btn_frame, "📁 Загрузить", load_txt, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 create_button(text_btn_frame, "📋 Вставить", paste_clipboard, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
-create_button(text_btn_frame, "🗑️ Очистить", lambda: [set_textbox_content("")], bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
+create_button(text_btn_frame, "🗑️Очистить", lambda: [set_textbox_content("")], bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 dict_btn = create_button(text_btn_frame, "📖 Словарь", open_word_replacer, bg=Colors.BG_INPUT)
 dict_btn.pack(side="left", padx=(0, 5))
 ToolTip(dict_btn, "Словарь произношений.\n\nАнглийские слова из текста автоматически\nраспознаются и добавляются — они будут\nчитаться кириллицей без артефактов.\n\nМожно добавлять и править — приоритет на пользовательское решение.")
-create_button(text_btn_frame, "📜 История", open_history, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 create_button(text_btn_frame, "🎵 Аудио", open_outputs_folder, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 
 
@@ -2496,10 +2807,11 @@ options_frame.pack(fill="x", padx=10, pady=(0, 7))
 # Левая часть (язык / справка)
 left_opts = tk.Frame(options_frame, bg=Colors.BG_CARD)
 left_opts.pack(side="left")
-lang_btn = create_button(left_opts, "🌐 Язык", pick_language, bg=Colors.BG_INPUT)
+lang_btn = create_button(left_opts, "🌐 Язык генерации", pick_language, bg=Colors.BG_INPUT)
 lang_btn.pack(side="left", padx=(0, 5))
 ToolTip(lang_btn, lambda: f"Текущий язык: {lang_var.get()}\nМожно менять акцент")
-create_button(left_opts, "❓ Справка", show_help, bg=Colors.BG_INPUT).pack(side="left")
+
+create_button(left_opts, "📜 История", open_history, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 
 # Правая часть (стили / высокое качество)
 right_opts = tk.Frame(options_frame, bg=Colors.BG_CARD)

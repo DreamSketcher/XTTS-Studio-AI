@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any, List, Optional, Tuple
 import re
 import os
 import sys
@@ -968,7 +968,8 @@ def run_tts(
         output_dir = path("outputs")
         os.makedirs(output_dir, exist_ok=True)
 
-        final_path = _make_output_name(raw_text or text, output_dir)
+        override_path = (quality_params or {}).get("output_path_override")
+        final_path = override_path if override_path else _make_output_name(raw_text or text, output_dir)
 
         total = max(len(chunks), 1)
         chunk_items = []
@@ -997,13 +998,12 @@ def run_tts(
             #print(f"[MAP] chunk={i} start={start} end={end} map_text[start:start+40]={repr(map_text[start:start+40])}")
 
             if status_callback:
-                raw_chunk = chunks_before_prosody[i] if i < len(chunks_before_prosody) else chunk
                 status_callback({
                     "stage": "chunk",
                     "chunk_index": i,
                     "chunk_start": start,
                     "chunk_end": end,
-                    "chunk_raw": raw_chunk,
+                    "chunk_raw": map_text[start:end] if start is not None and end is not None else "",
                 })
 
             chunk_path = os.path.join(output_dir, f"_chunk_{i}.wav")
@@ -1091,14 +1091,41 @@ def run_tts(
                     candidate = None
 
                     for attempt in range(max_attempts):
-                        out = tts.synthesizer.tts_model.inference(
-                            text=sub_text,
-                            language=sub_lang,
-                            gpt_cond_latent=gpt_cond_latent,
-                            speaker_embedding=speaker_embedding,
-                            speed=speed_value,
-                            **sub_preset
-                        )
+                        _infer_result: List[Any] = [None]
+                        _infer_error: List[Optional[Exception]] = [None]
+                        _infer_done   = _threading.Event()
+
+                        def _infer_thread():
+                            try:
+                                _infer_result[0] = tts.synthesizer.tts_model.inference(
+                                    text=sub_text,
+                                    language=sub_lang,
+                                    gpt_cond_latent=gpt_cond_latent,
+                                    speaker_embedding=speaker_embedding,
+                                    speed=speed_value,
+                                    **sub_preset
+                                )
+                            except Exception as _e:
+                                _infer_error[0] = _e
+                            finally:
+                                _infer_done.set()
+
+                        t = _threading.Thread(target=_infer_thread, daemon=True)
+                        t.start()
+
+                        while not _infer_done.wait(timeout=0.1):
+                            if cancelled():
+                                raise _Cancelled()
+
+                        if cancelled():
+                            raise _Cancelled()
+
+                        if _infer_error[0] is not None:
+                            raise _infer_error[0]
+
+                        out = _infer_result[0]
+                        if out is None or not isinstance(out, dict) or "wav" not in out:
+                            raise RuntimeError(f"Inference returned invalid result: {out!r}")
 
                         candidate = out["wav"]
                         if hasattr(candidate, 'device'):
@@ -1150,6 +1177,8 @@ def run_tts(
                     "no_pause": no_pause_flag,
                 })
 
+            except _Cancelled:
+                raise
             except Exception as e:
                 import traceback
                 print(f"[Chunk {i} error]: {e}")
@@ -1172,6 +1201,7 @@ def run_tts(
         send("merge", 90, "Сборка аудио...")
 
         if PYDUB_OK and chunk_items:
+            assert AudioSegment is not None
             combined = AudioSegment.empty()  # type: ignore
 
             valid_segments = []
