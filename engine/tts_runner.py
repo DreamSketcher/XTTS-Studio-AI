@@ -913,6 +913,14 @@ def run_tts(
         send("normalize", 10, "Нормализация текста...")
         text = normalizer.normalize(text)
         text = normalizer.safe_character_filter(text)
+        # OPTIONAL GPT PREPROCESS
+        use_gpt = quality_params.get("use_gpt", False) if quality_params else False
+
+        if use_gpt:
+            from .gpt_client import preprocess_for_tts
+
+            send("gpt", 15, "GPT обработка текста...")
+            text = preprocess_for_tts(text, mode="assistant")
 
         # отправляем финальный текст в GUI для обновления text_box
         send("normalized_text", 20, text_msg=text)
@@ -1183,6 +1191,7 @@ def run_tts(
                 import traceback
                 print(f"[Chunk {i} error]: {e}")
                 print(traceback.format_exc())
+                raise RuntimeError(f"Chunk {i} failed: {e}") from e
 
             progress = 30 + int((i + 1) / total * 60)
             send("generate", progress)

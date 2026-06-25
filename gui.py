@@ -233,6 +233,31 @@ model_ready = False
 voice_manager = VoiceManager(BACKUP_DIR)
 voice_manager.scan_voices()
 
+use_gpt = tk.BooleanVar()
+gpt_checkbox = tk.Checkbutton(
+    left_panel,
+    text="улучшение текста",
+    variable=use_gpt,
+    bg=Colors.BG_DARK,
+    fg=Colors.TEXT_MAIN,
+    selectcolor=Colors.BG_INPUT,
+    activebackground=Colors.BG_DARK,
+    activeforeground=Colors.TEXT_MAIN,
+    font=("Segoe UI", 9),
+    cursor="hand2"
+)
+gpt_checkbox.pack(anchor="w", padx=12, pady=(4, 8))
+ToolTip(gpt_checkbox, "Включает доработку текста через Groq перед озвучкой")
+
+# Chat interface state
+chat_history = None
+chat_input = None
+_chat_window = None
+chat_send_btn = None
+chat_status_label = None
+chat_btn = None
+improve_btn = None
+
 # =========================
 # WIDGETS
 # =========================
@@ -1510,6 +1535,390 @@ def hide_placeholder(event=None):
         text_box.config(fg=Colors.TEXT_MAIN)
 
 # =========================
+# WEB CHAT HELPERS
+
+def set_chat_status(message: str):
+    if chat_status_label is None:
+        return
+    chat_status_label.config(text=message)
+
+
+def append_chat_message(role: str, message: str):
+    if chat_history is None:
+        return
+    chat_history.config(state="normal")
+    if role == "user":
+        chat_history.insert("end", "Вы: ", "user")
+    elif role == "assistant":
+        chat_history.insert("end", "GPT: ", "assistant")
+    else:
+        chat_history.insert("end", "Система: ", "system")
+    chat_history.insert("end", message + "\n\n")
+    chat_history.config(state="disabled")
+    chat_history.see("end")
+def append_chat_message(role: str, message: str):
+    if chat_history is None:
+        return
+    chat_history.config(state="normal")
+    if role == "user":
+        chat_history.insert("end", "Вы: ", "user")
+    elif role == "assistant":
+        chat_history.insert("end", "AI: ", "assistant")
+    else:
+        chat_history.insert("end", "Система: ", "system")
+    chat_history.insert("end", message + "\n\n")
+    chat_history.config(state="disabled")
+    chat_history.see("end")
+
+
+def open_chat_window():
+    global chat_history, chat_input, chat_send_btn, chat_status_label, _chat_window, improve_btn
+
+    if _chat_window is not None:
+        try:
+            if _chat_window.winfo_exists():
+                _chat_window.lift()
+                _chat_window.focus_force()
+                return
+        except Exception:
+            pass
+
+    win = tk.Toplevel(root)
+    win.title("💬 Чат")
+    win.geometry("520x600")
+    win.minsize(480, 420)
+    win.resizable(True, True)
+    win.configure(bg=Colors.BG_DARK)
+
+    globals()["_chat_window"] = win
+
+    chat_card = create_card(win, "")
+    chat_card.pack(fill="both", expand=True, padx=10, pady=10)
+
+    tk.Label(
+        chat_card, text="💬 Чат с GroQ",
+        bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+        font=("Segoe UI", 11, "bold"), anchor="w"
+    ).pack(fill="x", padx=10, pady=(7, 5))
+
+    hist_frame = tk.Frame(chat_card, bg=Colors.BORDER, padx=1, pady=1)
+    hist_frame.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+
+    hist_scroll = tk.Scrollbar(hist_frame, bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
+    hist_scroll.pack(side="right", fill="y")
+
+    history_widget = tk.Text(
+        hist_frame, wrap="word", state="disabled",
+        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+        relief="flat", highlightthickness=0,
+        font=("Segoe UI", 10), padx=10, pady=10,
+        yscrollcommand=hist_scroll.set
+    )
+    
+    chat_action_row = tk.Frame(chat_card, bg=Colors.BG_CARD)
+    chat_action_row.pack(side="bottom", fill="x", padx=10, pady=(6, 10))
+
+    improve_btn_local = create_button(
+        chat_action_row, "✨ Улучшить текст для TTS",
+        improve_text_with_gpt, bg=Colors.BG_INPUT, font_size=9, height=2
+    )
+    improve_btn_local.pack(side="left", padx=(0, 5), fill="x", expand=True)
+    ToolTip(improve_btn_local,
+        "Groq перепишет текст из редактора:\n"
+        "• раскроет сокращения\n"
+        "• разобьёт длинные предложения\n"
+        "• уберёт символы, плохо читаемые TTS\n"
+        "Результат вставится обратно в редактор.")
+    globals()["improve_btn"] = improve_btn_local
+
+    clear_hist_btn = create_button(
+        chat_action_row, "🗑 Очистить чат",
+        clear_chat_history, bg=Colors.BG_INPUT, font_size=9, height=2
+    )
+    clear_hist_btn.pack(side="left", padx=(0, 5), fill="x", expand=True)
+
+    gpt_settings_btn = create_button(
+        chat_action_row, "⚙ Настройки Groq",
+        open_gpt_settings, bg=Colors.BG_INPUT, font_size=9, height=2
+    )
+    gpt_settings_btn.pack(side="left", fill="x", expand=True)
+    ToolTip(gpt_settings_btn,
+        "API-ключ и выбор модели Groq.\n"
+        "Бесплатно: console.groq.com")
+
+    status_lbl = tk.Label(
+        chat_card, text="Готов к работе", anchor="w",
+        bg=Colors.BG_CARD, fg=Colors.TEXT_DIM, font=("Segoe UI", 8)
+    )
+    status_lbl.pack(side="bottom", fill="x", padx=10, pady=(0, 4))
+    globals()["chat_status_label"] = status_lbl
+
+    input_frame = tk.Frame(chat_card, bg=Colors.BG_CARD)
+    input_frame.pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+
+    input_box = tk.Text(
+        input_frame, height=3, wrap="word",
+        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+        insertbackground=Colors.TEXT_MAIN,
+        relief="flat", highlightthickness=1,
+        highlightbackground=Colors.BORDER, highlightcolor=Colors.ACCENT,
+        font=("Segoe UI", 10), padx=8, pady=6
+    )
+    input_box.pack(side="left", fill="both", expand=True, padx=(0, 6))
+
+    globals()["chat_input"] = input_box
+
+    def _on_enter(event):
+        if not (event.state & 0x1):  # без Shift
+            send_chat_message()
+            return "break"
+        return None
+
+    input_box.bind("<Return>", _on_enter)
+
+    send_btn = create_button(input_frame, "➤", send_chat_message, bg=Colors.BG_ACTIVE, width=3)
+    send_btn.pack(side="left", fill="y")
+    globals()["chat_send_btn"] = send_btn
+
+    hist_frame = tk.Frame(chat_card, bg=Colors.BORDER, padx=1, pady=1)
+    hist_frame.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+
+    hist_scroll = tk.Scrollbar(hist_frame, bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
+    hist_scroll.pack(side="right", fill="y")
+
+    history_widget = tk.Text(
+        hist_frame, wrap="word", state="disabled",
+        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+        relief="flat", highlightthickness=0,
+        font=("Segoe UI", 10), padx=10, pady=10,
+        yscrollcommand=hist_scroll.set
+    )
+    history_widget.pack(fill="both", expand=True)
+    hist_scroll.config(command=history_widget.yview)
+
+    history_widget.tag_configure("user", foreground=Colors.ACCENT, font=("Segoe UI", 10, "bold"))
+    history_widget.tag_configure("assistant", foreground=Colors.TEXT_SUCCESS, font=("Segoe UI", 10, "bold"))
+    history_widget.tag_configure("system", foreground=Colors.TEXT_DIM, font=("Segoe UI", 9, "italic"))
+
+    globals()["chat_history"] = history_widget
+
+    for entry in _chat_history_messages:
+        append_chat_message(entry.get("role", "assistant"), entry.get("content", ""))
+
+    def _on_close():
+        globals()["_chat_window"] = None
+        globals()["chat_history"] = None
+        globals()["chat_input"] = None
+        globals()["chat_send_btn"] = None
+        globals()["chat_status_label"] = None
+        win.destroy()
+
+    win.protocol("WM_DELETE_WINDOW", _on_close)
+    input_box.focus_set()
+
+
+def toggle_chat_panel():
+    open_chat_window()
+
+
+def show_chat_panel():
+    open_chat_window()
+
+def hide_chat_panel():
+    pass
+
+
+_chat_history_messages = []   # память разговора (последние 20 сообщений)
+
+def send_chat_message():
+    if chat_input is None or chat_send_btn is None:
+        return
+    prompt = chat_input.get("1.0", "end-1c").strip()
+    if not prompt:
+        return
+    chat_input.delete("1.0", tk.END)
+    append_chat_message("user", prompt)
+    chat_send_btn.config(state="disabled")
+    improve_btn.config(state="disabled")
+    set_chat_status("⏳ Отправка...")
+
+    def _send():
+        try:
+            from engine.gpt_client import chat
+            response = chat(prompt, history=list(_chat_history_messages))
+            _chat_history_messages.append({"role": "user", "content": prompt})
+            _chat_history_messages.append({"role": "assistant", "content": response})
+            if len(_chat_history_messages) > 20:
+                _chat_history_messages[:] = _chat_history_messages[-20:]
+            root.after(0, lambda: append_chat_message("assistant", response))
+            root.after(0, lambda: set_chat_status("✅ Ответ получен"))
+        except Exception as e:
+            err_msg = str(e)
+            root.after(0, lambda msg=err_msg: set_chat_status(f"❌ {msg}"))
+        finally:
+            root.after(0, lambda: chat_send_btn.config(state="normal"))
+            root.after(0, lambda: improve_btn.config(state="normal"))
+
+    threading.Thread(target=_send, daemon=True).start()
+
+ 
+# ──────────────────────────────────────────────────────────────
+# Вставить блок целиком после закрывающей строки функции выше:
+# ──────────────────────────────────────────────────────────────
+ 
+def improve_text_with_gpt():
+    """✨ Улучшить — GPT переписывает текст из редактора для TTS."""
+    raw = text_box.get("1.0", "end-1c").strip()
+    if not raw or raw == PLACEHOLDER:
+        messagebox.showwarning("⚠️", "Текст пустой", parent=root)
+        return
+
+    improve_btn.config(state="disabled")
+    chat_send_btn.config(state="disabled")
+    set_chat_status("⏳ Улучшаю текст...")
+
+    def _run():
+        try:
+            from engine.gpt_client import improve_for_tts
+            result = improve_for_tts(raw)
+            def _apply():
+                set_textbox_content(result)
+                append_chat_message(
+                    "system",
+                    f"[Текст улучшен для TTS — {len(raw)} → {len(result)} символов]"
+                )
+                set_chat_status("✅ Текст обновлён в редакторе")
+            root.after(0, _apply)
+        except Exception as e:
+            err_msg = str(e)
+            root.after(0, lambda msg=err_msg: set_chat_status(f"❌ {msg}"))
+            root.after(0, lambda msg=err_msg: messagebox.showerror("Groq Ошибка", msg, parent=root))
+        finally:
+            root.after(0, lambda: improve_btn.config(state="normal"))
+            root.after(0, lambda: chat_send_btn.config(state="normal"))
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def clear_chat_history():
+    """Очистить историю переписки."""
+    _chat_history_messages.clear()
+    if chat_history is not None:
+        chat_history.config(state="normal")
+        chat_history.delete("1.0", tk.END)
+        chat_history.config(state="disabled")
+    set_chat_status("История очищена")
+
+
+def open_gpt_settings():
+    """Окно настроек Groq — ключ и модель."""
+    from engine.gpt_client import (
+        get_api_key, set_api_key, get_model, set_model,
+        validate_key, AVAILABLE_MODELS, DEFAULT_MODEL
+    )
+
+    win = tk.Toplevel(root)
+    win.title("⚙ Настройки Groq")
+    win.geometry("560x460")
+    win.minsize(480, 400)
+    win.resizable(True, True)
+    win.configure(bg=Colors.BG_CARD)
+    win.grab_set()
+
+    # Ключ
+    tk.Label(win, text="Groq API Key", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+             font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=20, pady=(18, 4))
+
+    key_var = tk.StringVar(value=get_api_key())
+    key_entry = tk.Entry(
+        win, textvariable=key_var, show="•", width=56,
+        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+        insertbackground=Colors.TEXT_MAIN, relief="flat",
+        font=("Consolas", 10),
+        highlightthickness=1, highlightbackground=Colors.BORDER
+    )
+    key_entry.pack(padx=20, pady=(0, 4), fill="x")
+
+    hint_row = tk.Frame(win, bg=Colors.BG_CARD)
+    hint_row.pack(anchor="w", padx=20, fill="x")
+
+    show_var = tk.BooleanVar(value=False)
+    def toggle_show():
+        key_entry.config(show="" if show_var.get() else "•")
+    tk.Checkbutton(
+        hint_row, text="Показать ключ", variable=show_var, command=toggle_show,
+        bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+        selectcolor=Colors.BG_INPUT, activebackground=Colors.BG_CARD,
+        font=("Segoe UI", 9), cursor="hand2"
+    ).pack(side="left")
+
+    import webbrowser
+
+    def _open_groq_console(event=None):
+        webbrowser.open("https://console.groq.com/keys")
+
+    link_lbl = tk.Label(
+        hint_row, text="Получить бесплатно: console.groq.com",
+        bg=Colors.BG_CARD, fg=Colors.ACCENT,
+        font=("Segoe UI", 8, "underline"), cursor="hand2"
+    )
+    link_lbl.pack(side="right")
+    link_lbl.bind("<Button-1>", _open_groq_console)
+    # Модель
+    tk.Label(win, text="Модель", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+             font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=20, pady=(14, 6))
+
+    model_var = tk.StringVar(value=get_model())
+    model_descriptions = {
+        "llama-3.3-70b-versatile": "70B — лучшее качество, хорошо понимает русский",
+        "llama-3.1-8b-instant":    "8B — максимальная скорость, экономия лимитов",
+        "mixtral-8x7b-32768":      "Mixtral — большой контекст (32k токенов)",
+        "gemma2-9b-it":            "Gemma2 — компактная модель Google",
+    }
+    for m in AVAILABLE_MODELS:
+        row = tk.Frame(win, bg=Colors.BG_CARD)
+        row.pack(anchor="w", padx=20, pady=1)
+        tk.Radiobutton(
+            row, text=m, variable=model_var, value=m,
+            bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+            selectcolor=Colors.BG_INPUT, activebackground=Colors.BG_CARD,
+            font=("Segoe UI", 9, "bold" if m == DEFAULT_MODEL else "normal"),
+            cursor="hand2", width=28, anchor="w"
+        ).pack(side="left")
+        tk.Label(
+            row, text=model_descriptions.get(m, ""),
+            bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+            font=("Segoe UI", 8)
+        ).pack(side="left")
+
+    # Кнопки и статус — прибиты к низу окна, не зависят от высоты содержимого выше
+    btn_row = tk.Frame(win, bg=Colors.BG_CARD)
+    btn_row.pack(side="bottom", fill="x", padx=20, pady=(10, 18))
+
+    status_lbl = tk.Label(win, text="", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+                          font=("Segoe UI", 9), anchor="w")
+    status_lbl.pack(side="bottom", fill="x", padx=20, pady=(0, 4))
+
+    def _test():
+        status_lbl.config(text="⏳ Проверка ключа...", fg=Colors.TEXT_DIM)
+        win.update_idletasks()
+        def _run():
+            ok, msg = validate_key(key_var.get().strip())
+            root.after(0, lambda: status_lbl.config(
+                text=msg,
+                fg=Colors.TEXT_SUCCESS if ok else Colors.TEXT_ERROR
+            ))
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _save():
+        set_api_key(key_var.get().strip())
+        set_model(model_var.get())
+        status_lbl.config(text="✅ Сохранено", fg=Colors.TEXT_SUCCESS)
+
+    create_button(btn_row, "🔑 Проверить ключ", _test, bg=Colors.BG_INPUT, height=2).pack(side="left", fill="x", expand=True, padx=(0, 8))
+    create_button(btn_row, "💾 Сохранить", _save, bg=Colors.BG_ACTIVE, height=2).pack(side="left", fill="x", expand=True)
+
+# =========================
 # TEXT HELPERS
 # =========================
 def paste_safe(event=None):
@@ -1953,6 +2362,7 @@ def open_batch_window():
                     "word_replacer_enabled": word_replacer_enabled.get(),
                     "lang_split_enabled": lang_split_enabled.get(),
                     "output_path_override": dst,
+                    "use_gpt": use_gpt.get(),
                 }
             )
             task_manager.add_task(task)
@@ -2138,6 +2548,7 @@ def generate():
             **{k: v.get() for k, v in params.items()},
             "word_replacer_enabled": word_replacer_enabled.get(),
             "lang_split_enabled": lang_split_enabled.get(),
+            "use_gpt": use_gpt.get(),
         }
     )
 
@@ -2147,8 +2558,7 @@ def generate():
     task_manager.add_task(current_task)
     root.after(0, update_queue_view)
     save_settings()
-# =========================
-# CONSOLE
+
 # =========================
 def toggle_console():
     if console_visible.get():
@@ -2362,6 +2772,7 @@ quality_params = {
         "speed": tk.DoubleVar(value=1.0),
         "trim_mode": tk.StringVar(value="auto"),
         "export_format": tk.StringVar(value="wav"),
+        "use_gpt": tk.BooleanVar(value=use_gpt.get())
     },
 
     "Нарратив": {
@@ -2376,6 +2787,7 @@ quality_params = {
         "speed": tk.DoubleVar(value=0.9),
         "trim_mode": tk.StringVar(value="auto"),
         "export_format": tk.StringVar(value="wav"),
+        "use_gpt": tk.BooleanVar(value=use_gpt.get())
     },
 
     "Динамика": {
@@ -2390,6 +2802,7 @@ quality_params = {
         "speed": tk.DoubleVar(value=1.1),
         "trim_mode": tk.StringVar(value="auto"),
         "export_format": tk.StringVar(value="wav"),
+        "use_gpt": tk.BooleanVar(value=use_gpt.get())
     },
 
     "Экспрессия": {
@@ -2404,6 +2817,7 @@ quality_params = {
         "speed": tk.DoubleVar(value=1.0),
         "trim_mode": tk.StringVar(value="auto"),
         "export_format": tk.StringVar(value="wav"),
+        "use_gpt": tk.BooleanVar(value=use_gpt.get())
     },
 }
 
@@ -2581,7 +2995,10 @@ def save_settings():
         "word_replacer_enabled": word_replacer_enabled.get(),
         "lang_split_enabled": lang_split_enabled.get(),
         "quality_params": {
-            preset: {k: v.get() for k, v in params.items()}
+            preset: {
+                k: (v.get() if hasattr(v, "get") else v)
+                for k, v in params.items()
+            }
             for preset, params in quality_params.items()
         }
     }
@@ -2923,6 +3340,11 @@ text_btn_frame.pack(fill="x", padx=10, pady=(0, 4))
 create_button(text_btn_frame, "📁 Загрузить", load_txt, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 create_button(text_btn_frame, "📋 Вставить", paste_clipboard, bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 create_button(text_btn_frame, "🗑️Очистить", lambda: [set_textbox_content("")], bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
+chat_btn = create_button(text_btn_frame, "💬 Чат", toggle_chat_panel, bg=Colors.BG_INPUT)
+chat_btn.pack(side="left", padx=(0, 5))
+ToolTip(chat_btn, "Открыть WEB чат-панель под редактором.\nТребует API-ключ AI (⚙ Настройки).")
+chat_btn.pack(side="left", padx=(0, 5))
+ToolTip(chat_btn, "Открыть окно Chat под текстовым полем.")
 dict_btn = create_button(text_btn_frame, "📖 Словарь", open_word_replacer, bg=Colors.BG_INPUT)
 dict_btn.pack(side="left", padx=(0, 5))
 ToolTip(dict_btn, "Словарь произношений.\n\nАнглийские слова из текста автоматически\nраспознаются и добавляются — они будут\nчитаться кириллицей без артефактов.\n\nМожно добавлять и править — приоритет на пользовательское решение.")
@@ -3109,6 +3531,7 @@ def update_quality_buttons(*args):
 
 quality_var.trace_add("write", update_quality_buttons)
 update_quality_buttons()
+
 
 # Action buttons — ПОСЛЕ текстового блока
 action_frame = tk.Frame(right_panel, bg=Colors.BG_DARK)
