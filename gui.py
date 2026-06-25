@@ -1945,11 +1945,25 @@ def open_batch_window():
     count_lbl.pack(side="left", padx=8)
 
     # текущий голос — справа в тулбаре
+    _batch_voice_var = tk.StringVar()
+
+    def _update_batch_voice(*_):
+        p = ref_var.get().strip()
+        if not p:
+            _batch_voice_var.set("")
+            return
+        folder = os.path.basename(os.path.dirname(p))
+        name   = os.path.splitext(os.path.basename(p))[0]
+        _batch_voice_var.set(folder if name.lower() == "normalized" else name)
+
+    ref_var.trace_add("write", _update_batch_voice)
+    _update_batch_voice()
+
     tk.Label(toolbar, text="Голос:", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
              font=("Segoe UI", 8)).pack(side="right", padx=(0, 2))
-    tk.Label(toolbar, textvariable=ref_var, bg=Colors.BG_CARD,
+    tk.Label(toolbar, textvariable=_batch_voice_var, bg=Colors.BG_CARD,
              fg=Colors.ACCENT, font=("Segoe UI", 8),
-             width=24, anchor="e").pack(side="right", padx=(0, 10))
+             width=18, anchor="e").pack(side="right", padx=(0, 10))
 
     tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
 
@@ -2650,29 +2664,83 @@ tk.Label(ref_card, text="✅ Конвертирован в WAV\n✅ Обреза
          ).pack(fill="x", padx=10, pady=(3, 7))
 
 # Voice library
-voice_card = create_card(left_panel, "📚 Библиотека голосов")
+voice_card = create_card(left_panel, "")
 voice_card.pack(fill="x", pady=(0, 8))
 
+# заголовок с разделителем
+voice_header = tk.Frame(voice_card, bg=Colors.BG_CARD)
+voice_header.pack(fill="x", padx=10, pady=(8, 6))
+tk.Label(
+    voice_header, text="📚 Библиотека голосов",
+    bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+    font=("Segoe UI", 9, "bold"), anchor="w"
+).pack(side="left")
+def _voice_display_name() -> str:
+    p = ref_var.get().strip()
+    if not p:
+        return ""
+    folder = os.path.basename(os.path.dirname(p))
+    name   = os.path.splitext(os.path.basename(p))[0]
+    # если имя файла — "normalized", показываем имя папки (имя голоса)
+    return folder if name.lower() == "normalized" else name
+
+_voice_label_var = tk.StringVar()
+
+def _update_voice_label(*_):
+    _voice_label_var.set(_voice_display_name())
+
+ref_var.trace_add("write", _update_voice_label)
+_update_voice_label()
+
+tk.Label(
+    voice_header, textvariable=_voice_label_var,
+    bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+    font=("Segoe UI", 7), anchor="e",
+    width=16
+).pack(side="right")
+
+tk.Frame(voice_card, bg=Colors.BORDER, height=1).pack(fill="x", padx=10, pady=(0, 4))
+
+# listbox с рамкой
+voice_list_frame = tk.Frame(
+    voice_card,
+    bg=Colors.BORDER,
+    highlightthickness=0,
+    padx=1, pady=1
+)
+voice_list_frame.pack(fill="x", padx=10, pady=(0, 6))
+
 voice_listbox = tk.Listbox(
-    voice_card, height=6,
+    voice_list_frame, height=6,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
     selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
-    relief="flat", highlightthickness=0, font=("Segoe UI", 10),
+    relief="flat", highlightthickness=0,
+    font=("Segoe UI", 9),
     activestyle="none", exportselection=False
 )
-voice_listbox.pack(fill="both", padx=10, pady=3)
+voice_listbox.pack(fill="both")
 voice_listbox.bind("<<ListboxSelect>>", on_voice_select)
 
+tk.Frame(voice_card, bg=Colors.BORDER, height=1).pack(fill="x", padx=10, pady=(0, 6))
+
+# кнопки плеера
 voice_btn_row = tk.Frame(voice_card, bg=Colors.BG_CARD)
-voice_btn_row.pack(fill="x", padx=10, pady=(0, 7))
-lib_btn = create_button(voice_btn_row, "📂", pick_backup_reference, bg=Colors.BG_INPUT, width=3)
+voice_btn_row.pack(fill="x", padx=10, pady=(0, 8))
+
+lib_btn = create_button(voice_btn_row, "📂", pick_backup_reference,
+                        bg=Colors.BG_INPUT, width=3)
 lib_btn.pack(side="left", padx=(0, 3))
 ToolTip(lib_btn, "Выбрать голос из библиотеки")
-create_button(voice_btn_row, "⏪", seek_back, bg=Colors.BG_INPUT, width=3).pack(side="left", padx=(0, 3))
-play_btn = create_button(voice_btn_row, "▶", play_reference, bg=Colors.BG_ACTIVE, width=3)
-play_btn.pack(side="left", padx=(0, 3))
-create_button(voice_btn_row, "⏩", seek_forward, bg=Colors.BG_INPUT, width=3).pack(side="left")
 
+create_button(voice_btn_row, "⏪", seek_back,
+              bg=Colors.BG_INPUT, width=3).pack(side="left", padx=(0, 3))
+
+play_btn = create_button(voice_btn_row, "▶", play_reference,
+                         bg=Colors.BG_ACTIVE, width=3)
+play_btn.pack(side="left", padx=(0, 3))
+
+create_button(voice_btn_row, "⏩", seek_forward,
+              bg=Colors.BG_INPUT, width=3).pack(side="left")
 # Queue
 queue_card = create_card(left_panel, "")
 queue_card.pack(fill="x", pady=(0, 8))
@@ -2708,15 +2776,33 @@ console_card.pack(fill="x", pady=(0, 8), after=queue_card)
 
 console_header = tk.Frame(console_card, bg=Colors.BG_CARD)
 console_header.pack(fill="x", padx=8, pady=(7, 3))
-toggle_btn = create_button(console_header, "📋 Console ▼", toggle_console, bg=Colors.BG_INPUT)
+toggle_btn = tk.Button(
+    console_header, text="📋 Console ▼", command=toggle_console,
+    bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+    activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
+    relief="flat", borderwidth=0, font=("Segoe UI", 8),
+    cursor="hand2", padx=5, pady=1
+)
+toggle_btn.bind("<Enter>", lambda e: toggle_btn.config(bg=Colors.BG_HOVER))
+toggle_btn.bind("<Leave>", lambda e: toggle_btn.config(bg=Colors.BG_INPUT))
 toggle_btn.pack(side="left")
-create_button(console_header, "🗑️ Очистить", clear_console, bg=Colors.BG_INPUT).pack(side="right")
+
+_clr_btn = tk.Button(
+    console_header, text="🗑️", command=clear_console,
+    bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
+    activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
+    relief="flat", borderwidth=0, font=("Segoe UI", 8),
+    cursor="hand2", padx=5, pady=1
+)
+_clr_btn.bind("<Enter>", lambda e: _clr_btn.config(bg=Colors.BG_HOVER))
+_clr_btn.bind("<Leave>", lambda e: _clr_btn.config(bg=Colors.BG_INPUT))
+_clr_btn.pack(side="right")
 
 console_inner = tk.Frame(console_card, bg=Colors.BG_CARD)
 console_inner.pack(fill="x", padx=8, pady=(0, 7))
 
 console_text = tk.Text(
-    console_inner, height=9,
+    console_inner, height=12,
     bg=Colors.BG_DARK, fg=Colors.TEXT_MAIN,
     font=("Consolas", 9,), state="normal", wrap="word", cursor="arrow",
     relief="flat", highlightthickness=1, highlightbackground=Colors.BORDER,
