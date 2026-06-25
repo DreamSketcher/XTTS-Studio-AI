@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from typing import Optional
 
 
 BUILTIN_DICTIONARY = {
@@ -212,7 +213,6 @@ class WordReplacer:
         self.rules_path = rules_path
         self.data = {}
         self.flat_rules = {}
-        self._auto_cache = {}
         self.load()
 
     def load(self):
@@ -227,8 +227,6 @@ class WordReplacer:
     def _build_flat_rules(self):
         self.flat_rules = {}
         for word, replacement in BUILTIN_DICTIONARY.items():
-            self.flat_rules[word] = replacement
-        for word, replacement in self._auto_cache.items():
             self.flat_rules[word] = replacement
         for category_name, category_data in self.data.items():
             if category_name == "meta":
@@ -253,11 +251,24 @@ class WordReplacer:
             if isinstance(category_data, dict):
                 words.extend(category_data.keys())
         return sorted(words)
+    
+    def get_category(self, word: str):
+        for category_name, category_data in self.data.items():
+            if category_name == "meta":
+                continue
+            if isinstance(category_data, dict) and word in category_data:
+                return category_name
+        return None
 
     def add_rule(self, word: str, replacement: str, category: str = "custom", weight: float = 1.0):
+        word = word.strip()
+        old_category = self.get_category(word)
+        if old_category and old_category != category:
+            del self.data[old_category][word]
+
         if category not in self.data:
             self.data[category] = {}
-        self.data[category][word.strip()] = {
+        self.data[category][word] = {
             "text": replacement.strip(),
             "weight": float(weight)
         }
@@ -291,22 +302,17 @@ class WordReplacer:
         def _abbrev_sub(m):
             token = m.group(0)
             if token in self.flat_rules or token.lower() in self.flat_rules:
-                return token
-
-            cached = self._auto_cache.get(token)
-            if cached is not None:
-                return cached
+                return self.flat_rules.get(token, self.flat_rules.get(token.lower()))
 
             if _looks_like_abbrev(token):
-                cached = _auto_transliterate_abbrev(token)
+                replacement = _auto_transliterate_abbrev(token)
             elif _looks_like_lowercase_term(token):
-                cached = _transliterate_term_word(token)
+                replacement = _transliterate_term_word(token)
             else:
                 return token
 
-            self._auto_cache[token] = cached
-            self.flat_rules[token] = cached
-            return cached
+            self.add_rule(token, replacement, category="auto")
+            return replacement
 
         text = re.sub(r'\b[A-Za-z][A-Za-z0-9]*\b', _abbrev_sub, text)
         return text

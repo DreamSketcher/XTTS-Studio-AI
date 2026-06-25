@@ -187,8 +187,9 @@ def _get_embedding(tts, ref_wav, cache_path):
 # =========================
 import hashlib
 
-def _chunk_cache_key(chunk: str, lang: str, preset: dict, speed: float) -> str:
-    raw = f"v3_lang_split|{chunk}|{lang}|{speed}|{sorted(preset.items())}"
+def _chunk_cache_key(chunk: str, lang: str, preset: dict, speed: float, ref_path: str = "") -> str:
+    ref_hash = hashlib.md5(ref_path.encode("utf-8")).hexdigest()[:8] if ref_path else ""
+    raw = f"v3_lang_split|{ref_hash}|{chunk}|{lang}|{speed}|{sorted(preset.items())}"
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
 def _chunk_cache_path(output_dir: str, key: str) -> str:
@@ -202,6 +203,7 @@ def _chunk_cache_get(output_dir: str, key: str):
         print(f"[CACHE] Hit: {key[:8]}...")
         return p
     return None
+
 
 def _chunk_cache_set(output_dir: str, key: str, wav_path: str):
     dst = _chunk_cache_path(output_dir, key)
@@ -976,7 +978,9 @@ def run_tts(
         # =========================
         send("generate", 30, "Генерация аудио...")
 
-        cache_path = os.path.splitext(ref_wav)[0] + "_embedding.pth"
+        import hashlib as _hashlib
+        _ref_hash = _hashlib.md5(ref_path.encode("utf-8")).hexdigest()[:8]
+        cache_path = os.path.splitext(ref_wav)[0] + f"_{_ref_hash}_embedding.pth"
         gpt_cond_latent, speaker_embedding = _get_embedding(tts, ref_wav, cache_path)
 
         for i, chunk in enumerate(chunks):
@@ -990,7 +994,7 @@ def run_tts(
                 continue
 
             start, end = chunk_map[i] if i < len(chunk_map) else (0, 0)
-            print(f"[MAP] chunk={i} start={start} end={end} map_text[start:start+40]={repr(map_text[start:start+40])}")
+            #print(f"[MAP] chunk={i} start={start} end={end} map_text[start:start+40]={repr(map_text[start:start+40])}")
 
             if status_callback:
                 raw_chunk = chunks_before_prosody[i] if i < len(chunks_before_prosody) else chunk
@@ -1030,7 +1034,7 @@ def run_tts(
                 no_pause_flag = "[NO_PAUSE]" in chunk
                 clean_chunk = chunk.replace("[NO_PAUSE]", "").strip()
 
-                print(f"[WR] word_replacer_enabled={quality_params.get('word_replacer_enabled') if quality_params else None}")
+                #print(f"[WR] word_replacer_enabled={quality_params.get('word_replacer_enabled') if quality_params else None}")
                 if quality_params is None or quality_params.get("word_replacer_enabled", True):
                     clean_chunk = word_replacer.apply(clean_chunk)
 
@@ -1039,14 +1043,16 @@ def run_tts(
                 # =========================
                 # CHUNK CACHE — проверяем до генерации
                 # =========================
-                cache_key = _chunk_cache_key(chunk, lang, preset, speed_value)
+                cache_key = _chunk_cache_key(chunk, lang, preset, speed_value, ref_path)
                 cached = _chunk_cache_get(output_dir, cache_key)
-                print(f"[CACHE CHECK] key={cache_key[:8]} cached={cached}")
+                #print(f"[CACHE CHECK] key={cache_key[:8]} cached={cached}")
 
                 if cached:
                     import shutil
                     try:
                         shutil.copy2(cached, chunk_path)
+                        if not os.path.isfile(chunk_path):
+                            cached = None
                     except Exception as ce:
                         print(f"[CACHE COPY ERROR] {ce}")
                         cached = None
@@ -1073,7 +1079,7 @@ def run_tts(
                     subchunks = _split_by_language(clean_chunk)
                 else:
                     subchunks = [(clean_chunk, lang)]
-                print(f"[LANG] lang_split={lang_split} language={language} subchunks={[(t[:20], l) for t, l in subchunks]}")
+                #print(f"[LANG] lang_split={lang_split} language={language} subchunks={[(t[:20], l) for t, l in subchunks]}")
 
                 import numpy as np  # type: ignore
                 wav_parts = []
@@ -1177,8 +1183,11 @@ def run_tts(
             silence_thresh_db = float(quality_params.get("silence_thresh_db", -35.0)) if quality_params else -35.0
 
             for i, item in enumerate(chunk_items):
+                if not os.path.isfile(item["path"]):
+                    print(f"[Merge] Skipping missing chunk: {item['path']}")
+                    continue
                 try:
-                    seg = AudioSegment.from_wav(item["path"])  # type: ignore
+                    seg = AudioSegment.from_wav(item["path"])
 
                     if len(seg) < 50:
                         continue

@@ -159,6 +159,52 @@
     "XTTS": {
       "text": "икс ти ти эс",
       "weight": 1.0
+    },
+    "soundfile": {
+      "text": "саундфайл",
+      "weight": 1.0
+    },
+    "tkinterdnd2": {
+      "text": "ткинтерднд два",
+      "weight": 1.0
+    },
+    "Studio": {
+      "text": "студио",
+      "weight": 1.0
+    }
+  },
+  "auto": {
+    "TTS": {
+      "text": "ти ти эс",
+      "weight": 1.0
+    },
+    "pydub": {
+      "text": "пайдаб",
+      "weight": 1.0
+    },
+    "tkinter": {
+      "text": "ткинтер",
+      "weight": 1.0
+    },
+    "num2words": {
+      "text": "эн ю эм два вордс",
+      "weight": 1.0
+    },
+    "pth": {
+      "text": "пи ти эйч",
+      "weight": 1.0
+    },
+    "SNR": {
+      "text": "эс эн ар",
+      "weight": 1.0
+    },
+    "machine": {
+      "text": "мачине",
+      "weight": 1.0
+    },
+    "learning": {
+      "text": "лирнинг",
+      "weight": 1.0
     }
   }
 }
