@@ -2804,21 +2804,22 @@ def check_and_update():
             ))
             set_status("⏳ Ожидание...")
             return
-        confirmed = [False]
+
         def ask():
             changelog = result.get("changelog", "").strip()
             text = f"Версия {result['remote']} доступна.\nСейчас у вас {result['local']}.\n"
             if changelog:
                 text += f"\nЧто нового:\n{changelog}\n"
             text += "\nОбновить?"
-            confirmed[0] = mb.askyesno("🆕 Доступно обновление", text)
-        root.after(0, ask)
-        root.after(200, lambda: _do_update(confirmed, result))
+            confirmed = mb.askyesno("🆕 Доступно обновление", text)
+            if confirmed:
+                _do_update(result)
+            else:
+                set_status("⏳ Ожидание...")
 
-    def _do_update(confirmed, result):
-        if not confirmed[0]:
-            set_status("⏳ Ожидание...")
-            return
+        root.after(0, ask)
+
+    def _do_update(result):
         set_status("📥 Загрузка обновления...")
         def _apply():
             ok = apply_update(result["files"], progress_callback=lambda i, t: set_progress(int(i/t*100)))
@@ -2830,8 +2831,8 @@ def check_and_update():
                 msg += "\n\nПриложение перезапустится после нажатия ОК."
 
                 def _notify_and_restart():
-                    mb.showinfo("✅ Готово", msg)  # showinfo блокирует поток до нажатия ОК
-                    restart()                       # restart() сработает только ПОСЛЕ закрытия окна
+                    mb.showinfo("✅ Готово", msg)
+                    restart()
 
                 root.after(0, _notify_and_restart)
             else:
@@ -3627,22 +3628,26 @@ y = max(0, (sh - 820) // 2)
 root.geometry(f"1160x820+{x}+{y}")
 
 root.after(150, start_preload_thread)
-root.after(150, start_preload_thread)
 
 def _auto_check_update():
     from engine.updater import check_update
     result = check_update()
+ 
     if result.get("error"):
-        return
+        return  # при автопроверке молча игнорируем ошибки сети/сервера
+ 
     if result.get("available"):
         def _notify():
             import tkinter.messagebox as mb
-            if mb.askyesno(
-                "🆕 Доступно обновление",
-                f"Версия {result['remote']} доступна.\nСейчас у вас {result['local']}.\n\nОбновить?"
-            ):
+            changelog = result.get("changelog", "").strip()
+            text = f"Версия {result['remote']} доступна.\nСейчас у вас {result['local']}.\n"
+            if changelog:
+                text += f"\nЧто нового:\n{changelog}\n"
+            text += "\nОбновить?"
+            if mb.askyesno("🆕 Доступно обновление", text):
                 check_and_update()
         root.after(0, _notify)
-
+ 
 threading.Thread(target=_auto_check_update, daemon=True).start()
+ 
 root.mainloop()
