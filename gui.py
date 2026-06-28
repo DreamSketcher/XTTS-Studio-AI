@@ -2785,6 +2785,7 @@ tk.Label(
     fg=Colors.TEXT_DIM,
     font=("Segoe UI", 9)
 ).pack(anchor="w")
+
 def check_and_update():
     from engine.updater import check_update, apply_update, restart
     import tkinter.messagebox as mb
@@ -2805,10 +2806,12 @@ def check_and_update():
             return
         confirmed = [False]
         def ask():
-            confirmed[0] = mb.askyesno(
-                "🆕 Доступно обновление",
-                f"Версия {result['remote']} доступна.\nСейчас у вас {result['local']}.\n\nОбновить?"
-            )
+            changelog = result.get("changelog", "").strip()
+            text = f"Версия {result['remote']} доступна.\nСейчас у вас {result['local']}.\n"
+            if changelog:
+                text += f"\nЧто нового:\n{changelog}\n"
+            text += "\nОбновить?"
+            confirmed[0] = mb.askyesno("🆕 Доступно обновление", text)
         root.after(0, ask)
         root.after(200, lambda: _do_update(confirmed, result))
 
@@ -2820,11 +2823,17 @@ def check_and_update():
         def _apply():
             ok = apply_update(result["files"], progress_callback=lambda i, t: set_progress(int(i/t*100)))
             if ok:
-                root.after(0, lambda: mb.showinfo(
-                    "✅ Готово",
-                    "Обновление установлено.\nПриложение перезапустится."
-                ))
-                root.after(500, restart)
+                changelog = result.get("changelog", "").strip()
+                msg = f"Обновление до версии {result['remote']} установлено."
+                if changelog:
+                    msg += f"\n\nЧто изменилось:\n{changelog}"
+                msg += "\n\nПриложение перезапустится после нажатия ОК."
+
+                def _notify_and_restart():
+                    mb.showinfo("✅ Готово", msg)  # showinfo блокирует поток до нажатия ОК
+                    restart()                       # restart() сработает только ПОСЛЕ закрытия окна
+
+                root.after(0, _notify_and_restart)
             else:
                 root.after(0, lambda: mb.showwarning(
                     "⚠️ Частичное обновление",

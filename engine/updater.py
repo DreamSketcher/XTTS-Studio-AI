@@ -50,12 +50,7 @@ def download_file(relative_path: str) -> bool:
             pass
         return False
 
-
 def check_update() -> dict:
-    """
-    Возвращает:
-      { "available": True/False, "local": "1.0.0", "remote": "1.0.1", "files": [...] }
-    """
     local = get_local_version()
     try:
         info = get_remote_version_info()
@@ -66,6 +61,7 @@ def check_update() -> dict:
             "local": local,
             "remote": remote,
             "files": info.get("files", []),
+            "changelog": info.get("changelog", ""),
         }
     except Exception as e:
         return {"available": False, "local": local, "remote": None, "error": str(e)}
