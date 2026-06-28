@@ -1,5 +1,5 @@
 {
-  "version": "1.0.4",
+  "version": "1.0.0",
   "files": [
     "gui.py",
     "engine/tts_runner.py",

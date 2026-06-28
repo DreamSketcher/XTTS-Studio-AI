@@ -2,9 +2,17 @@ import os
 import sys
 import json
 import shutil
+import ssl
+import time
 import threading
 import urllib.request
 from pathlib import Path
+
+try:
+    import certifi
+    _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL_CONTEXT = None  # если certifi не установлен — используем системное по умолчанию
 
 REPO = "DreamSketcher/XTTS-Studio-portable-"
 BRANCH = "main"
@@ -13,6 +21,9 @@ VERSION_URL = f"{RAW_BASE}/version.json"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_VERSION_PATH = os.path.join(BASE_DIR, "version.json")
+
+MAX_RETRIES = 4
+RETRY_DELAY_SEC = 1.5  # увеличивается с каждой попыткой (backoff)
 
 
 def get_local_version() -> str:
@@ -23,9 +34,25 @@ def get_local_version() -> str:
         return "0.0.0"
 
 
+def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETRIES):
+    """urlopen с повторными попытками при временных SSL/сетевых обрывах."""
+    last_err = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            return urllib.request.urlopen(url, timeout=timeout, context=_SSL_CONTEXT)
+        except Exception as e:
+            last_err = e
+            if attempt < max_retries:
+                print(f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. Повтор через {RETRY_DELAY_SEC * attempt:.1f}с...")
+                time.sleep(RETRY_DELAY_SEC * attempt)  # линейный backoff: 1.5с, 3с, 4.5с...
+            else:
+                print(f"[Updater] Все {max_retries} попыток не удались для {url}: {e}")
+    raise last_err
+
+
 def get_remote_version_info() -> dict:
     try:
-        with urllib.request.urlopen(VERSION_URL, timeout=10) as r:
+        with _urlopen_with_retry(VERSION_URL, timeout=10) as r:
             return json.loads(r.read().decode("utf-8"))
     except Exception as e:
         raise RuntimeError(f"Не удалось получить информацию об обновлении: {e}")
@@ -37,7 +64,9 @@ def download_file(relative_path: str) -> bool:
     tmp = dst + ".tmp"
     try:
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        urllib.request.urlretrieve(url, tmp)
+        with _urlopen_with_retry(url, timeout=30) as resp:
+            with open(tmp, "wb") as f:
+                shutil.copyfileobj(resp, f)
         if os.path.exists(dst):
             os.remove(dst)
         shutil.move(tmp, dst)
@@ -75,7 +104,9 @@ def check_update() -> dict:
 
 def apply_update(files: list, progress_callback=None) -> bool:
     """
-    Скачивает файлы из списка.
+    Скачивает файлы из списка, с повторными попытками при временных обрывах.
+    Если после всех попыток остались неудачные файлы — делает один финальный
+    проход повторно по ним перед тем, как сдаться.
     progress_callback(current, total) — опциональный колбэк прогресса.
     """
     total = len(files)
@@ -86,6 +117,18 @@ def apply_update(files: list, progress_callback=None) -> bool:
             failed.append(f)
         if progress_callback:
             progress_callback(i + 1, total)
+
+    # Финальный повторный проход только по тем, что не скачались —
+    # часто помогает, если проблема была во временном "дрожании" сети
+    if failed:
+        print(f"[Updater] Повторная попытка для {len(failed)} файлов после паузы...")
+        time.sleep(2.0)
+        still_failed = []
+        for f in failed:
+            ok = download_file(f)
+            if not ok:
+                still_failed.append(f)
+        failed = still_failed
 
     # обновляем локальный version.json
     try:
