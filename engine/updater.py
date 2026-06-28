@@ -61,7 +61,7 @@ def check_update() -> dict:
             "local": local,
             "remote": remote,
             "files": info.get("files", []),
-            "changelog": info.get("changelog", ""),
+            "changelog": info.get("changelog", ""),  # <-- добавили
         }
     except Exception as e:
         return {"available": False, "local": local, "remote": None, "error": str(e)}
