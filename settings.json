@@ -10,7 +10,7 @@
   "quality_params": {
     "Высокое качество": {
       "qc_enabled": true,
-      "temperature": 0.5,
+      "temperature": 1.0,
       "top_p": 0.5,
       "top_k": 50,
       "repetition_penalty": 10.0,
