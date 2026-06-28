@@ -69,7 +69,7 @@
       "ai_conductor_enabled": true
     }
   },
-  "ai_conductor_warning_dismissed": true,
+  "ai_conductor_warning_dismissed": false,
   "ai_conductor_preset": "Все пресеты",
   "ai_rewrite_enabled": false,
   "ai_rewrite_context": "",
