@@ -402,7 +402,12 @@ def hide_provider(pid: str):
         raise ValueError(f"{pid!r} не встроенный провайдер")
     hidden = get_hidden_providers()
     hidden.add(pid)
-    _write_settings({"hidden_providers": list(hidden)})
+    data = _read_settings()
+    data["hidden_providers"] = list(hidden)
+    data.pop(f"api_key_{pid}", None)
+    data.pop(f"model_{pid}", None)
+    with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def show_provider(pid: str):
     hidden = get_hidden_providers()
@@ -421,8 +426,6 @@ def add_custom_provider(pid: str, label: str, url: str,
     pid = pid.strip()
     if not pid:
         raise ValueError("ID провайдера пустой")
-    if pid in PROVIDERS:
-        raise ValueError(f"ID {pid!r} занят встроенным провайдером")
     existing = [p["id"] for p in list_custom_providers()]
     if pid in existing:
         raise ValueError(f"Провайдер с ID {pid!r} уже существует")
@@ -455,9 +458,18 @@ def update_custom_provider(pid: str, **kwargs):
 
 def delete_custom_provider(pid: str):
     items = [p for p in list_custom_providers() if p.get("id") != pid]
-    _write_settings({"custom_providers": items})
-
-
+    data = _read_settings()
+    data["custom_providers"] = items
+    # чистим все возможные варианты ключей
+    for key in list(data.keys()):
+        if key in (f"api_key_{pid}", f"model_{pid}"):
+            del data[key]
+    # если это был активный провайдер — сбрасываем на дефолт
+    if data.get("provider") == pid:
+        data["provider"] = DEFAULT_PROVIDER
+    with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        
 def get_key_entry(key_id: str):
     for it in list_keys():
         if it.get("id") == key_id:

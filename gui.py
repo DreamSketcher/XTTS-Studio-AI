@@ -2349,6 +2349,26 @@ def show_help():
     text.tag_configure("comment", foreground=Colors.TEXT_DIM)
 
     content = [
+        ("header", "\n🤖 AI ФУНКЦИИ\n"),
+
+        ("good", "Флажок ✨ AI (главное окно) — улучшение текста перед генерацией\n"),
+        ("comment", "Технический редактор: раскрывает сокращения, убирает спецсимволы,\nразбивает длинные предложения. Смысл и стиль не меняет.\n\n"),
+
+        ("good", "Кнопка 🤖 AI — AI Conductor\n"),
+        ("comment", "Анализирует весь текст и назначает параметры XTTS для каждого чанка.\nПросодия и смарт-паузы отключаются — AI управляет ими напрямую.\nЭкспериментальная функция: результат зависит от провайдера и модели.\n\n"),
+
+        ("good", "AI Conductor — Уровень 1: параметры движка\n"),
+        ("comment", "Temperature, speed, паузы и прочие параметры назначаются индивидуально\nдля каждого чанка на основе контекста и интонации.\n\n"),
+
+        ("good", "AI Conductor — Уровень 2: стиль текста\n"),
+        ("comment", "Включается отдельным переключателем внутри окна кондуктора.\nAI переписывает текст под заданный жанр или настроение перед генерацией.\nФакты и названия сохраняются — меняется форма подачи.\nМожно добавить negative prompt: чего избегать при переработке.\n\n"),
+
+        ("normal", "Оба уровня работают независимо и могут комбинироваться\n"),
+        ("comment", "Сначала текст переписывается (уровень 2), затем под новый текст\nназначаются параметры чанков (уровень 1).\n\n"),
+
+        ("good", "Настроение референса влияет на результат не меньше параметров\n"),
+        ("comment", "Если референс записан нейтрально — драматический стиль даст слабый эффект.\nДля лучшего результата подбирайте референс под заданный стиль.\n"),
+
         ("header", "🎯 АВТОМАТИЧЕСКАЯ ОБРАБОТКА\n"),
 
         ("good", "Числа → слова (авто)\n"),
@@ -3215,6 +3235,57 @@ styles_btn.pack(side="left", padx=(0, 5))
 ToolTip(styles_btn, STYLES_HINT)
 
 def open_ai_conductor_window():
+    s_check = load_settings()
+    if not s_check.get("ai_conductor_warning_dismissed", False):
+        def _show_conductor_warning():
+            dlg = tk.Toplevel(root)
+            dlg.title("AI Conductor")
+            dlg.resizable(False, False)
+            dlg.configure(bg=Colors.BG_CARD)
+            dlg.grab_set()
+
+            tk.Label(dlg, text="⚠ Экспериментальная функция",
+                     bg=Colors.BG_CARD, fg="#d29922",
+                     font=("Segoe UI", 12, "bold")).pack(padx=24, pady=(20, 8))
+
+            tk.Label(dlg,
+                     text="AI Conductor управляет параметрами каждого чанка.\n"
+                          "Результат может быть неожиданным — особенно\n"
+                          "если референсный голос записан в нейтральном\n"
+                          "или неподходящем настроении.",
+                     bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
+                     font=("Segoe UI", 9), justify="center").pack(padx=24, pady=(0, 16))
+
+            dont_show_var = tk.BooleanVar(value=False)
+            tk.Checkbutton(dlg, text="Больше не показывать",
+                           variable=dont_show_var,
+                           bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+                           selectcolor=Colors.BG_INPUT,
+                           activebackground=Colors.BG_CARD,
+                           font=("Segoe UI", 9),
+                           cursor="hand2").pack(pady=(0, 12))
+
+            def _close_warning():
+                if dont_show_var.get():
+                    s2 = load_settings()
+                    s2["ai_conductor_warning_dismissed"] = True
+                    try:
+                        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+                            json.dump(s2, f, ensure_ascii=False, indent=2)
+                    except Exception as e:
+                        print(f"[Warning] ошибка сохранения: {e}")
+                dlg.grab_release()
+                dlg.destroy()
+                root.after(50, open_ai_conductor_window)
+
+            create_button(dlg, "Понятно", _close_warning,
+                          bg=Colors.BG_ACTIVE).pack(pady=(0, 20))
+            dlg.protocol("WM_DELETE_WINDOW", _close_warning)
+
+        _show_conductor_warning()
+        return
+    
+
     win = tk.Toplevel(root)
     win.title("🤖 AI Conductor")
     win.resizable(False, False)
@@ -3238,9 +3309,9 @@ def open_ai_conductor_window():
     tk.Label(win,
              text="Анализирует весь текст одним вызовом и назначает\n"
                   "параметры XTTS для каждого чанка индивидуально.\n"
-                  "Основные параметры отключаются — AI управляет ими.",
+                  "Просодия, смарт-паузы и словарь отключаются — AI управляет ими.",
              bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Segoe UI", 9), justify="left").pack(padx=20, pady=(0, 12))
+             font=("Segoe UI", 9), justify="left").pack(padx=20, pady=(0, 6))
 
     tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x", padx=20, pady=(0, 12))
 

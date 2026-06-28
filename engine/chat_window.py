@@ -3350,9 +3350,12 @@ def open_gpt_settings(event=None):
                 hidden = gpt_client.get_hidden_providers()
             except Exception:
                 pass
+            custom_ids = {p["id"] for p in list_custom_providers()} if callable(list_custom_providers) else set()
             for pid, info in providers_map.items():
                 if pid in hidden:
                     continue
+                if pid in custom_ids:
+                    continue  # перекрыт кастомным — не показываем встроенный
                 marker = "● " if pid == cur else "  "
                 prov_listbox.insert(tk.END, f"{marker}{info.get('label', pid)}  [встроенный]")
                 _prov_ids_cache.append((pid, False))
@@ -3734,7 +3737,10 @@ def open_gpt_settings(event=None):
                             provider_var.set(p)
                             _on_provider_change()
                             break
-                _refresh_prov_list()
+                __refresh_prov_list()
+                _rebuild_models_list()
+                key_var.set("")
+                model_var.set("")
             except Exception as e:
                 messagebox.showerror("Ошибка", str(e), parent=win)
 
