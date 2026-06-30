@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-title XTTS ENGINE PRO v6.6 — AUTO ENV FINDER
+title XTTS ENGINE — AUTO ENV FINDER
 color 0A
 
 :: ==========================================
