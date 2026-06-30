@@ -10,9 +10,8 @@
 build/
 dist/
 release/
-XTTS Studio.exe
 history.json
-run_debug.bat
+
 
 # =========================
 # PYTHON
