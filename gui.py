@@ -41,23 +41,6 @@ except ImportError:
         PIL_AVAILABLE = False
         Image = ImageTk = ImageDraw = None
 
-# FIX: причина: автоустановка Pillow в целевое окружение при отсутствии + safe fallback
-try:
-    from PIL import Image, ImageTk, ImageDraw
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-    try:
-        import subprocess, sys
-        target_py = r"C:\XTTS Studio\python\xtts_env\Scripts\python.exe"
-        py_exe = target_py if os.path.isfile(target_py) else sys.executable
-        subprocess.check_call([py_exe, "-m", "pip", "install", "Pillow"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        from PIL import Image, ImageTk, ImageDraw
-        PIL_AVAILABLE = True
-    except Exception:
-        PIL_AVAILABLE = False
-        Image = ImageTk = ImageDraw = None
-
 try:
     import soundfile as sf
 except ImportError:
@@ -184,7 +167,6 @@ class CompatCTkFrame(ctk.CTkFrame):
 # =========================
 # TOOLTIP
 # =========================
-# RISK: не переписано на CTk — причина: Toplevel + wm_overrideredirect, меняем только цвета содержимого.
 class ToolTip:
     def __init__(self, widget, text: str):
         self.widget = widget
@@ -222,7 +204,6 @@ class ToolTip:
 # ROOT
 # =========================
 import ctypes
-# RISK: не переписано на CTk — причина: ctypes/DwmSetWindowAttribute для Windows titlebar, не трогать.
 def set_dark_titlebar(root):
     root.update()
     hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
@@ -301,7 +282,6 @@ class GradientBackground:
         except Exception:
             self.canvas.configure(bg=self.color1)
 
-# FIX: причина: градиентный фон главного окна и прозрачность контейнеров
 main_gradient = GradientBackground(root, Colors.BG_DARK, "#1a1f29")
 main_container = CompatCTkFrame(root, fg_color="transparent", bg="transparent", corner_radius=0)
 main_container.pack(fill="both", expand=True, padx=8, pady=14)
@@ -524,7 +504,6 @@ def clear_chunk_highlight():
         text_box.tag_remove("chunk_highlight", "1.0", tk.END)
     except Exception:
         pass
-# RISK: не переписано на CTk — причина: Canvas+Scrollbar, ручной scroll_inner/canvas_window и карточки плеера; структура сохранена, виджеты перекрашены.
 def open_outputs_folder():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     win = tk.Toplevel(root)
@@ -897,7 +876,6 @@ anchor="nw")
                 canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
         except Exception:
             pass
-    # FIX: причина: замена bind_all на локальный бинд окна
     win.bind("<MouseWheel>", _on_mousewheel)
     # — Разделитель перед плеером —
     tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
@@ -1047,7 +1025,6 @@ def _save_history(task):
             json.dump(history, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[History] Save error: {e}")
-# RISK: не переписано на CTk — причина: Canvas+Scrollbar, динамические карточки истории; структура сохранена, виджеты перекрашены.
 def open_history():
     try:
         with open(HISTORY_PATH, "r", encoding="utf-8") as f:
@@ -1113,7 +1090,6 @@ anchor="nw")
                 canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
         except Exception:
             pass
-    # FIX: причина: замена bind_all на локальный бинд окна
     win.bind("<MouseWheel>", _on_mousewheel)
     # карточки
     for entry in history:
@@ -1447,7 +1423,6 @@ def play_reference():
         play_btn.config(text="⏸")
         _check_playback()
     except Exception as e:
-        # FIX: причина: безопасный fallback проигрывания с начала для форматов без поддержки start
         try:
             pygame.mixer.music.play()
             play_btn.config(text="⏸")
@@ -1534,7 +1509,6 @@ def on_voice_select(event):
         voice_manager.set_active(voice_name)
     except Exception:
         pass
-    # FIX: причина: надежная подгрузка аудио референса из директории голоса
     ref_loaded = False
     normalized_file = getattr(voice, "normalized", None)
     voice_path = getattr(voice, "path", None)
@@ -1705,7 +1679,6 @@ def drop_handler(event):
 # =========================
 # WORD REPLACER
 # =========================
-# RISK: не переписано на CTk — причина: tk.Listbox не имеет безопасного аналога CTk; структура сохранена, виджеты перекрашены.
 def open_word_replacer():
     from engine.tts_runner import word_replacer
     win = tk.Toplevel(root)
@@ -1719,7 +1692,6 @@ def open_word_replacer():
     scrollbar = tk.Scrollbar(list_frame, bg=Colors.BG_INPUT,
 troughcolor=Colors.BG_DARK)
     scrollbar.pack(side="right", fill="y")
-    # RISK: не переписано на CTk — причина: Listbox в словаре использует selection/get/delete/insert; оставлено и перекрашено.
     listbox = tk.Listbox(
         list_frame, yscrollcommand=scrollbar.set,
         font=("Consolas", 10), selectmode="single",
@@ -1846,7 +1818,6 @@ fg=Colors.TEXT_MAIN).pack(side="left")
 # =========================
 # BATCH PROCESSING
 # =========================
-# RISK: не переписано на CTk — причина: Canvas+Scrollbar, динамические строки батча и трекер статусов; структура сохранена, виджеты перекрашены.
 def open_batch_window():
     win = tk.Toplevel(root)
     win.title("📦 Пакетная обработка")
@@ -2069,7 +2040,6 @@ canvas.configure(scrollregion=canvas.bbox("all")))
                 canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
         except Exception:
             pass
-    # FIX: причина: замена bind_all на локальный бинд окна
     win.bind("<MouseWheel>", _on_mousewheel)
     tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
     # нижняя панель
@@ -2918,7 +2888,6 @@ voice_list_frame = tk.Frame(
     padx=1, pady=1
 )
 voice_list_frame.pack(fill="x", padx=10, pady=(0, 6))
-# RISK: не переписано на CTk — причина: Listbox нужен для on_voice_select и itemconfig; оставлено и перекрашено.
 voice_listbox = tk.Listbox(
     voice_list_frame, height=6,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
@@ -2956,7 +2925,6 @@ tk.Label(
     font=("Segoe UI", 9, "bold"),
     anchor="w"
 ).pack(fill="x", padx=10, pady=(7, 3))
-# RISK: не переписано на CTk — причина: Listbox нужен для update_queue_view и itemconfig(fg=...); оставлено и перекрашено.
 queue_listbox = tk.Listbox(
     queue_card, height=7,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
@@ -2998,7 +2966,6 @@ _clr_btn.bind("<Leave>", lambda e: _clr_btn.config(bg=Colors.BG_INPUT))
 _clr_btn.pack(side="right")
 console_inner = tk.Frame(console_card, bg=Colors.BG_CARD)
 console_inner.pack(fill="x", padx=8, pady=(0, 7))
-# RISK: не переписано на CTk — причина: tk.Text с tag_configure для console tags; оставлено и перекрашено.
 console_text = tk.Text(
     console_inner, height=12,
     bg=Colors.BG_DARK, fg=Colors.TEXT_MAIN,
@@ -3047,7 +3014,6 @@ tk.Label(
 ).pack(side="left")
 create_button(text_header, "❓ Справка", show_help,
 bg=Colors.BG_INPUT).pack(side="right")
-# RISK: не переписано на CTk — причина: tk.Text использует tag_add/tag_configure для подсветки чанков и DND_FILES bind; оставлено и перекрашено.
 text_box = tk.Text(
     text_card,
     bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN, insertbackground=Colors.TEXT_MAIN,
@@ -3081,7 +3047,6 @@ show_placeholder()
 text_btn_frame = tk.Frame(text_card, bg=Colors.BG_CARD)
 text_btn_frame.pack(fill="x", padx=10, pady=(0, 4))
 
-# ... existing code ...
 create_button(text_btn_frame, "📁 Загрузить", load_txt,
 bg=Colors.BG_INPUT).pack(side="left", padx=(0, 5))
 create_button(text_btn_frame, "📋 Вставить", paste_clipboard,
@@ -3117,7 +3082,6 @@ right_opts.pack(side="right")
 PRESET_HINT = "Режим по умолчанию.\nДвойной клик — открыть доп. параметры."
 STYLES_HINT = "Открыть список стилей:\nНарратив / Динамика / Экспрессия.\nМногоезависит от референса"
 # --- Кнопка "Стили" — открывает popup-меню с пресетами (ОТКРЫВАЕТСЯ ВВЕРХ) ---
-# RISK: не переписано на CTk — причина: overrideredirect, ручное позиционирование и click-outside через bind_all; структура событий сохранена.
 def open_styles_menu(event=None):
     # Создаём кастомное popup
     menu = tk.Toplevel(root)
@@ -3648,7 +3612,6 @@ root.protocol("WM_DELETE_WINDOW", on_closing)
 
 apply_settings(load_settings())
 
-# FIX: причина: автосохранение настроек при изменении параметров
 for _var in (lang_var, quality_var, ref_var, use_gpt, word_replacer_enabled, lang_split_enabled):
     try: _var.trace_add("write", lambda *a: save_settings())
     except Exception: pass
