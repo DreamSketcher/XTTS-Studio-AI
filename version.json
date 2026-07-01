@@ -18,12 +18,12 @@
     "engine/ai_conductor.py",
     "engine/gpt_client.py",
     "engine/chat_window.py",
-    "settings.json"
-    "voice_manager.py"
-    "XTTS_DIAG.bat"
-    "XTTS Studio.exe"
-    "word_replacer_window.py"
-    "batch_window.py"
+    "settings.json",
+    "voice_manager.py",
+    "XTTS_DIAG.bat",
+    "XTTS Studio.exe",
+    "word_replacer_window.py",
+    "batch_window.py",
   ],
   "changelog": "
 - Новый интерфейс
