@@ -22,6 +22,8 @@
     "voice_manager.py"
     "XTTS_DIAG.bat"
     "XTTS Studio.exe"
+    "word_replacer_window.py"
+    "batch_window.py"
   ],
   "changelog": "
 - Новый интерфейс

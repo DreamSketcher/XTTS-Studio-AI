@@ -14,6 +14,8 @@ def _global_exception_handler(exc_type, exc_value, exc_tb):
 sys.excepthook = _global_exception_handler
 import re
 import engine.chat_window as chat_window
+import engine.word_replacer_window as word_replacer_window
+import engine.batch_window as batch_window
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, ttk
@@ -1679,392 +1681,9 @@ def drop_handler(event):
 # =========================
 # WORD REPLACER
 # =========================
-def open_word_replacer():
-    from engine.tts_runner import word_replacer
-    win = tk.Toplevel(root)
-    win.title("📖 Словарь произношений")
-    win.geometry("550x450")
-    win.resizable(False, False)
-    win.configure(bg=Colors.BG_CARD)
-    win.grab_set()
-    list_frame = tk.Frame(win, bg=Colors.BG_CARD)
-    list_frame.pack(fill="both", expand=True, padx=15, pady=(15, 5))
-    scrollbar = tk.Scrollbar(list_frame, bg=Colors.BG_INPUT,
-troughcolor=Colors.BG_DARK)
-    scrollbar.pack(side="right", fill="y")
-    listbox = tk.Listbox(
-        list_frame, yscrollcommand=scrollbar.set,
-        font=("Consolas", 10), selectmode="single",
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
-        relief="flat", highlightthickness=0
-    )
-    listbox.pack(fill="both", expand=True)
-    scrollbar.config(command=listbox.yview)
-    _selected_word = {"word": None}
-    def refresh():
-        listbox.delete(0, tk.END)
-        for category, data in word_replacer.data.items():
-            if category == "meta":
-                continue
-            for word, value in data.items():
-                text = value["text"] if isinstance(value, dict) else value
-                listbox.insert(tk.END, f"{word}  →  {text}")
-    def on_select(event=None):
-        sel = listbox.curselection()
-        if not sel:
-            return
-        item = listbox.get(sel[0])
-        word, text = item.split("  →  ")
-        word = word.strip()
-        text = text.strip()
-        _selected_word["word"] = word
-        entry_word.delete(0, tk.END)
-        entry_word.insert(0, word)
-        entry_replacement.delete(0, tk.END)
-        entry_replacement.insert(0, text)
-    listbox.bind("<<ListboxSelect>>", on_select)
-    refresh()
-    input_frame = tk.Frame(win, bg=Colors.BG_CARD)
-    input_frame.pack(fill="x", padx=15, pady=10)
-    tk.Label(input_frame, text="Слово:", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", padx=(0,
-10))
-    entry_word = tk.Entry(
-        input_frame, width=20, font=("Segoe UI", 10),
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        insertbackground=Colors.TEXT_MAIN, relief="flat",
-        highlightthickness=1, highlightbackground=Colors.BORDER
-    )
-    entry_word.grid(row=0, column=1, padx=5)
-    tk.Label(input_frame, text="Замена:", bg=Colors.BG_CARD,
-fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", 10)).grid(row=0, column=2, sticky="w", padx=(10,
-10))
-    entry_replacement = tk.Entry(
-        input_frame, width=20, font=("Segoe UI", 10),
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        insertbackground=Colors.TEXT_MAIN, relief="flat",
-        highlightthickness=1, highlightbackground=Colors.BORDER
-    )
-    entry_replacement.grid(row=0, column=3, padx=5)
-    btn_frame_wr = tk.Frame(win, bg=Colors.BG_CARD)
-    btn_frame_wr.pack(fill="x", padx=15, pady=(0, 15))
-    def add_rule():
-        word = entry_word.get().strip()
-        replacement = entry_replacement.get().strip()
-        if not word or not replacement:
-            messagebox.showwarning("⚠ Поля пусты", "Заполните слово и замену",
-parent=win)
-            return
-        if word_replacer.get_category(word) is not None:
-            messagebox.showwarning(
-                "⚠ Слово уже есть",
-                f"«{word}» уже есть в словаре.\nИспользуйте «✏ Сохранитьизменения».",
-                parent=win
-            )
-            return
-        word_replacer.add_rule(word, replacement, category="custom")
-        entry_word.delete(0, tk.END)
-        entry_replacement.delete(0, tk.END)
-        _selected_word["word"] = None
-        refresh()
-    def save_changes():
-        original_word = _selected_word["word"]
-        if not original_word:
-            messagebox.showwarning("⚠ Ничего не выбрано", "Выберите слово всписке для редактирования", parent=win)
-            return
-        new_word = entry_word.get().strip()
-        new_text = entry_replacement.get().strip()
-        if not new_word or not new_text:
-            messagebox.showwarning("⚠ Поля пусты", "Заполните слово и замену",
-parent=win)
-            return
-        if new_word != original_word:
-            word_replacer.remove_rule(original_word)
-        word_replacer.add_rule(new_word, new_text, category="custom")
-        entry_word.delete(0, tk.END)
-        entry_replacement.delete(0, tk.END)
-        _selected_word["word"] = None
-        refresh()
-    def remove_rule():
-        sel = listbox.curselection()
-        if sel:
-            item = listbox.get(sel[0])
-            word = item.split("  →  ")[0].strip()
-            word_replacer.remove_rule(word)
-            entry_word.delete(0, tk.END)
-            entry_replacement.delete(0, tk.END)
-            _selected_word["word"] = None
-            refresh()
-    create_button(btn_frame_wr, "➕ Добавить", add_rule,
-bg=Colors.BG_INPUT).pack(side="left", padx=(0, 10))
-    create_button(btn_frame_wr, "✏ Сохранить изменения", save_changes,
-bg=Colors.BG_INPUT).pack(side="left", padx=(0, 10))
-    create_button(btn_frame_wr, "🗑 Удалить", remove_rule, bg=Colors.BG_DANGER,
-fg=Colors.TEXT_MAIN).pack(side="left")
-    wr_cb = ctk.CTkCheckBox(
-        btn_frame_wr, text="Словарь активен", variable=word_replacer_enabled,
-        fg_color=Colors.BG_ACTIVE, hover_color=Colors.BG_HOVER,
-        border_color=Colors.BORDER, text_color=Colors.TEXT_MAIN,
-        font=("Segoe UI", 9)
-    )
-    wr_cb.pack(side="right")
-    ToolTip(wr_cb, "Включает замену слов по словарю перед синтезом.\n\nПриотключении аббревиатуры, числа и иностранные\nтермины могут читаться некорректноили вызывать\nартефакты — повторы, обрывы, «каша» в речи.")
-    def close_window():
-        save_settings()
-        win.destroy()
-    win.protocol("WM_DELETE_WINDOW", close_window)
 # =========================
 # BATCH PROCESSING
 # =========================
-def open_batch_window():
-    win = tk.Toplevel(root)
-    win.title("📦 Пакетная обработка")
-    win.geometry("660x520")
-    win.minsize(560, 400)
-    win.resizable(True, True)
-    win.configure(bg=Colors.BG_DARK)
-    win.grab_set()
-    _files = []        # list of (src_txt, dst_wav)
-    _status_vars = []  # list of tk.StringVar
-    def _unique_wav(base: str) -> str:
-        candidate = os.path.join(OUTPUT_DIR, f"{base}.wav")
-        counter = 1
-        while os.path.exists(candidate):
-            candidate = os.path.join(OUTPUT_DIR, f"{base} ({counter}).wav")
-            counter += 1
-        return candidate
-    def _refresh_rows():
-        for w in scroll_inner.winfo_children():
-            w.destroy()
-        _status_vars.clear()
-        if not _files:
-            tk.Label(scroll_inner, text="Выберите папку или файлы ",
-                     bg=Colors.BG_DARK, fg=Colors.TEXT_DIM,
-                     font=("Segoe UI", 11)).pack(pady=60)
-            count_lbl.config(text="0 файлов")
-            btn_run.config(state="disabled")
-            return
-        for i, (src, dst) in enumerate(_files):
-            sv = tk.StringVar(value="⏳ Ожидает")
-            _status_vars.append(sv)
-            row = tk.Frame(scroll_inner, bg=Colors.BG_CARD,
-                           highlightthickness=1,
-                           highlightbackground=Colors.BORDER)
-            row.pack(fill="x", padx=8, pady=2)
-            tk.Label(row, text=f"{i+1}.", width=3,
-                     bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-                     font=("Consolas", 9)).pack(side="left", padx=(6, 2),
-pady=6)
-            tk.Label(row, text=os.path.basename(src), anchor="w",
-                     bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-                     font=("Segoe UI", 9)).pack(side="left", fill="x",
-                                                expand=True, pady=6)
-            tk.Label(row, textvariable=sv, width=14, anchor="e",
-                     bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-                     font=("Consolas", 8)).pack(side="right", padx=8)
-        count_lbl.config(text=f"{len(_files)} файлов")
-        btn_run.config(state="normal")
-    def _pick_folder():
-        folder = filedialog.askdirectory(title="Выбрать папку с TXT-файлами")
-        if not folder:
-            return
-        txts = sorted(f for f in os.listdir(folder) if
-f.lower().endswith(".txt"))
-        if not txts:
-            messagebox.showinfo("📂 Пусто", "В папке нет .txt файлов",
-parent=win)
-            return
-        _files.clear()
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        for fname in txts:
-            src = os.path.join(folder, fname)
-            base = os.path.splitext(fname)[0]
-            _files.append((src, _unique_wav(base)))
-        _refresh_rows()
-    def _pick_files():
-        paths = filedialog.askopenfilenames(
-            title="Выбрать TXT-файлы",
-            filetypes=[("TXT", "*.txt")]
-        )
-        if not paths:
-            return
-        _files.clear()
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        for p in sorted(paths):
-            base = os.path.splitext(os.path.basename(p))[0]
-            _files.append((p, _unique_wav(base)))
-        _refresh_rows()
-    def _start_status_tracker():
-        def _tick():
-            if not win.winfo_exists():
-                return
-            queue = task_manager.get_queue()
-            for i, (src, dst) in enumerate(_files):
-                if i >= len(_status_vars):
-                    break
-                sv = _status_vars[i]
-                for t in queue:
-                    if (t.quality_params or {}).get("output_path_override") ==dst:
-                        if t.status == "done":
-                            win.after(0, lambda s=sv: s.set("✔ Готово"))
-                        elif t.status == "error":
-                            win.after(0, lambda s=sv: s.set("❌ Ошибка"))
-                        elif t.status == "cancelled":
-                            win.after(0, lambda s=sv: s.set("⛔ Отменено"))
-                        elif t.status in ("running", "generate", "merge",
-                                          "chunking", "normalize", "reference"):
-                            win.after(0, lambda s=sv, p=t.progress: s.set(f" ▶{p}%"))
-                        elif t.status == "queued":
-                            win.after(0, lambda s=sv: s.set("▶  В очереди"))
-                        break
-            try:
-                win.after(400, _tick)
-            except Exception:
-                pass
-        _tick()
-    def _run_batch():
-        ref = clean_path(ref_var.get().strip())
-        if not ref or not os.path.isfile(ref):
-            messagebox.showerror("❌ Ошибка",
-                                 "Сначала выберите голос-референс", parent=win)
-            return
-        if not _files:
-            return
-        quality_name = quality_var.get()
-        if quality_name not in quality_params:
-            quality_name = "Высокое качество"
-        params = quality_params[quality_name]
-        btn_run.config(state="disabled")
-        btn_folder.config(state="disabled")
-        btn_files.config(state="disabled")
-        for i, (src, dst) in enumerate(_files):
-            try:
-                with open(src, "r", encoding="utf-8") as f:
-                    raw = f.read()
-            except Exception as e:
-                if i < len(_status_vars):
-                    _status_vars[i].set("❌ Ошибка")
-                print(f"[Batch] Cannot read {src}: {e}")
-                continue
-            text = normalize_text(raw)
-            if not text.strip():
-                if i < len(_status_vars):
-                    _status_vars[i].set("⚠ Пустой")
-                continue
-            if i < len(_status_vars):
-                _status_vars[i].set("▶  В очереди")
-            task = Task(
-                text=text,
-                raw_text=raw.strip(),
-                voice=ref,
-                speed=params["speed"].get(),
-                language=lang_var.get(),
-                quality=quality_name,
-                quality_params={
-                    **{k: v.get() for k, v in params.items()},
-                    "word_replacer_enabled": word_replacer_enabled.get(),
-                    "lang_split_enabled": lang_split_enabled.get(),
-                    "use_gpt": use_gpt.get(),
-                    "ai_conductor_enabled": params.get("ai_conductor_enabled",
-tk.BooleanVar()).get(),
-                }
-            )
-            task_manager.add_task(task)
-        win.after(500, lambda: (
-            btn_folder.config(state="normal"),
-            btn_files.config(state="normal"),
-        ))
-        _start_status_tracker()
-    # ── LAYOUT ───────────────────────────────────────────────────────────────
-    toolbar = tk.Frame(win, bg=Colors.BG_CARD, pady=6)
-    toolbar.pack(fill="x")
-    def _tb_btn(text, cmd):
-        b = tk.Button(toolbar, text=text, command=cmd,
-                      bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-                      activebackground=Colors.BG_HOVER,
-                      activeforeground=Colors.TEXT_MAIN,
-                      relief="flat", bd=0, font=("Segoe UI", 9),
-                      padx=10, pady=4, cursor="hand2")
-        b.bind("<Enter>", lambda e: b.config(bg=Colors.BG_HOVER))
-        b.bind("<Leave>", lambda e: b.config(bg=Colors.BG_INPUT))
-        return b
-    btn_folder = _tb_btn("📂 Выбрать папку", _pick_folder)
-    btn_folder.pack(side="left", padx=(10, 4))
-    btn_files = _tb_btn("📄 Выбрать файлы", _pick_files)
-    btn_files.pack(side="left", padx=(0, 4))
-    count_lbl = tk.Label(toolbar, text="0 файлов",
-                         bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-                         font=("Segoe UI", 9))
-    count_lbl.pack(side="left", padx=8)
-    # текущий голос — справа в тулбаре
-    _batch_voice_var = tk.StringVar()
-    def _update_batch_voice(*_):
-        p = ref_var.get().strip()
-        if not p:
-            _batch_voice_var.set("")
-            return
-        folder = os.path.basename(os.path.dirname(p))
-        name   = os.path.splitext(os.path.basename(p))[0]
-        _batch_voice_var.set(folder if name.lower() == "normalized" else name)
-    ref_var.trace_add("write", _update_batch_voice)
-    _update_batch_voice()
-    tk.Label(toolbar, text="Голос:", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Segoe UI", 8)).pack(side="right", padx=(0, 2))
-    tk.Label(toolbar, textvariable=_batch_voice_var, bg=Colors.BG_CARD,
-             fg=Colors.ACCENT, font=("Segoe UI", 8),
-             width=18, anchor="e").pack(side="right", padx=(0, 10))
-    tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
-    # список файлов (прокручиваемый)
-    list_outer = tk.Frame(win, bg=Colors.BG_DARK)
-    list_outer.pack(fill="both", expand=True)
-    canvas = tk.Canvas(list_outer, bg=Colors.BG_DARK, bd=0,
-highlightthickness=0)
-    scrollbar = tk.Scrollbar(list_outer, orient="vertical",
-                             command=canvas.yview,
-                             bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
-    canvas.configure(yscrollcommand=scrollbar.set)
-    scrollbar.pack(side="right", fill="y")
-    canvas.pack(side="left", fill="both", expand=True)
-    scroll_inner = tk.Frame(canvas, bg=Colors.BG_DARK)
-    cw = canvas.create_window((0, 0), window=scroll_inner, anchor="nw")
-    scroll_inner.bind("<Configure>",
-                      lambda e:
-canvas.configure(scrollregion=canvas.bbox("all")))
-    canvas.bind("<Configure>",
-                lambda e: canvas.itemconfig(cw, width=e.width))
-    def _on_mousewheel(e):
-        try:
-            if canvas.winfo_exists():
-                canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
-        except Exception:
-            pass
-    win.bind("<MouseWheel>", _on_mousewheel)
-    tk.Frame(win, bg=Colors.BORDER, height=1).pack(fill="x")
-    # нижняя панель
-    bottom = tk.Frame(win, bg=Colors.BG_CARD, pady=8)
-    bottom.pack(fill="x", side="bottom")
-    tk.Label(bottom, text="Пресет:", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Segoe UI", 9)).pack(side="left", padx=(12, 4))
-    tk.Label(bottom, textvariable=quality_var, bg=Colors.BG_CARD,
-             fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", 9, "bold")).pack(side="left")
-    btn_run = tk.Button(
-        bottom, text="🚀 Запустить пакет",
-        command=_run_batch,
-        bg=Colors.BG_ACTIVE, fg=Colors.TEXT_MAIN,
-        activebackground="#2ea043", activeforeground=Colors.TEXT_MAIN,
-        relief="flat", bd=0, font=("Segoe UI", 10, "bold"),
-        padx=18, pady=5, cursor="hand2", state="disabled"
-    )
-    btn_run.pack(side="right", padx=12)
-    def _on_close():
-        canvas.unbind_all("<MouseWheel>")
-        win.destroy()
-    win.protocol("WM_DELETE_WINDOW", _on_close)
-    # начальный placeholder
-    _refresh_rows()
 # =========================
 # CANCEL / GENERATE
 # =========================
@@ -2380,6 +1999,26 @@ quality_params = {
     },
 }
 # =========================
+# BATCH PROCESSING — делегируем в engine/batch_window.py
+# =========================
+batch_window.init(
+    root=root,
+    colors=Colors,
+    output_dir=OUTPUT_DIR,
+    task_manager=task_manager,
+    ref_var=ref_var,
+    quality_var=quality_var,
+    quality_params=quality_params,
+    word_replacer_enabled_var=word_replacer_enabled,
+    lang_split_enabled_var=lang_split_enabled,
+    use_gpt_var=use_gpt,
+    lang_var=lang_var,
+    normalize_text_fn=normalize_text,
+    clean_path_fn=clean_path,
+)
+def open_batch_window():
+    batch_window.open_batch_window()
+# =========================
 # PRESET DESCRIPTIONS (для меню "Стили")
 # =========================
 PRESET_DESCRIPTIONS = {
@@ -2576,6 +2215,18 @@ def save_settings():
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+# =========================
+# WORD REPLACER — делегируем в engine/word_replacer_window.py
+# =========================
+word_replacer_window.init(
+    root=root,
+    colors=Colors,
+    create_button_fn=create_button,
+    word_replacer_enabled_var=word_replacer_enabled,
+    save_settings_fn=save_settings,
+)
+def open_word_replacer():
+    word_replacer_window.open_word_replacer()
 def apply_settings(data):
     import traceback
     if not isinstance(data, dict):
