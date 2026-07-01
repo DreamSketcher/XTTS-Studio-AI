@@ -32,7 +32,7 @@ set "SITE_PACKAGES=%BASE%python\xtts_env\Lib\site-packages"
 set "PYTHONPATH=%SITE_PACKAGES%"
 
 echo ==================================================
-echo        XTTS ENGINE PRO v6.6
+echo        XTTS DIAGNOSTIC
 echo        PORTABLE AUTO ENV FINDER
 echo ==================================================
 echo.
@@ -149,6 +149,7 @@ echo  [4] DEBUG окружения
 echo  [5] REPAIR — установить зависимости
 echo  [6] СМЕНИТЬ окружение вручную
 echo  [7] ОЧИСТИТЬ кэш и пересканировать
+echo  [8] ВОССТАНОВИТЬ файлы приложения с GitHub
 echo  [0] ВЫХОД
 echo ==================================================
 echo.
@@ -160,6 +161,7 @@ if "%MODE%"=="4" goto DEBUG
 if "%MODE%"=="5" goto REPAIR
 if "%MODE%"=="6" goto MANUAL
 if "%MODE%"=="7" goto CLEARCACHE
+if "%MODE%"=="8" goto FORCE_UPDATE
 if "%MODE%"=="0" exit /b 0
 goto MAIN
 
@@ -179,7 +181,29 @@ echo.
 set /p CONFIRM=Продолжить? (y/n): 
 if /I not "%CONFIRM%"=="y" goto MAIN
 echo.
-"%PY%" -c "import sys; sys.path.insert(0, r'%BASE%'); from engine.updater import get_remote_version_info, apply_update; info = get_remote_version_info(); files = info.get('files', []); print(f'Найдено {len(files)} файлов, качаю...'); ok = apply_update(files, progress_callback=lambda i,t: print(f'  {i}/{t}')); print('✔ Готово' if ok else '⚠ Часть файлов не удалось скачать — см. лог выше')"
+
+:: Формируем временный .py-скрипт вместо "python -c" —
+:: так надёжнее с путями (пробелы, обратный слэш в конце
+:: BASE) и с кодировкой (символы вроде ✔/⚠ в -c ломали
+:: парсер Python на некоторых системах).
+set "TMP_PY=%TEMP%\xtts_force_update.py"
+set "BASE_NOSLASH=%BASE:~0,-1%"
+
+> "%TMP_PY%" echo import sys, io
+>>"%TMP_PY%" echo sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+>>"%TMP_PY%" echo sys.path.insert(0, r"%BASE_NOSLASH%")
+>>"%TMP_PY%" echo from engine.updater import get_remote_version_info, apply_update
+>>"%TMP_PY%" echo info = get_remote_version_info()
+>>"%TMP_PY%" echo files = info.get("files", [])
+>>"%TMP_PY%" echo print("Найдено файлов: %%d, качаю..." %% len(files))
+>>"%TMP_PY%" echo def _cb(i, t):
+>>"%TMP_PY%" echo     print("  %%d/%%d" %% (i, t))
+>>"%TMP_PY%" echo ok = apply_update(files, progress_callback=_cb)
+>>"%TMP_PY%" echo print("[OK] Готово" if ok else "[WARN] Часть файлов не удалось скачать - см. лог выше")
+
+"%PY%" "%TMP_PY%"
+del /q "%TMP_PY%" >nul 2>&1
+
 echo.
 pause
 goto MAIN
