@@ -171,5 +171,199 @@ OpenAI  → ОпенЭйАй
 
 BTC: `bc1qz78u3lvagt3v886359glv57ct6rnlh506wjmdy`
 
+```
+ Полная Структура XTTS Studio (portable + optional AI)
+
+├── gui.py                              ← главное окно, весь UI
+│   ├── word_replacer_enabled           ← BooleanVar, флаг словаря
+│   ├── lang_split_enabled              ← BooleanVar, авто-переключение языка
+│   ├── use_gpt                         ← BooleanVar, флаг AI-улучшения текста (технический редактор)
+│   ├── on_task_update()                ← UI callback от task_manager
+│   ├── _highlight_chunk()              ← подсветка чанка по координатам
+│   ├── _highlight_chunk_by_text()      ← подсветка чанка по тексту (fallback)
+│   ├── generate()                      ← сборка Task и отправка в очередь
+│   ├── open_word_replacer()            ← окно словаря произношений
+│   ├── pick_language()                 ← окно выбора языка + переключатель lang_split
+│   ├── open_quality_settings()         ← окно тонкой настройки пресета
+│   ├── open_styles_menu()              ← popup меню стилей (открывается вверх)
+│   ├── open_outputs_folder()           ← окно управления аудио-файлами + плеер
+│   ├── open_history()                  ← история генераций с возвратом текста
+│   ├── open_batch_window()             ← пакетная обработка TXT-файлов
+│   ├── open_ai_conductor_window()      ← окно настройки AI Conductor (2 уровня)
+│   │                                      предупреждение при первом запуске (флаг в settings.json)
+│   ├── toggle_chat_panel()             ← открытие AI чат-окна
+│   ├── save_settings()                 ← сохранение сессии в settings.json
+│   └── apply_settings()               ← восстановление сессии
+│
+├── settings.json                       ← настройки сессии (авто)
+├── gpt_settings.json                   ← провайдер AI, ключи, модели (авто)
+├── word_rules.json                     ← словарь произношений (авто + ai_corrected)
+├── chat_history.json                   ← история AI чат-сессий
+├── history.json                        ← история генераций
+│
+├── engine/
+│   ├── tts_runner.py                   ← главный пайплайн
+│   │   ├── run_tts()                   ← normalize→WR→chunk→conductor→generate→merge
+│   │   │                                  rewrite текста если ai_rewrite_enabled (до чанкинга)
+│   │   ├── get_tts()                   ← ленивая загрузка модели (thread-safe, singleton)
+│   │   ├── _detect_device()            ← автодетект CUDA/CPU
+│   │   ├── _split_by_language()        ← разбивка чанка на ru/en подчанки
+│   │   ├── _get_embedding()            ← кэш speaker embedding (по устройству)
+│   │   ├── _chunk_cache_key/get/set()  ← кэш готовых чанков (md5)
+│   │   ├── _detect_repeats()           ← QC: детектор зацикливания
+│   │   ├── _validate_duration()        ← QC: валидатор длительности/тишины
+│   │   ├── _is_dense_abbrev_chunk()    ← детектор плотных серий аббревиатур
+│   │   ├── _adjust_params_for_chunk()  ← temperature schedule (без кондуктора)
+│   │   ├── _adaptive_trim()            ← авто-обрезка хвоста по тишине
+│   │   ├── _normalize_loudness()       ← выравнивание громкости (RMS, pydub)
+│   │   ├── _normalize_numpy_audio()    ← выравнивание громкости (fallback)
+│   │   ├── _make_output_name()         ← имя выходного файла, защита от дублей
+│   │   ├── _build_chunk_text_map()     ← карта чанков для подсветки GUI
+│   │   └── _normalize_lookup_text_with_map() ← нормализация текста для поиска
+│   │
+│   ├── ai_conductor.py                 ← AI Conductor (2 уровня обработки)
+│   │   ├── conduct()                   ← основной вызов: анализ текста + параметры чанков
+│   │   │                                  Уровень 1: temperature/speed/паузы для каждого чанка
+│   │   │                                  Уровень 2: rewrite текста под стиль (rewrite_enabled)
+│   │   │                                  + negative prompt (rewrite_negative)
+│   │   │                                  + проверка транслита (corrections → word_rules.json)
+│   │   │                                  возвращает dict{rewritten_text, chunks} или list[dict]
+│   │   ├── _validate_map()             ← валидация и зажим параметров + пробрасывание corrections
+│   │   └── _fallback_params()          ← дефолтные параметры если AI недоступен
+│   │
+│   ├── chat_window.py                  ← AI чат-окно
+│   │   ├── open_chat_window()          ← главное окно чата с сессиями
+│   │   │                                  режим переключения: редактор текста / свободный чат
+│   │   ├── send_chat_message()         ← отправка + генерация ответа
+│   │   ├── _run_generation()           ← воркер генерации, системный промпт по режиму
+│   │   ├── improve_text_with_gpt()     ← кнопка "Улучшить" — технический rewrite для TTS
+│   │   ├── open_gpt_settings()         ← настройки провайдера, ключей, моделей
+│   │   │                                  каталог провайдеров, библиотека ключей
+│   │   │                                  кастомные провайдеры (добавить/редактировать/удалить)
+│   │   └── _load_sessions/_save_sessions() ← персистентность истории
+│   │
+│   ├── gpt_client.py                   ← AI клиент
+│   │   ├── _call_with_chain()          ← перебор провайдеров (активный первый)
+│   │   ├── _build_provider_chain()     ← цепочка: активный → встроенные → кастомные
+│   │   ├── _call_api()                 ← низкоуровневый HTTP-запрос
+│   │   ├── chat()                      ← чат с опциональным system prompt
+│   │   ├── improve_for_tts()           ← технический rewrite текста под TTS
+│   │   ├── preprocess_for_tts()        ← обёртка с поддержкой режимов
+│   │   ├── validate_key()              ← проверка API-ключа
+│   │   ├── get/set_provider()          ← активный провайдер
+│   │   ├── get/set_model()             ← модель активного провайдера
+│   │   ├── get/set_api_key()           ← ключ активного провайдера
+│   │   ├── list_keys/add_key/...       ← библиотека именованных ключей
+│   │   ├── add/update/delete_custom_provider() ← управление кастомными провайдерами
+│   │   │                                  удаление чистит ключ и модель из settings
+│   │   ├── hide/show_provider()        ← скрытие встроенных провайдеров
+│   │   │                                  скрытие чистит ключ и модель из settings
+│   │   ├── fetch_models_from_url()     ← загрузка списка моделей с эндпоинта
+│   │   └── PROVIDER_CATALOGUE          ← встроенный каталог известных провайдеров
+│   │
+│   ├── normalizer.py                   ← нормализация текста
+│   │   ├── normalize()                 ← числа→слова, аббревиатуры, пунктуация
+│   │   ├── safe_character_filter()     ← фильтр символов (после word_replacer)
+│   │   ├── _fix_abbrev_rhythm()        ← ритм серий латинских аббревиатур
+│   │   ├── _fix_mixed_case_rhythm()    ← ритм CamelCase/брендов
+│   │   └── _fix_cyrillic_abbrev()      ← кириллические аббревиатуры
+│   │
+│   ├── chunker.py                      ← разбивка на чанки
+│   │   ├── chunk_text()                ← главный метод
+│   │   ├── _split_sentences()          ← разбивка на предложения
+│   │   ├── _split_long()               ← нарезка длинных предложений
+│   │   ├── _merge()                    ← объединение коротких чанков
+│   │   ├── _is_bad_start()             ← проверка плохого начала чанка
+│   │   └── _is_bad_end()               ← проверка плохого конца чанка
+│   │
+│   ├── word_replacer.py                ← фонетические замены
+│   │   ├── apply()                     ← к каждому чанку перед генерацией
+│   │   ├── add_rule()                  ← добавление правила (+ ai_corrected от кондуктора)
+│   │   ├── remove_rule()               ← удаление правила
+│   │   ├── _looks_like_abbrev()        ← детектор капс-аббревиатур (CPU, GPU)
+│   │   ├── _auto_transliterate_abbrev() ← побуквенная транслитерация аббревиатур
+│   │   ├── _looks_like_lowercase_term() ← детектор технических терминов (pydub)
+│   │   └── _transliterate_term_word()  ← слоговая транслитерация терминов
+│   │
+│   ├── text_utils.py                   ← общие текстовые хелперы
+│   │   └── is_list_item()              ← детектор пунктов списка
+│   │
+│   ├── smart_pauses.py                 ← паузы между чанками (без кондуктора)
+│   │   └── get_pause_ms()              ← длительность паузы по паре чанков
+│   │
+│   ├── prosody_layer.py                ← смысловые паузы (без кондуктора)
+│   │   ├── create_prosody_layer()      ← фабрика по preset
+│   │   └── process_chunks()            ← обработка с учётом серий list-item
+│   │
+│   ├── reference_processor.py          ← конвертация и нормализация референса
+│   │   └── process_reference()         ← конвертация в WAV, SNR-проверка, кэш
+│   │
+│   ├── voice_manager.py                ← библиотека голосов
+│   │   ├── scan_voices()               ← сканирование library/ на диске
+│   │   ├── list_voices()               ← список доступных голосов
+│   │   ├── get_voice()                 ← профиль по имени
+│   │   └── set_active()                ← установка активного голоса
+│   │
+│   ├── de_esser.py                     ← подавление шипящих
+│   │   ├── create_de_esser()           ← фабрика по intensity/sample_rate
+│   │   └── process_segment()           ← обработка финального аудио
+│   │
+│   ├── task_manager.py                 ← многопоточная очередь
+│   │   ├── start()                     ← запуск worker-потока
+│   │   ├── add_task()                  ← постановка задачи
+│   │   └── cancel_task()               ← отмена по id
+│   │
+│   ├── task_models.py                  ← модель задачи Task
+│   ├── task_queue.py                   ← thread-safe очередь
+│   └── updater.py                      ← авто-обновление (check/apply/restart)
+│
+├── models/xtts_v2/                     ← модель (офлайн)
+├── library/                            ← голосовые профили
+│   └── [voice_name]/
+│       ├── normalized.wav
+│       └── normalized_*_embedding.pth  ← кэш embedding (CPU/CUDA)
+├── outputs/                            ← готовые аудио файлы
+│   └── _cache/                         ← кэш чанков (md5)
+├── logs/                               ← логи ошибок
+├── reference/                          ← исходные референс файлы
+├── ffmpeg/bin/                         ← ffmpeg.exe, ffprobe.exe
+├── python/
+│   ├── xtts_env/                       ← venv с зависимостями
+│   └── runtime/                        ← Python 3.11 portable
+└── XTTS Studio.exe                     ← точка входа
+
+
+[✓] Офлайн             — никаких внешних запросов (кроме опционального AI-модуля)
+[✓] Portable           — одна папка, любой Windows ПК
+[✓] Авто-устройство    — CUDA если доступна, иначе CPU
+[✓] Клонирование       — референс 10-15 сек, библиотека голосов
+[✓] Embedding кэш      — ускорение повторных генераций
+[✓] Chunk кэш          — повторные чанки не перегенерируются
+[✓] Языки              — авто+ ручной выбор / изменение акцента
+[✓] Авто-язык          — ru/en переключение, короткие EN (<3 слов) поглощаются RU
+[✓] Длинные тексты     — chunking + merge, без ограничений
+[✓] Пакетная обработка — папка или список TXT, очередь с прогрессом
+[✓] Режимы             — ⭐ Высокое качество / 📖 Нарратив / ⚡ Динамика / 🎭 Экспрессия
+[✓] Тонкая настройка   — temperature / top_p / top_k / repetition_penalty / скорость / trim
+[✓] Просодия           — смысловые паузы по контексту (без кондуктора)
+[✓] Словарь            — фонетические замены + авто-пополнение + ai_corrected от кондуктора
+[✓] AI Conductor       — 2 уровня: параметры чанков + rewrite текста под стиль/жанр
+[✓] AI Conductor       — negative prompt, контекст для AI, независимое включение уровней
+[✓] Числа в слова      — автоматически через num2words
+[✓] Аббревиатуры       — ритм серий, кириллица, CamelCase, побуквенная/слоговая транслитерация
+[✓] Контроль качества  — авто-перегенерация бракованных чанков (повторы + длительность)
+[✓] Авто-trim          — обрезка хвоста по тишине, удаление артефактов
+[✓] Де-эссер           — подавление шипящих на финальном файле
+[✓] Громкость          — RMS-нормализация (pydub и numpy-fallback)
+[✓] Подсветка          — визуализация чанков в реальном времени
+[✓] История            — генераций + AI чат-сессий с поиском и экспортом
+[✓] AI модуль          — чат (редактор / свободный режим), улучшение текста
+[✓]                      цепочка провайдеров, каталог, кастомные провайдеры, библиотека ключей
+[✓] Статистика         — время, чанки, голос, скорость
+[✓] Автосохранение     — настройки, пресеты, история между сессиями
+```
+
+BAT → python\runtime\python.exe → gui.py → site-packages (xtts_env)
+
 ---
 
