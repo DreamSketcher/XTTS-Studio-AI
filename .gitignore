@@ -10,7 +10,10 @@ build/
 dist/
 release/
 history.json
-
+env_cache.cfg
+icon.ico
+icon.png
+word_rules.json
 
 # =========================
 # PYTHON
