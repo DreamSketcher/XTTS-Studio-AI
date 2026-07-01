@@ -21,8 +21,7 @@
     "engine/word_replacer_window.py",
     "engine/batch_window.py",
     "settings.json",
-    "XTTS_DIAG.bat",
-    "XTTS Studio.exe"
+    "XTTS_Studio.exe"
   ],
   "changelog": "- Новый интерфейс\n- Улучшена диагностика запуска XTTS_DIAG.bat\n- Переработано окно настроек провайдера AI\n- Переработан AI fallback\n- Улучшен детектор слов\n- Различные исправления и оптимизации"
 }
