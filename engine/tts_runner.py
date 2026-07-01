@@ -298,7 +298,6 @@ def _count_real_words(chunk: str) -> int:
     )
 
 
-
 def _split_by_language(text: str) -> List[Tuple[str, str]]:
     if not text.strip():
         return []
@@ -1062,7 +1061,6 @@ def run_tts(
                 continue
 
             start, end = chunk_map[i] if i < len(chunk_map) else (0, 0)
-            #print(f"[MAP] chunk={i} start={start} end={end} map_text[start:start+40]={repr(map_text[start:start+40])}")
 
             if status_callback:
                 status_callback({
@@ -1139,7 +1137,6 @@ def run_tts(
                 # =========================
                 cache_key = _chunk_cache_key(chunk, lang, preset, speed_value, ref_path, conductor_active=ai_conductor_enabled)
                 cached = _chunk_cache_get(output_dir, cache_key)
-                #print(f"[CACHE CHECK] key={cache_key[:8]} cached={cached}")
 
                 if cached:
                     import shutil
@@ -1173,7 +1170,6 @@ def run_tts(
                     subchunks = _split_by_language(clean_chunk)
                 else:
                     subchunks = [(clean_chunk, lang)]
-                #print(f"[LANG] lang_split={lang_split} language={language} subchunks={[(t[:20], l) for t, l in subchunks]}")
 
                 import numpy as np  # type: ignore
                 wav_parts = []

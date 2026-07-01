@@ -3415,7 +3415,6 @@ def open_gpt_settings(event=None):
     # ── Провайдер ────────────────────────────────────────────────────────────
     provider_var = tk.StringVar(value=current_provider)
 
-    # СТАЛО:
     list_custom_providers = getattr(gpt_client, "list_custom_providers", None)
     add_custom_provider = getattr(gpt_client, "add_custom_provider", None)
     update_custom_provider = getattr(gpt_client, "update_custom_provider", None)
