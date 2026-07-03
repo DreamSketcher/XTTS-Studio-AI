@@ -1,7 +1,16 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.10",
   "files": [
     "gui.py",
+    "i18n.py",
+
+    "engine/paths.py",
+    "engine/settings_store.py",
+    "engine/history_store.py",
+    "engine/logging_utils.py",
+    "engine/output_naming.py",
+
+    "engine/text_tools.py",
     "engine/tts_runner.py",
     "engine/normalizer.py",
     "engine/chunker.py",
@@ -11,17 +20,57 @@
     "engine/smart_pauses.py",
     "engine/de_esser.py",
     "engine/text_utils.py",
+
     "engine/voice_manager.py",
     "engine/task_manager.py",
     "engine/task_models.py",
     "engine/updater.py",
-    "engine/ai_conductor.py",
+    "engine/audio_backend.py",
     "engine/gpt_client.py",
+
     "engine/chat_window.py",
     "engine/word_replacer_window.py",
-    "engine/batch_window.py",
+
+    "engine/gui/main_window.py",
+    "engine/gui/layout.py",
+    "engine/gui/theme.py",
+    "engine/gui/colors.py",
+    "engine/gui/widgets.py",
+    "engine/gui/tooltip.py",
+    "engine/gui/gradient.py",
+    "engine/gui/helpers.py",
+
+    "engine/gui/header_panel.py",
+    "engine/gui/voice_panel.py",
+    "engine/gui/player.py",
+    "engine/gui/queue_panel.py",
+    "engine/gui/console.py",
+
+    "engine/gui/textbox.py",
+    "engine/gui/toolbar.py",
+    "engine/gui/statusbar.py",
+
+    "engine/gui/generation.py",
+    "engine/gui/presets.py",
+    "engine/gui/settings_ui.py",
+    "engine/gui/styles_menu.py",
+    "engine/gui/updates.py",
+
+    "engine/gui/ai_conductor.py",
+    "engine/gui/ai_status_window.py",
+    "engine/gui/chat_window.py",
+    "engine/gui/chat_panel.py",
+
+    "engine/gui/history_window.py",
+    "engine/gui/output_window.py",
+    "engine/gui/batch_window.py",
+    "engine/gui/batch_panel.py",
+    "engine/gui/word_replacer_window.py",
+    "engine/gui/word_replacer_panel.py",
+    "engine/gui/dialogs.py",
+
     "settings.json",
     "XTTS Studio.exe"
   ],
-  "changelog": "- Новый интерфейс\n- Улучшена диагностика запуска XTTS_DIAG.bat\n- Переработано окно настроек провайдера AI\n- Переработан AI fallback\n- Улучшен детектор слов\n- Различные исправления и оптимизации"
+  "changelog": "- Полностью переработана архитектура проекта\n- Новый модульный интерфейс\n- Добавлена локализация RU/EN с живым переключением\n- Добавлены светлая и тёмная темы\n- Добавлена выдвижная боковая панель\n- Добавлен регулятор размера текста\n- Улучшена диагностика запуска XTTS_DIAG.bat\n- Переработано окно настроек AI-провайдера\n- Улучшен AI Fallback\n- Улучшен детектор слов\n- Исправлены ошибки и проведена оптимизация"
 }
