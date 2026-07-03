@@ -10,77 +10,51 @@ import tkinter as tk
 import engine.gui.chat_window.state as state
 from engine.gui.chat_window.custom_widgets import CTK_AVAILABLE, CTkFrame, CTkLabel, CTkButton, TkFrame, TkLabel, TkButton, TkRawFrame
 
-def _create_placeholder_overlay(parent, text_widget, text: str, *, x=12, y=10, fg=None, bg=None, font=None):
-    if not _widget_exists(parent) or not _widget_exists(text_widget):
-        return None
-
-    label = TkLabel(
-        parent,
-        text=text,
-        bg=bg or parent.cget("bg"),
-        fg=fg or _c("TEXT_DIM"),
-        font=font or ("Segoe UI", 9, "italic"),
-        anchor="w",
-        justify="left",
-    )
-    label.place(x=x, y=y)
-    label.bind("<Button-1>", lambda e: (text_widget.focus_set(), "break"))
-
-    text_widget._placeholder_label = label
-    text_widget._placeholder_pos = (x, y)
-    text_widget._placeholder_parent = parent
-    text_widget._placeholder_text = text
-    return label
+def _now_ts() -> str:
+    return datetime.now().strftime("%H:%M")
 
 
-def _sync_text_placeholder(text_widget):
-    if not _widget_exists(text_widget):
-        return
+def _now_full() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    label = getattr(text_widget, "_placeholder_label", None)
-    if not _widget_exists(label):
-        return
 
+def _approx_tokens(text: str) -> int:
+    return max(1, len(text or "") // 4) if text else 0
+
+
+def _ai_display_name() -> str:
+    _SHORT_NAMES = {
+        "groq": "Groq",
+        "openrouter": "OpenRouter",
+        "proxy": "AI",
+    }
     try:
-        content = _get_widget_text(text_widget).strip()
-        focused = text_widget == text_widget.focus_get()
-        x, y = getattr(text_widget, "_placeholder_pos", (12, 10))
-
-        if content or focused:
-            label.place_forget()
-        else:
-            label.place(x=x, y=y)
+        import engine.gpt_client as _gpt
+        get_provider = getattr(_gpt, "get_provider", None)
+        provider = get_provider() if callable(get_provider) else None
+        return _SHORT_NAMES.get(provider, provider or "AI")
     except Exception:
-        pass
+        return "AI"
 
 
-def _refresh_placeholder_state(text_widget):
-    _sync_text_placeholder(text_widget)
+def _build_editor_compose_prompt(source_text: str, comment_text: str) -> str:
+    source = (source_text or "").strip()
+    comment = (comment_text or "").strip()
 
-
-def _update_input_placeholder_text(text: str):
-
-    state._editor_mode = True
-    lbl = getattr(state.chat_input, "_placeholder_label", None) if _widget_exists(state.chat_input) else None
-    if _widget_exists(lbl):
-        try:
-            lbl.config(text=text)
-        except Exception:
-            pass
-    if state._hint_text_var is not None:
-        try:
-            state._hint_text_var.set("Enter — отправить · Ctrl+Enter — отправить без комментария · Shift+Enter — новая строка")
-        except Exception:
-            pass
+    if source and comment:
+        return f"Текст из редактора:\n{source}\n\nКомментарий:\n{comment}"
+    if source:
+        return source
+    return comment
 
 
 
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import _now_ts, _now_full, _approx_tokens, _ai_display_name, _build_editor_compose_prompt
 from engine.gui.chat_window.engine.sessions import _load_sessions, _save_sessions, _enforce_limits, _create_session_dict, _get_current_session, _update_session_title_if_needed, _messages_for_api
 from engine.gui.chat_window.engine.generation import _run_generation
 from engine.gui.chat_window.ui_utils import _c, _safe_after, _widget_exists, _set_dark_titlebar, _get_app_parent, _show_window, _call_and_break, _ask_simple_text, _make_button, _set_button_text, _set_button_state, _is_descendant, _get_widget_text, _select_all_widget, _paste_clipboard_into_widget, _copy_to_clipboard
 from engine.gui.chat_window.hotkeys import _event_has_ctrl, _event_has_shift, _match_hotkey, _on_ctrl_keypress, _handle_text_ctrl, _handle_window_ctrl, _bind_window_hotkeys, _bind_text_hotkeys
+from engine.gui.chat_window.placeholders import _create_placeholder_overlay, _sync_text_placeholder, _refresh_placeholder_state, _update_input_placeholder_text
 from engine.gui.chat_window.chat_scroll import _is_chat_near_bottom, _scroll_chat_to_bottom, _show_new_message_indicator, _hide_new_message_indicator, _scroll_to_new_message, _chat_mousewheel
 from engine.gui.chat_window.chat_history import _refresh_session_list, _on_session_select, new_chat, delete_current_chat, clear_chat_history
 from engine.gui.chat_window.chat_messages import _add_message_bubble, _add_system_message, _resize_bubble_text, content_lines_estimate, _lighten_color, _selected_bubble_frame_get, _select_bubble, _on_bubble_text_click, _show_bubble_context_menu, _update_wraplengths, _render_current_session, _add_empty_state, _destroy_empty_state_if_any, _clear_messages_ui
