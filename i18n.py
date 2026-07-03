@@ -237,6 +237,25 @@ LANGUAGES = {
         "tip_theme": "Переключить тему (тёмная/светлая)",
         "theme_title": "Тема",
 
+        # ── AI Providers (labels / notes) ──
+        "prov_groq": "Groq (нужен VPN из РФ)",
+        "prov_openrouter": "OpenRouter (работает из РФ без VPN)",
+        "prov_proxy": "Российский прокси (без VPN)",
+        "cat_openrouter_notes": "Работает из РФ без VPN. Сотни моделей.",
+        "cat_together_notes": "Много открытых моделей, быстрый.",
+        "cat_mistral_notes": "Официальный API Mistral.",
+        "cat_deepinfra_notes": "Дешёвые GPU-инференс модели.",
+        "cat_vsegpt_label": "VseGPT (РФ)",
+        "cat_vsegpt_notes": "Российский агрегатор, оплата в рублях.",
+        "cat_aitunnel_label": "AITUNNEL (РФ)",
+        "cat_aitunnel_notes": "Российский прокси, оплата в рублях.",
+        "cat_proxyapi_label": "ProxyAPI (РФ)",
+        "cat_proxyapi_notes": "Российский прокси OpenAI, оплата в рублях.",
+        "prov_reason_active": "Активный, используется первым",
+        "prov_reason_hidden": "Скрыт пользователем",
+        "prov_reason_no_key": "Пропущен — нет API-ключа",
+        "prov_reason_fallback": "Доступен как fallback",
+
         # ── Misc ──
         "time_today": "сегодня {}",
         "time_yesterday": "вчера {}",
@@ -629,6 +648,25 @@ LANGUAGES = {
         # ── Theme switch ──
         "tip_theme": "Toggle theme (dark/light)",
         "theme_title": "Theme",
+
+        # ── AI Providers (labels / notes) ──
+        "prov_groq": "Groq (VPN required in Russia)",
+        "prov_openrouter": "OpenRouter (works in Russia without VPN)",
+        "prov_proxy": "Russian proxy (no VPN needed)",
+        "cat_openrouter_notes": "Works from Russia without VPN. Hundreds of models.",
+        "cat_together_notes": "Many open models, fast.",
+        "cat_mistral_notes": "Official Mistral API.",
+        "cat_deepinfra_notes": "Cheap GPU inference models.",
+        "cat_vsegpt_label": "VseGPT (Russia)",
+        "cat_vsegpt_notes": "Russian aggregator, payment in rubles.",
+        "cat_aitunnel_label": "AITUNNEL (Russia)",
+        "cat_aitunnel_notes": "Russian proxy, payment in rubles.",
+        "cat_proxyapi_label": "ProxyAPI (Russia)",
+        "cat_proxyapi_notes": "Russian OpenAI proxy, payment in rubles.",
+        "prov_reason_active": "Active, used first",
+        "prov_reason_hidden": "Hidden by user",
+        "prov_reason_no_key": "Skipped — no API key",
+        "prov_reason_fallback": "Available as fallback",
 
         # ── Misc ──
         "time_today": "today {}",

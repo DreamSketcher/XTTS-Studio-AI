@@ -28,6 +28,9 @@ import json
 import urllib.request
 import urllib.error
 
+# Локализация подписей провайдеров (i18n не зависит от tkinter)
+from i18n import t as _t
+
 
 class GroqRateLimitError(RuntimeError):
     """429 — лимит токенов/запросов на стороне провайдера для конкретной модели."""
@@ -55,7 +58,7 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 PROVIDERS = {
     "groq": {
-        "label": "Groq (нужен VPN из РФ)",
+        "label": _t("prov_groq"),
         "url": GROQ_API_URL,
         "default_model": "llama-3.3-70b-versatile",
         "fallback_model": "llama-3.1-8b-instant",
@@ -68,7 +71,7 @@ PROVIDERS = {
         "key_hint": "https://console.groq.com/keys",
     },
     "openrouter": {
-        "label": "OpenRouter (работает из РФ без VPN)",
+        "label": _t("prov_openrouter"),
         "url": OPENROUTER_API_URL,
         "default_model": "openai/gpt-4o-mini",
         "fallback_model": "meta-llama/llama-3.1-8b-instruct:free",
@@ -84,7 +87,7 @@ PROVIDERS = {
         "key_hint": "https://openrouter.ai/keys",
     },
     "proxy": {
-        "label": "Российский прокси (без VPN)",
+        "label": _t("prov_proxy"),
         "url": PROXY_BASE_URL,
         "default_model": "gpt-4o-mini",
         "fallback_model": "gpt-4o-mini",
@@ -99,6 +102,36 @@ PROVIDERS = {
 }
 
 DEFAULT_PROVIDER = "groq"
+
+# ── i18n refresh ────────────────────────────────────────────────────────────────
+# Подписи провайдеров вычисляются при импорте. При живом переключении языка
+# в приложении вызывается refresh_i18n_labels(), чтобы обновить их без
+# перезапуска (окно настроек AI пересоздаётся и подхватит новые подписи).
+_PROVIDER_LABEL_KEYS = {"groq": "prov_groq", "openrouter": "prov_openrouter", "proxy": "prov_proxy"}
+_CATALOGUE_I18N = {
+    "openrouter": {"notes": "cat_openrouter_notes"},
+    "together": {"notes": "cat_together_notes"},
+    "mistral": {"notes": "cat_mistral_notes"},
+    "deepinfra": {"notes": "cat_deepinfra_notes"},
+    "vsegpt": {"label": "cat_vsegpt_label", "notes": "cat_vsegpt_notes"},
+    "aitunnel": {"label": "cat_aitunnel_label", "notes": "cat_aitunnel_notes"},
+    "proxyapi": {"label": "cat_proxyapi_label", "notes": "cat_proxyapi_notes"},
+}
+
+
+def refresh_i18n_labels():
+    """Обновляет подписи провайдеров под текущий язык интерфейса."""
+    try:
+        for pid, key in _PROVIDER_LABEL_KEYS.items():
+            if pid in PROVIDERS:
+                PROVIDERS[pid]["label"] = _t(key)
+        for entry in PROVIDER_CATALOGUE:
+            keys = _CATALOGUE_I18N.get(entry.get("id"))
+            if keys:
+                for field, key in keys.items():
+                    entry[field] = _t(key)
+    except Exception:
+        pass
 
 # Обратная совместимость со старым кодом, который импортирует DEFAULT_MODEL /
 # AVAILABLE_MODELS / FALLBACK_MODEL напрямую (chat_window.py читает их через
@@ -118,7 +151,7 @@ PROVIDER_CATALOGUE = [
         "models_url": "https://openrouter.ai/api/v1/models",
         "key_hint": "https://openrouter.ai/keys",
         "extra_headers": {"HTTP-Referer": "https://xtts-studio.local", "X-Title": "XTTS Studio"},
-        "notes": "Работает из РФ без VPN. Сотни моделей.",
+        "notes": _t("cat_openrouter_notes"),
         "models": [
             "meta-llama/llama-3.3-70b-instruct:free",
             "google/gemini-2.0-flash-001",
@@ -134,7 +167,7 @@ PROVIDER_CATALOGUE = [
         "models_url": "https://api.together.xyz/v1/models",
         "key_hint": "https://api.together.ai/settings/api-keys",
         "extra_headers": {},
-        "notes": "Много открытых моделей, быстрый.",
+        "notes": _t("cat_together_notes"),
         "models": [
             "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             "meta-llama/Llama-3.1-8B-Instruct-Turbo",
@@ -150,7 +183,7 @@ PROVIDER_CATALOGUE = [
         "key_hint": "https://console.mistral.ai/api-keys",
         "key_hint": "console.mistral.ai",
         "extra_headers": {},
-        "notes": "Официальный API Mistral.",
+        "notes": _t("cat_mistral_notes"),
         "models": [
             "mistral-large-latest",
             "mistral-small-latest",
@@ -166,7 +199,7 @@ PROVIDER_CATALOGUE = [
         "models_url": "https://api.deepinfra.com/v1/openai/models",
         "key_hint": "https://deepinfra.com/dash/api_keys",
         "extra_headers": {},
-        "notes": "Дешёвые GPU-инференс модели.",
+        "notes": _t("cat_deepinfra_notes"),
         "models": [
             "meta-llama/Llama-3.3-70B-Instruct",
             "meta-llama/Llama-3.1-8B-Instruct",
@@ -177,12 +210,12 @@ PROVIDER_CATALOGUE = [
     },
     {
         "id": "vsegpt",
-        "label": "VseGPT (РФ)",
+        "label": _t("cat_vsegpt_label"),
         "url": "https://api.vsegpt.ru/v1/chat/completions",
         "models_url": "https://api.vsegpt.ru/v1/models",
         "key_hint": "https://vsegpt.ru/cabinet/",
         "extra_headers": {},
-        "notes": "Российский агрегатор, оплата в рублях.",
+        "notes": _t("cat_vsegpt_notes"),
         "models": [
             "openai/gpt-4o-mini",
             "openai/gpt-4o",
@@ -193,12 +226,12 @@ PROVIDER_CATALOGUE = [
     },
     {
         "id": "aitunnel",
-        "label": "AITUNNEL (РФ)",
+        "label": _t("cat_aitunnel_label"),
         "url": "https://api.aitunnel.ru/v1/chat/completions",
         "models_url": "https://api.aitunnel.ru/v1/models",
         "key_hint": "https://aitunnel.ru/cabinet/",
         "extra_headers": {},
-        "notes": "Российский прокси, оплата в рублях.",
+        "notes": _t("cat_aitunnel_notes"),
         "models": [
             "gpt-4o-mini",
             "gpt-4o",
@@ -209,12 +242,12 @@ PROVIDER_CATALOGUE = [
     },
     {
         "id": "proxyapi",
-        "label": "ProxyAPI (РФ)",
+        "label": _t("cat_proxyapi_label"),
         "url": "https://api.proxyapi.ru/openai/v1/chat/completions",
         "models_url": "https://api.proxyapi.ru/openai/v1/models",
         "key_hint": "https://proxyapi.ru/cabinet/",
         "extra_headers": {},
-        "notes": "Российский прокси OpenAI, оплата в рублях.",
+        "notes": _t("cat_proxyapi_notes"),
         "models": [
             "gpt-4o-mini",
             "gpt-4o",
@@ -649,13 +682,13 @@ def get_chain_diagnostics() -> dict:
         has_key = bool(get_api_key(pid))
         is_hidden = pid in hidden
         if is_active:
-            status, reason = "active", "Активный, используется первым"
+            status, reason = "active", _t("prov_reason_active")
         elif is_hidden:
-            status, reason = "hidden", "Скрыт пользователем"
+            status, reason = "hidden", _t("prov_reason_hidden")
         elif not has_key:
-            status, reason = "skipped", "Пропущен — нет API-ключа"
+            status, reason = "skipped", _t("prov_reason_no_key")
         else:
-            status, reason = "in_chain", "Доступен как fallback"
+            status, reason = "in_chain", _t("prov_reason_fallback")
         return {
             "id": pid,
             "label": info.get("label", pid),

@@ -42,6 +42,13 @@ def switch_ui_lang():
     ui_lang_var.set(new_lang)
     set_language(new_lang)
     save_settings()
+    # Подписи AI-провайдеров вычисляются при импорте gpt_client —
+    # обновляем их под новый язык сразу
+    try:
+        from engine import gpt_client as _gpt
+        _gpt.refresh_i18n_labels()
+    except Exception:
+        pass
     # Окно AI-чата строится динамически — применяем новый язык сразу,
     # без перезапуска (если окно открыто, оно пересоздаётся на новом языке).
     try:
