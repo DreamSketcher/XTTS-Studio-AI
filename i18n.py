@@ -859,6 +859,7 @@ def t(key: str, *args) -> str:
     return text
 
 
+
 def set_language(lang: str) -> None:
     global _current_lang
     if lang in LANGUAGES:

@@ -6,7 +6,7 @@
   "word_replacer_enabled": true,
   "lang_split_enabled": true,
   "ui_language": "ru",
-  "text_font_size": 14,
+  "text_font_size": 13,
   "ai_conductor_enabled": true,
   "ai_conductor_context": "",
   "quality_params": {
@@ -70,5 +70,7 @@
       "use_gpt": false,
       "ai_conductor_enabled": true
     }
-  }
+  },
+  "left_panel_visible": false,
+  "ui_theme": "light"
 }
