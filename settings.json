@@ -70,6 +70,5 @@
       "use_gpt": false,
       "ai_conductor_enabled": false
     }
-  },
-  "ui_theme": "light"
+  }
 }

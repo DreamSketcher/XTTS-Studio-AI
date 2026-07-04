@@ -1,0 +1,184 @@
+C:\XTTS Studio\
+│
+│   gui.py                          (35 строк)   ← ТОЧКА ВХОДА: только запуск
+│                                                  • sys.path / site-packages
+│                                                  • глобальный exception handler
+│                                                  • create_main_window() + mainloop()
+│
+│   i18n.py                         (892 строки) ← локализация RU/EN (355+ ключей)
+│                                                  t(), set_language(), get_language(), LANGUAGES
+│                                                  автозагрузка языка из settings.json,
+│                                                  переводы чата и AI-провайдеров
+│
+│   README.md / README.en.md                     ← документация RU / EN
+│   settings.json                                ← создаётся при работе (пресеты, тема,
+│                                                  язык UI, панель, размер текста)
+│   history.json                                 ← создаётся при работе
+│   chat_history.json                            ← создаётся при работе
+│   gpt_settings.json                            ← создаётся при работе
+│   word_rules.json                              ← создаётся при работе
+│   version.json / icon.ico / boot.log
+│
+├── logs\          ← логи (создаётся автоматически из engine/paths.py)
+├── reference\     ← референсы
+├── library\       ← библиотека голосов
+├── outputs\       ← готовые WAV/MP3
+├── python\        ← окружение xtts_env
+│
+└── engine\                         ═══ ТЕХНИЧЕСКАЯ ЛОГИКА (0 импортов tkinter) ═══
+    │
+    │   __init__.py                 (2)    пакет
+    │
+    │   ── пути / файлы / настройки ──
+    │   paths.py                    (13)   BASE_DIR, LOG_DIR, REF_DIR, BACKUP_DIR,
+    │                                      OUTPUT_DIR, ICON_PATH + создание папок
+    │   settings_store.py           (14)   SETTINGS_PATH, load_settings()
+    │   history_store.py            (34)   HISTORY_PATH, _save_history()
+    │   logging_utils.py            (15)   write_log(), _log()
+    │   output_naming.py            (28)   _make_output_name() — имя выходного файла
+    │
+    │   ── обработка текста ──
+    │   text_tools.py               (18)   normalize_text()
+    │   word_replacer.py            (322)  WordReplacer: словарь произношений,
+    │                                      транслитерация, seed-словарь
+    │   normalizer.py               *      TextNormalizer (числа→слова и т.д.)
+    │   chunker.py                  *      TextChunker — разбивка на чанки
+    │   smart_pauses.py             *      SmartPauseEngine — смысловые паузы
+    │   text_utils.py               *      is_list_item и пр.
+    │
+    │   ── генерация речи (реорганизовано) ──
+    │   tts_runner.py               (8)    → тонкий "мост", делегирует в engine/tts/
+    │   tts\
+    │       │   __init__.py         (418)  run_tts(), get_tts()
+    │       │   device.py           (10)   detect_device() и проверка CUDA
+    │       │   cache.py            (36)   логика кэширования чанков (_chunk_cache_key/set/get)
+    │       │   qc.py               (206)  контроль качества: trim, детекция повторов, loudness
+    │       │   export.py           (132)  Сборка аудио, pydub, numpy concat, экспорт wav/mp3
+    │       │   utils.py            (288)  утилиты: lang detect, split_by_language, embeddings
+    │
+    │   task_manager.py             (165)  TaskManager: очередь, поток, отмена
+    │   task_models.py              (33)   dataclass Task
+    │   prosody_layer.py            *      просодия
+    │   reference_processor.py      *      обработка референса
+    │   de_esser.py                 *      де-эссер
+    │
+    │   ── сервисы ──
+    │   voice_manager.py            (162)  VoiceManager: сканирование библиотеки
+    │   gpt_client.py               (878)  GPT/AI-провайдеры, ключи, fallback-цепочка,
+    │                                      локализованные подписи + refresh_i18n_labels()
+    │   updater.py                  (158)  check_update(), apply_update(), restart()
+    │   audio_backend.py            (16)   init_audio() — pygame.mixer, PYGAME_OK
+    │
+    │   ── мосты совместимости (старые пути импорта) ──
+    │   chat_window.py              (22)   → делегирует engine/gui/chat_window.py
+    │   word_replacer_window.py     (8)    → делегирует engine/gui/word_replacer_window.py
+    │
+    └── gui\                        ═══ ВЕСЬ ИНТЕРФЕЙС (tkinter / customtkinter) ═══
+        │
+        │   __init__.py             (2)    пакет
+        │
+        │   ── ядро окна ──
+        │   main_window.py          (225)  ОРКЕСТРАТОР: root, tk-переменные (STATE),
+        │                                  init() всех модулей, порядок сборки панелей
+        │                                  (статусбар первым — не «съедается»),
+        │                                  on_closing, применение настроек, LAUNCH
+        │   layout.py               (124)  градиент, left/right panel; ВЫДВИЖНАЯ левая
+        │                                  панель (полоса-переключатель ◀/▶) с
+        │                                  сохранением положения в settings.json
+        │   theme.py                (90)   ДВЕ ТЕМЫ (тёмная / светлая «молочная»):
+        │                                  get/set_theme, сохранение, titlebar под тему
+        │   colors.py               (99)   палитры обеих тем (DARK/LIGHT_PALETTE),
+        │                                  apply_palette() — мутация class Colors
+        │
+        │   ── базовые виджеты ──
+        │   widgets.py              (134)  CompatCTkButton/Label/Frame, create_card,
+        │                                  create_button, create_entry (ленивые
+        │                                  дефолты цветов — поддержка смены темы)
+        │   tooltip.py              (39)   class ToolTip
+        │   gradient.py             (68)   class GradientBackground + PIL-блок
+        │   helpers.py              (27)   clean_path()
+        │
+        │   ── левая панель ──
+        │   header_panel.py         (101)  заголовок, кнопки Обновить/AI статус/RU-EN,
+        │                                  switch_ui_lang (живое применение к чату
+        │                                  и подписям провайдеров)
+        │   voice_panel.py          (164)  карточки Референс + Библиотека голосов,
+        │                                  refresh_voice_list, on_voice_select
+        │   player.py               (129)  плеер референса: play/seek/_check_playback,
+        │                                  pick_reference, pick_backup_reference
+        │   queue_panel.py          (81)   карточка очереди, update_queue_view,
+        │                                  queue_autorefresh
+        │   console.py              (168)  ConsoleRedirect (stdout/stderr), карточка
+        │                                  консоли, toggle/clear, контекстное меню
+        │
+        │   ── правая панель ──
+        │   textbox.py              (534)  текстовое поле, placeholder, подсветка
+        │                                  чанков, copy/cut/paste/select_all, DnD,
+        │                                  load_txt, контекстное меню, AI-чекбокс;
+        │                                  кнопки RU/EN и ☀/🌙 (тема) у «Справки»;
+        │                                  ползунок «Aa» размера текста (9–22pt,
+        │                                  сохранение в settings.json)
+        │   toolbar.py              (278)  АДАПТИВНЫЙ тулбар: группы Файл/AI/Вывод/
+        │                                  Действие растягиваются под окно, левая
+        │                                  колонка выровнена (_sync_left_column),
+        │                                  ГЕНЕРИРОВАТЬ↔ОТМЕНА, update_gen_btn,
+        │                                  update_quality_buttons, studio_btn
+        │   statusbar.py            (54)   прогресс-бар (высота 14px), статус 11pt;
+        │                                  set_status/stage/progress
+        │
+        │   ── логика GUI ──
+        │   generation.py           (260)  generate(), cancel_task(), on_task_update,
+        │                                  _on_task_done/_error, предзагрузка модели
+        │   presets.py              (220)  quality_params (4 пресета), окно настроек
+        │                                  пресета, PRESET_DESCRIPTIONS
+        │   settings_ui.py          (128)  save_settings(), apply_settings()
+        │                                  (+ text_font_size, восстановление)
+        │   styles_menu.py          (121)  всплывающее меню «Стили»
+        │   updates.py              (87)   check_and_update, _do_update, автопроверка
+        │
+        │   ── AI ──
+        │   ai_conductor.py         (281)  окно AI Conductor, предупреждение,
+        │                                  пульс-анимация кнопки 🤖 AI
+        │   ai_status_window.py     (123)  окно «AI статус» (провайдеры, цепочка)
+        │   chat_panel.py           (28)   привязка чата к главному окну
+        │
+        │   ── AI Чат (реорганизовано) ──
+        │   chat_window\
+        │       │   __init__.py          (бывший chat_window.py на 200 строк)
+        │       │   state.py             (86)   UI-состояние, константы, глобальные переменные
+        │       │   custom_widgets.py    (73)   CTkFrame, CTkLabel, CTkButton, TkRawFrame
+        │       │   ui_utils.py          (210)  Хелперы (кнопки, окна, буфер обмена)
+        │       │   hotkeys.py           (113)  Обработка шорткатов (Ctrl+F, Shift+Enter)
+        │       │   placeholders.py      (59)   Текст-заглушки для поля ввода
+        │       │   chat_scroll.py       (108)  Автопрокрутка, плавный скроллинг
+        │       │   chat_history.py      (162)  Сайдбар и управление сессиями
+        │       │   chat_messages.py     (355)  Отрисовка бабблов сообщений
+        │       │   chat_input.py        (292)  Логика поля ввода, счетчик токенов
+        │       │   chat_typing.py       (50)   Анимация набора текста (...)
+        │       │   chat_actions.py      (173)  Улучшение текста, очистка, "из редактора"
+        │       │   chat_export.py       (76)   Экспорт переписки в txt/json
+        │       │   chat_search.py       (210)  Окно поиска
+        │       │   chat_settings.py     (218)  Окно настроек GPT-провайдеров
+        │       │   chat_editor.py       (136)  Интеграция с главным окном
+        │       │
+        │       └── engine\              ═══ ТЕХНИЧЕСКАЯ ЛОГИКА ЧАТА ═══
+        │               utils.py         (88)   Подсчет токенов, форматирование дат
+        │               sessions.py      (167)  Чтение/запись JSON, менеджмент памяти
+        │               generation.py    (253)  API-запросы, потоковый стриминг ответа
+        │
+        │   ── отдельные окна ──
+        │   history_window.py       (119)  окно «История» + очистка + reuse текста
+        │   output_window.py        (443)  окно «Аудио»/Outputs: плеер, карточки,
+        │                                  удаление, очистка кэша
+        │   batch_window.py         (331)  окно «Пакетная обработка»
+        │   batch_panel.py          (30)   привязка batch к главному окну
+        │   word_replacer_window.py (284)  окно «Словарь произношений»: resizable
+        │                                  (min 560×420), аккуратные кнопки
+        │                                  (авто-ширина), шрифт списка 12pt,
+        │                                  чекбокс в отдельном ряду
+        │   word_replacer_panel.py  (20)   привязка словаря к главному окну
+        │   dialogs.py              (163)  диалоги «Язык озвучки» и «Справка»
+        │
+        └── (итого ~60+ GUI-модулей с учётом реорганизации)
+
+Точка входа: XTTS Studio.exe → BAT → python\runtime\python.exe → gui.py → зависимости из python\xtts_env
