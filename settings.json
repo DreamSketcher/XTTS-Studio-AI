@@ -72,5 +72,6 @@
     }
   },
   "ai_conductor_open_count": 1,
-  "ai_conductor_warning_dismissed": true
+  "ai_conductor_warning_dismissed": true,
+  "ui_theme": "light"
 }
