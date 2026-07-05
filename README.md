@@ -277,7 +277,7 @@ XTTS Studio (portable)
 │       ├── updates.py            ← update checking (GUI wrapper)
 │       │
 │       │   ── standalone windows ──
-│       ├── chat_window.py        ← AI chat entry point (delegates to chat_window/)
+│       ├── chat_window.py        ← main interface for the AI chat window, built on the modules and core in chat_window/
 │       ├── ai_conductor.py       ← AI Conductor window
 │       ├── ai_status_window.py   ← "AI Status" window: provider chain
 │       ├── history_window.py     ← "History" window
@@ -323,7 +323,7 @@ XTTS Studio (portable)
     └── runtime/                  ← Python 3.11 portable
 ```
 
-> ℹ️ `engine/gui/chat_window.py` and `engine/gui/chat_window/` coexist during a transition period: the old file is a backward-compatible entry point, while all the new chat-window logic already lives in the `chat_window/` package.
+> ℹ️ `engine/gui/chat_window.py` is the main interface file for the chat window (UI assembly and layout). The `engine/gui/chat_window/` package holds its internals: submodules (messages, input, history, search, export, etc.) plus a nested `chat_window/engine/` with the reply-generation and session logic that `chat_window.py` relies on.
 
 ---
 
@@ -341,7 +341,7 @@ XTTS Studio (portable)
 
 ### AI module
 - **`ai_conductor.py`** — `conduct()`: one call for the whole text, analyzing chunks and returning per-chunk voice parameters (temperature/top_p/repetition_penalty/speed/pause_after_ms). Optionally rewrites the text for style (`rewrite_enabled`) and checks transliteration (`corrections` → `word_rules.json`). On an AI error it falls back to default parameters — generation is never interrupted. Levels 1 and 2 are explicitly gated by flags both in this module and in `tts_runner.py`, so they can never accidentally influence each other.
-- **`gui/chat_window/`** — the modular chat window (formerly a monolithic file): message rendering, input, session history and search, conversation export, text-editor mode and free-chat mode, an accordion of provider settings, hotkeys, a typing indicator. Reply-generation logic and session management live in the nested `chat_window/engine/`. Fully localized (RU/EN).
+- **`gui/chat_window.py` + `gui/chat_window/`** — the AI chat window: `chat_window.py` is the main interface file (UI assembly), while the `chat_window/` package holds its submodules: message rendering, input, session history and search, conversation export, text-editor mode and free-chat mode, an accordion of provider settings, hotkeys, a typing indicator. Reply-generation logic and session management live in the nested `chat_window/engine/`. Fully localized (RU/EN).
 - **`gpt_client.py`** — the cloud-provider chain (active → built-in → custom), key and model management, provider catalog.
 - **`local_llm_client.py`** / **`local_env_section.py`** / **`env_setup.py`** — support for local (offline) LLMs as an alternative to cloud providers, including environment setup.
 - **`gui/ai_status_window.py`** — a diagnostic window showing the provider chain and each provider's status.
