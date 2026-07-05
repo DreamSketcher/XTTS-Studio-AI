@@ -173,7 +173,6 @@ Don't use paths with Cyrillic characters:
 
 ```
 ✔ C:\XTTS\
-✘ C:\New Folder\XTTS\
 ```
 
 ---
