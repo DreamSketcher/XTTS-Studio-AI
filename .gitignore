@@ -15,7 +15,6 @@ icon.ico
 icon.png
 word_rules.json
 XTTS_DIAG.bat
-word_rules_backups/
 tools/
 ProjectAnalyzer.ps1
 # =========================
@@ -73,6 +72,7 @@ python/runtime/
 temp/
 tmp/
 cache/
+word_rules_backups/
 
 # =========================
 # AUDIO
