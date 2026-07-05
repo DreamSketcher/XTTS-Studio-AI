@@ -16,7 +16,7 @@ icon.png
 word_rules.json
 XTTS_DIAG.bat
 word_rules_backups/
-
+tools/
 # =========================
 # PYTHON
 # =========================
