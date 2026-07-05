@@ -157,7 +157,21 @@ def show_help():
     for tag, content_text in content:
         text.insert("end", content_text, tag)
     text.config(state="disabled")
+
     def close_window():
-        save_settings()
+        # ИСПРАВЛЕНО: раньше save_settings() вызывался ДО win.destroy() и
+        # без try/except. Если save_settings() бросало исключение (например,
+        # проблема с записью settings.json) — выполнение прерывалось прямо
+        # тут, строка win.destroy() не выполнялась, и окно "Справка"
+        # оставалось висеть навсегда — крестик (X) выглядел так, будто
+        # совсем не реагирует. Сравните с pick_language() выше в этом же
+        # файле — там уже применён безопасный порядок: [win.destroy(),
+        # save_settings()] (сначала закрыть, потом сохранить). Здесь делаем
+        # то же самое + оборачиваем save_settings() в try/except на всякий
+        # случай, чтобы окно гарантированно закрывалось при любом исходе.
         win.destroy()
+        try:
+            save_settings()
+        except Exception:
+            pass
     win.protocol("WM_DELETE_WINDOW", close_window)
