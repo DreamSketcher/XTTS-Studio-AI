@@ -20,6 +20,7 @@ from engine.voice_manager import VoiceManager
 from engine.task_manager import TaskManager
 from engine.settings_store import load_settings
 from engine import audio_backend
+from engine import updater
 
 from engine.gui.theme import apply_theme, set_dark_titlebar
 from engine.gui.colors import Colors
@@ -98,9 +99,18 @@ def open_theme_settings_dialog():
             pass
 
 
-def create_main_window():
+def create_main_window(startup_status: str = None):
     """Создаёт и полностью собирает главное окно. Возвращает root
-    (mainloop() запускает вызывающая сторона — gui.py)."""
+    (mainloop() запускает вызывающая сторона — gui.py).
+
+    startup_status — результат updater.check_startup_health(), переданный
+    из gui.py ДО создания окна:
+      "rolled_back"   — прошлый запуск после обновления не подтвердился,
+                        файлы уже автоматически откачены на предыдущую
+                        версию; пользователю нужно показать уведомление
+      "first_attempt" — первый запуск после применения обновления
+      "ok" / None     — обновления не применялись, ничего особенного
+    """
     global root, task_manager, voice_manager, quality_params, _current_layout_preset
 
     # ── CUSTOMTKINTER THEME (как в gui.py: до создания root) ──
@@ -303,6 +313,30 @@ def create_main_window():
     root.geometry(f"1160x820+{x}+{y}")
     root.after(150, generation.start_preload_thread)
     threading.Thread(target=updates._auto_check_update, daemon=True).start()
+
+    # ── ПОДТВЕРЖДЕНИЕ ОБНОВЛЕНИЯ ──
+    # Мы дошли до этой точки без исключений — интерфейс собран полностью.
+    # Если до этого было применено обновление, помечаем его успешным,
+    # иначе при следующем запуске сработает ложный откат.
+    try:
+        updater.confirm_update_success()
+    except Exception:
+        pass
+
+    if startup_status == "rolled_back":
+        # Не используем Toplevel/messagebox (см. известный конфликт
+        # grab_set при вложенных модальных окнах) — показываем через
+        # статус-бар и консоль, как более безопасный inline-вариант.
+        try:
+            status_var.set("Обновление не удалось — версия автоматически откачена")
+        except Exception:
+            pass
+        try:
+            print("[Updater] Прошлый запуск после обновления не подтвердился. "
+                  "Файлы откачены на предыдущую версию.")
+        except Exception:
+            pass
+
     return root
 
 

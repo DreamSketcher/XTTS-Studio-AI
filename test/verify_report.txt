@@ -1,0 +1,30 @@
+======================================================================
+REAL PROJECT VERIFICATION: C:\XTTS Studio
+Python  : C:\XTTS Studio\python\runtime\python.exe
+Version : 3.11.7
+======================================================================
+
+[0/5] Portable Python environment...
+  Detected 2 site-packages location(s):
+    -> C:\XTTS Studio\python\runtime\Lib\site-packages
+    -> C:\XTTS Studio\python\xtts_env\Lib\site-packages
+
+[1/5] Critical files...
+  OK — engine module found
+
+[2/5] JSON configs...
+  OK — 1 config(s) found: settings.json
+
+[3/5] Syntax check of .py files...
+  Checked: 97 files, errors: 0
+
+[4/5] Import check of engine.* modules...
+pygame 2.6.1 (SDL 2.28.4, Python 3.11.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+  OK — 92 modules imported successfully
+
+----------------------------------------------------------------------
+CRITICAL: 0  |  WARNINGS: 0
+======================================================================
+RESULT: PROJECT IS FULLY OPERATIONAL
+======================================================================

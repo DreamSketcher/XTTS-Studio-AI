@@ -127,7 +127,15 @@ class TextChunker:
                 out.append(chunk)
 
         if remaining:
-            out.append(remaining.strip())
+            remaining = remaining.strip()
+            # ТА ЖЕ проверка, что и внутри while-цикла: если хвостовой остаток
+            # начинается с запрещённого токена ("и", "что", "а" и т.д.),
+            # он должен приклеиться к предыдущему чанку, а не звучать как
+            # оборванная мысль в отдельном TTS-чанке.
+            if out and self._is_bad_start(remaining):
+                out[-1] = out[-1] + " " + remaining
+            else:
+                out.append(remaining)
 
         return out
 

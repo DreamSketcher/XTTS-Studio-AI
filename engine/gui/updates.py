@@ -23,7 +23,11 @@ def _do_update(result):
     import tkinter.messagebox as mb
     set_status(t("status_update_download"))
     def _apply():
-        ok = apply_update(result["files"], progress_callback=lambda i, t_val: set_progress(int(i / t_val * 100)))
+        ok = apply_update(
+            result["files"],
+            sha256_map=result.get("sha256", {}),
+            progress_callback=lambda i, t_val: set_progress(int(i / t_val * 100)),
+        )
         if ok:
             changelog = result.get("changelog", "").strip()
             msg = t("update_installed", result['remote'])
@@ -35,12 +39,14 @@ def _do_update(result):
                 restart()
             root.after(0, _notify_and_restart)
         else:
+            # apply_update ничего не тронул на диске, если проверка SHA256
+            # или скачивание не прошли — рабочие файлы остались как были.
             root.after(0, lambda: mb.showwarning(t("update_partial_title"), t("update_partial")))
             set_status(t("status_waiting"))
     threading.Thread(target=_apply, daemon=True).start()
 def check_and_update():
     """Ручная проверка (по кнопке)."""
-    from engine.updater import check_update
+    from engine.updater import check_update, REPO
     import tkinter.messagebox as mb
     set_status(t("status_update_check"))
     def _run():
@@ -48,6 +54,17 @@ def check_and_update():
         if result.get("error"):
             root.after(0, lambda: mb.showerror(t("update_error_title"), result["error"]))
             set_status(t("status_waiting"))
+            return
+        if result.get("needs_manual_reinstall"):
+            def notify_manual():
+                mb.showwarning(
+                    t("update_manual_required_title"),
+                    t("update_manual_required",
+                      result.get("min_app_version", "?"), result['local'],
+                      f"https://github.com/{REPO}/releases"),
+                )
+                set_status(t("status_waiting"))
+            root.after(0, notify_manual)
             return
         if not result["available"]:
             root.after(0, lambda: mb.showinfo(t("update_no_title"),
@@ -73,6 +90,12 @@ def _auto_check_update():
     from engine.updater import check_update
     result = check_update()
     if result.get("error"):
+        return
+    if result.get("needs_manual_reinstall"):
+        # Не дёргаем пользователя всплывающим окном при каждом автозапуске —
+        # ручная переустановка не срочная, покажем только по кнопке "Проверить обновления".
+        print(f"[Updater] Требуется ручная переустановка: локальная версия {result['local']} "
+              f"старее минимально поддерживаемой {result.get('min_app_version')}")
         return
     if result.get("available"):
         def _notify():

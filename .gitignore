@@ -15,8 +15,8 @@ icon.ico
 icon.png
 word_rules.json
 XTTS_DIAG.bat
-tools/
 ProjectAnalyzer.ps1
+XTTS Studio.exe
 # =========================
 # PYTHON
 # =========================

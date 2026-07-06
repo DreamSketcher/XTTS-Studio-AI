@@ -1,0 +1,70 @@
+{
+  "created": 1783327401.2303672,
+  "duration": 0.3715097904205322,
+  "exitcode": 2,
+  "root": "C:\\XTTS Studio\\test",
+  "environment": {},
+  "summary": {
+    "total": 0,
+    "collected": 0
+  },
+  "collectors": [
+    {
+      "nodeid": "",
+      "outcome": "passed",
+      "result": [
+        {
+          "nodeid": ".",
+          "type": "Dir"
+        }
+      ]
+    },
+    {
+      "nodeid": "test_chunker.py",
+      "outcome": "failed",
+      "result": [],
+      "longrepr": "ImportError while importing test module 'C:\\XTTS Studio\\test\\test_chunker.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\importlib\\__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntest_chunker.py:10: in <module>\n    from engine.chunker import TextChunker\nE   ModuleNotFoundError: No module named 'engine'"
+    },
+    {
+      "nodeid": "test_normalizer.py",
+      "outcome": "failed",
+      "result": [],
+      "longrepr": "ImportError while importing test module 'C:\\XTTS Studio\\test\\test_normalizer.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\importlib\\__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntest_normalizer.py:11: in <module>\n    from engine.normalizer import TextNormalizer\nE   ModuleNotFoundError: No module named 'engine'"
+    },
+    {
+      "nodeid": "test_smart_pauses.py",
+      "outcome": "failed",
+      "result": [],
+      "longrepr": "ImportError while importing test module 'C:\\XTTS Studio\\test\\test_smart_pauses.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\importlib\\__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntest_smart_pauses.py:10: in <module>\n    from engine.smart_pauses import SmartPauseEngine\nE   ModuleNotFoundError: No module named 'engine'"
+    },
+    {
+      "nodeid": "test_updater.py",
+      "outcome": "failed",
+      "result": [],
+      "longrepr": "ImportError while importing test module 'C:\\XTTS Studio\\test\\test_updater.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\nC:\\Users\\User\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\importlib\\__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntest_updater.py:22: in <module>\n    from engine import updater\nE   ModuleNotFoundError: No module named 'engine'"
+    },
+    {
+      "nodeid": ".",
+      "outcome": "passed",
+      "result": [
+        {
+          "nodeid": "test_chunker.py",
+          "type": "Module"
+        },
+        {
+          "nodeid": "test_normalizer.py",
+          "type": "Module"
+        },
+        {
+          "nodeid": "test_smart_pauses.py",
+          "type": "Module"
+        },
+        {
+          "nodeid": "test_updater.py",
+          "type": "Module"
+        }
+      ]
+    }
+  ],
+  "tests": []
+}

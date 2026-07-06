@@ -198,6 +198,8 @@ LANGUAGES = {
         "update_partial_title": "⚠ Частичное обновление",
         "update_no_title": "✅ Обновлений нет",
         "update_error_title": "❌ Ошибка",
+        "update_manual_required_title": "⚠ Требуется переустановка",
+        "update_manual_required": "Ваша версия слишком старая для автоматического обновления.\nМинимально поддерживаемая версия для обновления — {}, у вас {}.\n\nСкачайте новую версию вручную:\n{}",
         # ── UI Language Switch ──
         "lang_ui_label": "UI",
         # ── Text size slider ──
@@ -729,6 +731,8 @@ LANGUAGES = {
         "update_partial_title": "⚠ Partial Update",
         "update_no_title": "✅ No Updates",
         "update_error_title": "❌ Error",
+        "update_manual_required_title": "⚠ Reinstall Required",
+        "update_manual_required": "Your version is too old for automatic updating.\nMinimum supported version for updating is {}, you have {}.\n\nPlease download the new version manually:\n{}",
         # ── UI Language Switch ──
         "lang_ui_label": "UI",
         # ── Text size slider ──

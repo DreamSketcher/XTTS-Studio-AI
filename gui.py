@@ -23,11 +23,18 @@ def _global_exception_handler(exc_type, exc_value, exc_tb):
 
 sys.excepthook = _global_exception_handler
 
+from engine import updater
 from engine.gui.main_window import create_main_window
 
 
 def main():
-    root = create_main_window()
+    # ВАЖНО: проверка обновления — самое первое, что делает приложение.
+    # Если прошлый запуск (после apply_update) не дошёл до
+    # updater.confirm_update_success() внутри create_main_window(), значит
+    # обновление сломало старт — файлы уже автоматически откачены здесь.
+    startup_status = updater.check_startup_health()
+
+    root = create_main_window(startup_status=startup_status)
     root.mainloop()
 
 
