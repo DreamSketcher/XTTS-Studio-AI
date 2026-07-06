@@ -1,7 +1,6 @@
 {
-  "version": "1.0.10",
+  "version": "1.1.10",
   "files": [
-    "XTTS Studio.exe",
     "engine/__init__.py",
     "engine/ai_conductor.py",
     "engine/audio_backend.py",
@@ -98,15 +97,6 @@
     "gui.py",
     "i18n.py",
     "settings.json",
-    "test/_verify.py",
-    "test/result/pytest_report.txt",
-    "test/run_tests.bat",
-    "test/test_chunker.py",
-    "test/test_normalizer.py",
-    "test/test_results.json",
-    "test/test_smart_pauses.py",
-    "test/test_updater.py",
-    "test/verify_report.txt",
     "theme_settings.json"
   ],
   "changelog": "- Полностью переработана архитектура проекта\n- Новый модульный интерфейс\n- Добавлена локализация RU/EN с живым переключением\n- Добавлены светлая и тёмная темы\n- Добавлена выдвижная боковая панель\n- Добавлен регулятор размера текста\n- Улучшена диагностика запуска XTTS_DIAG.bat\n- Переработано окно настроек AI-провайдера\n- Улучшен AI Fallback\n- Улучшен детектор слов\n- Исправлены ошибки и проведена оптимизация"

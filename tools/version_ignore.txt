@@ -22,7 +22,7 @@ LICENSE.md
 generate_icon.py
 tools/
 .github/
-
+test/
 # Локальные бэкапы словаря (создаются автоматически word_replacer.py) —
 # это рабочий мусор, не часть приложения
 word_rules_backups/
