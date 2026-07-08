@@ -105,6 +105,7 @@ The AI module is optional and connects through any OpenAI-compatible provider.
 </p>
 <p align="center">
   <img src="images/mail-light.PNG" width="45%" />
+  <img src="images/ai-settings.PNG" width="45%" />
   <img src="images/settings.PNG" width="45%" />
 </p>
 
