@@ -1,126 +1,130 @@
 # -*- coding: utf-8 -*-
-"""engine/gui/statusbar.py — статусбар и прогресс-бар
-(перенесено из gui.py: set_status, set_stage, set_progress, секция STATUS BAR)."""
-import tkinter as tk
-
-import customtkinter as ctk
+"""engine/gui/updates.py — проверка и установка обновлений (GUI-обвязка)
+(перенесено из gui.py: _do_update, check_and_update, _auto_check_update)."""
+import threading
 
 from i18n import t
-from engine.gui.colors import Colors, scaled_font_size
 
-# Внедряются из main_window: root, status_var, stage_var, progress_value
+from engine.gui.statusbar import set_status, set_progress, show_cancel_button, hide_cancel_button
+
+# Внедряется из main_window: root
 root = None
-status_var = None
-stage_var = None
-progress_value = None
 
-status_frame = None
-progress_bar = None
-cancel_button = None
-_on_cancel_callback = None
+# Флаг отмены текущего обновления — тот же формат, что использует
+# engine/local_llm_client.py и engine/updater.py (dict с ключом "cancelled").
+_update_cancelled_flag = {"cancelled": False}
 
 
 def init(**deps):
-    """Внедрение зависимостей из engine.gui.main_window.
-    Имена совпадают с именами глобальных переменных исходного gui.py."""
+    """Внедрение зависимостей из engine.gui.main_window (имена совпадают с
+    именами глобальных переменных исходного gui.py)."""
     globals().update(deps)
 
 
-def set_status(text):
-    root.after(0, lambda: status_var.set(text))
-def set_stage(text):
-    root.after(0, lambda: stage_var.set(text))
-def set_progress(value):
-    try:
-        value = max(0, min(100, int(value)))
-    except Exception:
+def _cancel_current_update():
+    """Вызывается по нажатию кнопки "Отмена" в статус-баре."""
+    _update_cancelled_flag["cancelled"] = True
+
+
+def _do_update(result):
+    """Скачивает и устанавливает обновление."""
+    from engine.updater import apply_update, restart
+    import tkinter.messagebox as mb
+    _update_cancelled_flag["cancelled"] = False
+    set_status(t("status_update_download"))
+    show_cancel_button(_cancel_current_update)
+    def _apply():
+        ok = apply_update(
+            result["files"],
+            sha256_map=result.get("sha256", {}),
+            removed_files=result.get("removed_files", []),
+            progress_callback=lambda i, t_val: set_progress(int(i / t_val * 100)),
+            cancelled_flag=_update_cancelled_flag,
+        )
+        hide_cancel_button()
+        was_cancelled = _update_cancelled_flag["cancelled"]
+        if ok:
+            changelog = result.get("changelog", "").strip()
+            msg = t("update_installed", result['remote'])
+            if changelog:
+                msg += t("update_changelog", changelog)
+            msg += t("update_restart")
+            def _notify_and_restart():
+                mb.showinfo(t("update_done_title"), msg)
+                restart()
+            root.after(0, _notify_and_restart)
+        elif was_cancelled:
+            # Скачанные файлы уже удалены внутри apply_update (staging очищен),
+            # рабочие файлы не тронуты — обновление отменено чисто.
+            root.after(0, lambda: mb.showinfo(t("update_cancelled_title"), t("update_cancelled")))
+            set_status(t("status_waiting"))
+        else:
+            # apply_update ничего не тронул на диске, если проверка SHA256
+            # или скачивание не прошли — рабочие файлы остались как были.
+            root.after(0, lambda: mb.showwarning(t("update_partial_title"), t("update_partial")))
+            set_status(t("status_waiting"))
+    threading.Thread(target=_apply, daemon=True).start()
+def check_and_update():
+    """Ручная проверка (по кнопке)."""
+    from engine.updater import check_update, REPO
+    import tkinter.messagebox as mb
+    set_status(t("status_update_check"))
+    def _run():
+        result = check_update()
+        if result.get("error"):
+            root.after(0, lambda: mb.showerror(t("update_error_title"), result["error"]))
+            set_status(t("status_waiting"))
+            return
+        if result.get("needs_manual_reinstall"):
+            def notify_manual():
+                mb.showwarning(
+                    t("update_manual_required_title"),
+                    t("update_manual_required",
+                      result.get("min_app_version", "?"), result['local'],
+                      f"https://github.com/{REPO}/releases"),
+                )
+                set_status(t("status_waiting"))
+            root.after(0, notify_manual)
+            return
+        if not result["available"]:
+            root.after(0, lambda: mb.showinfo(t("update_no_title"),
+                                               t("update_no_updates", result['local'])))
+            set_status(t("status_waiting"))
+            return
+        def ask():
+            changelog = result.get("changelog", "").strip()
+            text = t("update_available", result['remote'], result['local'])
+            if changelog:
+                text += t("update_whats_new", changelog)
+            text += t("update_confirm")
+            confirmed = mb.askyesno(t("update_title"), text)
+            if confirmed:
+                _do_update(result)
+            else:
+                set_status(t("status_waiting"))
+        root.after(0, ask)
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _auto_check_update():
+    from engine.updater import check_update
+    result = check_update()
+    if result.get("error"):
         return
-    root.after(0, lambda: (progress_value.set(value),
-                           globals().get("progress_bar") and progress_bar.set(value / 100)))
-
-
-def show_cancel_button(on_cancel):
-    """
-    Показывает кнопку "Отмена" в правом нижнем углу статус-бара.
-    on_cancel — функция без аргументов, вызывается по нажатию (из UI-потока).
-    """
-    global _on_cancel_callback
-    _on_cancel_callback = on_cancel
-
-    def _show():
-        if cancel_button is None:
-            return
-        cancel_button.configure(state="normal", text=t("update_cancel_btn"))
-        cancel_button.pack(side="right", padx=(8, 0))
-    root.after(0, _show)
-
-
-def hide_cancel_button():
-    """Прячет кнопку "Отмена" — обновление завершилось (успешно, с ошибкой или было отменено)."""
-    global _on_cancel_callback
-    _on_cancel_callback = None
-
-    def _hide():
-        if cancel_button is None:
-            return
-        cancel_button.pack_forget()
-    root.after(0, _hide)
-
-
-def set_cancel_button_cancelling():
-    """
-    Мгновенная обратная связь по нажатию — сама отмена может занять
-    короткое время (флаг проверяется между блоками скачивания файла),
-    поэтому кнопка сразу блокируется и меняет подпись, чтобы не было
-    впечатления, что нажатие не сработало.
-    """
-    def _set():
-        if cancel_button is None:
-            return
-        cancel_button.configure(state="disabled", text=t("update_cancelling_btn"))
-    root.after(0, _set)
-
-
-def _handle_cancel_click():
-    if _on_cancel_callback:
-        set_cancel_button_cancelling()
-        _on_cancel_callback()
-
-
-def build_statusbar(right_panel):
-    global status_frame, progress_bar, cancel_button
-    status_frame = tk.Frame(right_panel, bg=Colors.BG_CARD)
-    status_frame.pack(fill="x", side="bottom", pady=(0, 0))
-    progress_bar = ctk.CTkProgressBar(
-        status_frame,
-        orientation="horizontal",
-        height=14,  # чуть выше — полоса больше не выглядит плоской
-        fg_color=Colors.PROGRESS_BG,
-        progress_color=Colors.PROGRESS_FG,
-        corner_radius=7
-    )
-    progress_bar.pack(fill="x", padx=10, pady=(10, 5))
-    progress_bar.set(0)
-
-    bottom_row = tk.Frame(status_frame, bg=Colors.BG_CARD)
-    bottom_row.pack(fill="x", padx=10, pady=(0, 10))
-
-    tk.Label(bottom_row, textvariable=status_var, anchor="w", bg=Colors.BG_CARD,
-             fg=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(11))).pack(side="left", fill="x", expand=True)
-
-    # Кнопка "Отмена" — правый нижний угол статус-бара. Скрыта по умолчанию,
-    # показывается только на время активного обновления (show_cancel_button /
-    # hide_cancel_button вызываются из engine/gui/updates.py).
-    cancel_button = ctk.CTkButton(
-        bottom_row,
-        text=t("update_cancel_btn"),
-        width=90,
-        height=24,
-        corner_radius=6,
-        fg_color=getattr(Colors, "BG_INPUT", Colors.BG_CARD),
-        hover_color=getattr(Colors, "TEXT_ERROR", Colors.PROGRESS_FG),
-        text_color=Colors.TEXT_MAIN,
-        font=("Segoe UI", scaled_font_size(10)),
-        command=_handle_cancel_click,
-    )
-    # Не паковим сразу — pack() вызывается в show_cancel_button()
+    if result.get("needs_manual_reinstall"):
+        # Не дёргаем пользователя всплывающим окном при каждом автозапуске —
+        # ручная переустановка не срочная, покажем только по кнопке "Проверить обновления".
+        print(f"[Updater] Требуется ручная переустановка: локальная версия {result['local']} "
+              f"старее минимально поддерживаемой {result.get('min_app_version')}")
+        return
+    if result.get("available"):
+        def _notify():
+            import tkinter.messagebox as mb
+            changelog = result.get("changelog", "").strip()
+            text = t("update_available", result['remote'], result['local'])
+            if changelog:
+                text += t("update_whats_new", changelog)
+            text += t("update_confirm")
+            if mb.askyesno(t("update_title"), text):
+                _do_update(result)
+        root.after(0, _notify)
