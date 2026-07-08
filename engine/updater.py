@@ -131,7 +131,18 @@ def _clear_dir(path: str):
         shutil.rmtree(path, ignore_errors=True)
 
 
-def _download_to_staging(relative_path: str, expected_sha256: str = None) -> bool:
+def _is_cancelled(cancelled_flag) -> bool:
+    """Единый формат флага отмены — совместимо с engine/local_llm_client.py."""
+    if cancelled_flag is None:
+        return False
+    if isinstance(cancelled_flag, dict):
+        return bool(cancelled_flag.get("cancelled"))
+    if isinstance(cancelled_flag, (list, tuple)) and len(cancelled_flag) > 0:
+        return bool(cancelled_flag[0])
+    return False
+
+
+def _download_to_staging(relative_path: str, expected_sha256: str = None, cancelled_flag=None) -> bool:
     """
     Скачивает файл во временный staging (НЕ в рабочую директорию) и
     проверяет его SHA256 перед тем как считать файл готовым к применению.
@@ -142,6 +153,10 @@ def _download_to_staging(relative_path: str, expected_sha256: str = None) -> boo
     отсутствие хэша в манифесте тихо пропускало проверку — это было дырой:
     сломанный/неполный релизный манифест приводил к обновлению без
     проверки целостности вообще.
+
+    Скачивание читается блоками и проверяет cancelled_flag на каждом блоке,
+    чтобы отмена пользователем срабатывала быстро даже на крупном файле,
+    а не только между файлами.
     """
     url = f"{RAW_BASE}/{urllib.parse.quote(relative_path)}"
     dst = os.path.join(STAGING_DIR, relative_path.replace("/", os.sep))
@@ -150,7 +165,13 @@ def _download_to_staging(relative_path: str, expected_sha256: str = None) -> boo
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         with _urlopen_with_retry(url, timeout=30) as resp:
             with open(tmp, "wb") as f:
-                shutil.copyfileobj(resp, f)
+                while True:
+                    if _is_cancelled(cancelled_flag):
+                        raise InterruptedError("Обновление отменено пользователем")
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
 
         if not expected_sha256:
             print(f"[Updater] В манифесте нет SHA256 для {relative_path} — файл отклонён")
@@ -167,6 +188,12 @@ def _download_to_staging(relative_path: str, expected_sha256: str = None) -> boo
             os.remove(dst)
         shutil.move(tmp, dst)
         return True
+    except InterruptedError:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
     except Exception as e:
         print(f"[Updater] Ошибка загрузки {relative_path}: {e}")
         try:
@@ -247,7 +274,8 @@ def _write_rollback_marker(old_version: str, new_version: str, files: list, remo
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def apply_update(files: list, sha256_map: dict = None, removed_files: list = None, progress_callback=None) -> bool:
+def apply_update(files: list, sha256_map: dict = None, removed_files: list = None,
+                  progress_callback=None, cancelled_flag=None) -> bool:
     """
     Безопасный цикл обновления:
       1. скачать ВСЕ файлы в staging, не трогая рабочую копию
@@ -262,36 +290,63 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
          они бы бесконечно копились на дисках уже обновившихся пользователей
       7. записать маркер "обновление ожидает подтверждения" (см.
          check_startup_health / confirm_update_success ниже)
+
+    cancelled_flag — тот же формат, что и в engine/local_llm_client.py
+    (dict с ключом "cancelled" или list/tuple с элементом [0]). Проверяется
+    ТОЛЬКО во время скачивания/проверки (шаги 1-3) — как только начался
+    backup+подмена рабочих файлов (шаг 4+), это точка невозврата: прерывать
+    подмену на середине опаснее, чем просто её закончить, поэтому дальше
+    отмена больше не действует.
     """
     sha256_map = sha256_map or {}
     removed_files = removed_files or []
     _clear_dir(STAGING_DIR)
     os.makedirs(STAGING_DIR, exist_ok=True)
 
+    def _cancel_cleanup() -> bool:
+        print("[Updater] Обновление отменено пользователем — удаляю скачанные файлы...")
+        _clear_dir(STAGING_DIR)
+        return False
+
     total = len(files)
     failed = []
     for i, f in enumerate(files):
-        ok = _download_to_staging(f, sha256_map.get(f))
+        if _is_cancelled(cancelled_flag):
+            return _cancel_cleanup()
+        try:
+            ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag)
+        except InterruptedError:
+            return _cancel_cleanup()
         if not ok:
             failed.append(f)
         if progress_callback:
             progress_callback(i + 1, total)
 
-    if failed:
+    if failed and not _is_cancelled(cancelled_flag):
         print(f"[Updater] Повторная попытка для {len(failed)} файлов после паузы...")
         time.sleep(2.0)
         still_failed = []
         for f in failed:
-            ok = _download_to_staging(f, sha256_map.get(f))
+            if _is_cancelled(cancelled_flag):
+                break
+            try:
+                ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag)
+            except InterruptedError:
+                break
             if not ok:
                 still_failed.append(f)
         failed = still_failed
+
+    if _is_cancelled(cancelled_flag):
+        return _cancel_cleanup()
 
     if failed:
         print(f"[Updater] Обновление отменено — не прошли скачивание/проверку: {failed}")
         _clear_dir(STAGING_DIR)
         return False
 
+    # ── Точка невозврата ── дальше идёт backup + подмена рабочих файлов;
+    # cancelled_flag больше не проверяется.
     old_version = get_local_version()
 
     try:
