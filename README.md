@@ -43,11 +43,11 @@ The AI module is optional and connects through any OpenAI-compatible provider.
 - Voice cloning from a 10–20 second reference clip
 - Voice library with cached speaker embeddings
 - No limit on text length
-- Automatic RU/EN language switching within a single text
+- Automatic language switching between Russian and English
 - CUDA/CPU auto-detection with a CPU fallback if the graphics card isn't supported
 
 ### 🖥 Interface
-- 🌗 **Themes:** dark and a soft light ("milk") theme out of the box, plus a built-in **theme constructor** — build your own color scheme, not just toggle presets
+- 🌗 **Themes:** dark and a soft light theme out of the box, plus a built-in **theme constructor** — build your own color scheme, not just toggle presets
 - 🌐 **Two UI languages:** Russian and English (RU/EN), including the AI chat and provider settings
 - 📐 Adaptive toolbar — panels resize with the window
 - ◀ Collapsible left panel that remembers its position
@@ -66,7 +66,7 @@ The AI module is optional and connects through any OpenAI-compatible provider.
 - Fine-grained tuning: temperature, top_p, repetition_penalty, speed, trim
 - Chunk-level QC — automatic regeneration on repeats or cut-offs
 - De-esser, RMS loudness normalization, automatic silence trimming
-- Chunk cache — regenerating the same text doesn't cost time again
+- Chunk cache — identical text is generated only once.
 
 ### 🤖 AI module (optional)
 - **AI Conductor** — analyzes the text and assigns XTTS parameters per chunk
@@ -154,7 +154,7 @@ GPU     → G-P-U
 OpenAI  → Open-Eh-Eye
 ```
 
-The dictionary grows automatically during generation, and when the **AI Conductor** is enabled it also helps the dictionary along: it analyzes transliteration and adds corrections into the `ai_corrected` category itself — so an active conductor effectively keeps "training" the dictionary alongside generation.
+The dictionary grows automatically during generation, and when the **AI Conductor** is enabled it also helps the dictionary along: it analyzes transliteration and adds corrections into the `ai_corrected` category itself — so an active conductor effectively expands the pronunciation dictionary automatically alongside generation.
 Edit it with the **📖 Dictionary** button (add, change, or remove rules).
 
 - **Prioritized rule categories:** `builtin → auto → ai_corrected → custom` — a more specific rule overrides a more general one
@@ -346,7 +346,7 @@ XTTS Studio (portable)
 
 ### Generation pipeline
 - **`tts_runner.py`** — a thin entry point; the actual `run_tts()` logic lives in the **`engine/tts/`** package: normalize → word replacer → chunk → conductor → generate → merge. Lazy model loading (a thread-safe singleton), embedding and finished-chunk caching (md5), automatic silence trimming, RMS loudness normalization.
-- **`engine/tts/qc.py`** — quality control: loop detector + duration validator, automatic regeneration.
+- **`engine/tts/qc.py`** — quality control: loop detector + duration validator, automatic retry generation.
 - **`engine/tts/device.py`** — CUDA/CPU auto-detection with a CPU fallback if the GPU isn't supported.
 - **`engine/tts/cache.py`** / **`export.py`** — chunk caching and WAV/MP3 export.
 - **`chunker.py`** — splits into sentences, cuts long ones, merges short ones, checks for a bad chunk start/end.
