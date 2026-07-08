@@ -372,19 +372,6 @@ XTTS Studio (portable)
 
 ---
 
-## 🎚 How the AI Conductor works (useful for debugging)
-
-Two independent levels, each with its own flag:
-
-| Level | Flag | What it does |
-|---|---|---|
-| 1 — parameters | `ai_conductor_enabled` | temperature/top_p/repetition_penalty/speed/pause per chunk |
-| 2 — rewrite | `ai_rewrite_enabled` | rewrites the text for a style/genre (only if level 1 is on) |
-
-Level 2 applies **only** when `rewrite_enabled=True` is explicit — this check is duplicated in two places (`ai_conductor.py: conduct()` and `tts_runner.py: run_tts()`) so that neither the model nor future edits can accidentally sneak a text rewrite past a disabled level-2 flag.
-
----
-
 ## 🔐 How the update system works
 
 The update system follows a "safe even if something goes wrong" principle:
