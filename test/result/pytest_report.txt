@@ -7,6 +7,143 @@ collected 45 items
 test_chunker.py ........                                                 [ 17%]
 test_normalizer.py ..............                                        [ 48%]
 test_smart_pauses.py ..............                                      [ 80%]
-test_updater.py .........                                                [100%]
+test_updater.py EEEEEEEEE                                                [100%]
 
-============================= 45 passed in 4.79s ==============================
+=================================== ERRORS ====================================
+________ ERROR at setup of test_check_update_detects_available_version ________
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_check_update_detects_avai0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B995BCB90>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+___ ERROR at setup of test_check_update_flags_manual_reinstall_when_too_old ___
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_check_update_flags_manual0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B995A7E10>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_____ ERROR at setup of test_apply_update_success_writes_files_and_marker _____
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_apply_update_success_writ0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B995BD890>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_ ERROR at setup of test_apply_update_aborts_on_bad_checksum_and_touches_nothing _
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_apply_update_aborts_on_ba0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B99650190>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_______ ERROR at setup of test_rollback_restores_previous_file_content ________
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_rollback_restores_previou0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B99640550>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+___ ERROR at setup of test_confirm_update_success_clears_marker_and_backup ____
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_confirm_update_success_cl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B99658AD0>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_ ERROR at setup of test_startup_health_rolls_back_after_second_unconfirmed_launch _
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_startup_health_rolls_back0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B99644BD0>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_______ ERROR at setup of test_startup_health_ok_when_no_pending_update _______
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_startup_health_ok_when_no0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B9964F510>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+_ ERROR at setup of test_apply_update_fails_cleanly_when_file_missing_from_server _
+
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-10/test_apply_update_fails_cleanl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018B99629B90>
+
+    @pytest.fixture
+    def isolated_project(tmp_path, monkeypatch):
+        """Подменяет все пути updater.py на временную директорию."""
+        base = tmp_path / "project"
+        base.mkdir()
+>       monkeypatch.setattr(updater, "BASE_DIR", str(base))
+E       AttributeError: <module 'engine.updater' from 'C:\\XTTS Studio\\engine\\updater.py'> has no attribute 'BASE_DIR'
+
+test_updater.py:39: AttributeError
+=========================== short test summary info ===========================
+ERROR test_updater.py::test_check_update_detects_available_version - Attribut...
+ERROR test_updater.py::test_check_update_flags_manual_reinstall_when_too_old
+ERROR test_updater.py::test_apply_update_success_writes_files_and_marker - At...
+ERROR test_updater.py::test_apply_update_aborts_on_bad_checksum_and_touches_nothing
+ERROR test_updater.py::test_rollback_restores_previous_file_content - Attribu...
+ERROR test_updater.py::test_confirm_update_success_clears_marker_and_backup
+ERROR test_updater.py::test_startup_health_rolls_back_after_second_unconfirmed_launch
+ERROR test_updater.py::test_startup_health_ok_when_no_pending_update - Attrib...
+ERROR test_updater.py::test_apply_update_fails_cleanly_when_file_missing_from_server
+======================== 36 passed, 9 errors in 0.42s =========================
