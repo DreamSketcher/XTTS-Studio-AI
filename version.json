@@ -1,5 +1,5 @@
 {
-  "version": "1.1.110",
+  "version": "1.1.111",
   "files": [
     ".llama_installed_backend.json",
     "XTTS Studio.exe",
@@ -131,7 +131,7 @@
     "engine/gui/chat_window/chat_messages.py": "9d45add910509a5284b65cb4792516de527afd550f71a5f66c4f91758f54b0e3",
     "engine/gui/chat_window/chat_scroll.py": "948e9cc081869e923c5d68561816ba007067f76e2a5bf420952f32abec18d1e1",
     "engine/gui/chat_window/chat_search.py": "adf991b9a9674a97062474f07cb2ecc6c1df797bc652c45babf7caa2bd21bbaa",
-    "engine/gui/chat_window/chat_settings.py": "c850f201d7896f3bab59a3c8328007392b7aed0e2038064297ffde5202a011c1",
+    "engine/gui/chat_window/chat_settings.py": "76ce91d53e11b7a43f2bdc28e5d0970aea381a239975900ea94aeff5bfbab391",
     "engine/gui/chat_window/chat_typing.py": "bf2f6623759fbe5d0a164ee1c9c660075f93efbe44613ac903cc2ee29cedce16",
     "engine/gui/chat_window/chat_window.py": "b518836e6e1f6c8e0b350bf4924dbff1a8c54d50d1762231a6fc49f73e6dd498",
     "engine/gui/chat_window/custom_widgets.py": "b4e365e341561778dd12c7d8374c311725066bcb7aace69ee293352374eab1ae",
@@ -167,14 +167,14 @@
     "engine/gui/theme_manager.py": "14944b5d31b15162d87d657f460344d8fcf7d6cf265146f6af881e98bebbbc6e",
     "engine/gui/toolbar.py": "ac0c0e357d33ea0c771f3948e1b544025ad3fe70b4cc760a0745d787609f118e",
     "engine/gui/tooltip.py": "af5175173b2fd9d48a29d7e5bb122a8ee061a061a5a1ab216963d8fa4615117a",
-    "engine/gui/updates.py": "9c1fecc58405ef3d27a0afad2f1701f4b8852ec32ab1749c7b310a3e454ee9d1",
+    "engine/gui/updates.py": "d1087fb9511eb1c38993b7effc3a32f0c8e3835ae73bb769239b96487967f3fa",
     "engine/gui/voice_panel.py": "b1d27ea1d647188fcfac50876bc1987d396269720487980ca9c4a57fd42f1032",
     "engine/gui/widgets.py": "0f22608406854115a91122bf47638c49b4520bbdf269707f422993d3d8d8cbf2",
     "engine/gui/word_replacer_panel.py": "eae6a910e1ce9d3d9d04fafef418f09b6ecb90a782526d2e8ef55377101406b9",
     "engine/gui/word_replacer_window.py": "95230e97c6e5cc4e7ded62163d17962e6c2b338148ee220efe43665372bee51c",
     "engine/history_store.py": "b5b68e5aa7dce060b37bb9c62e546851100154f47fe1179e5b0e31d46c3294d2",
     "engine/local_env_section.py": "e9f26ebebf4ce0b8aab9008b092c36dbc2a4e3a31ab174653b94b87a74ff8210",
-    "engine/local_llm_client.py": "02fe86b51084933c99b23c98b01846ccc2b13b08c3962eafa7fd11f0346b65ef",
+    "engine/local_llm_client.py": "ea95d5d6c2bb4ce2df6cd8b69777d6f5157169bd0a223c0e2171744a46adf896",
     "engine/logging_utils.py": "d37807b63abb3d647a1ab27d725f8cbadef0cb7b259d211debb3d5c015f8e0ae",
     "engine/normalizer.py": "f67d71036eae5716881633c7fe84590c65994682f14767823cdfec777dc1ec6f",
     "engine/output_naming.py": "7bb1ef71aa22bb2fd50058764fde861c186664a608407d65e6a5d9fc54c8a4fa",
@@ -194,7 +194,7 @@
     "engine/tts/qc.py": "ba8d7fd846c1006706cf3c2bc84d2010e4fb77b35cf56c547bf73c5c984f2cab",
     "engine/tts/utils.py": "d2ce8e043ded787bdf4f48c8d02d816da20db639e87482c4733b88dccf21bb52",
     "engine/tts_runner.py": "cce1a0c70d0f53f7bb54a842876e9a3e0139fc10f7b686781408d7659bc2e180",
-    "engine/updater.py": "4fd7e0353f3b5d29790bd1c6e9ddee16293bde1632d00b3117792b41be3209d7",
+    "engine/updater.py": "efab3f8096398ba1bc4b32e230fbc102a2c30a9385eda77d0b8dd28560c1d9de",
     "engine/voice_manager.py": "181495e80f0d99a675ab160ffaf6ff0e199e28054980b6de21f19837e63fa441",
     "engine/word_replacer.py": "e90d1304376b54d2cc94f4a4a3cb9b5f60b07c380ab1fd3cd554a3b4c493e88c",
     "engine/word_replacer_window.py": "20623ccd89d6c1956afafbcf9d0ea0f8ec3ff95a24422456da63ab5d9397d5fd",
@@ -202,5 +202,6 @@
     "i18n.py": "b4e1bfe3f98ed67e425b470837eb4ad8c18b38b6ada8d1391c37cc6f480969ca",
     "settings.json": "918cd67ea9d3c6a642ee2238120c54aa03a9396ba61921afeef6d2815a0f07ab",
     "theme_settings.json": "eb7a6ae9b62d7f3cb8cfc6a5e259b8172bf6da3ad2907da62319b7a706b3c265"
-  }
+  },
+  "removed_files": []
 }
