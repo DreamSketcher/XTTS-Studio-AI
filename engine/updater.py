@@ -1,388 +1,426 @@
-import os
-import sys
+#!/usr/bin/env python3
+"""
+git_update.py — Git manager for XTTS Studio.
+Place in tools/, run via git_update.bat.
+
+Safe flow: commit first, then pull, then push.
+Files are NEVER lost — everything is committed BEFORE any remote sync.
+"""
+
 import json
-import shutil
-import ssl
-import time
-import hashlib
-import urllib.request
-import urllib.parse
+import subprocess
+import sys
 from pathlib import Path
 
-try:
-    import certifi
-    _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
-except ImportError:
-    _SSL_CONTEXT = None  # если certifi не установлен — используем системное по умолчанию
-
-REPO = "DreamSketcher/XTTS-Studio-portable-"
-BRANCH = "main"
-RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}"
-VERSION_URL = f"{RAW_BASE}/version.json"
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCAL_VERSION_PATH = os.path.join(BASE_DIR, "version.json")
-
-# Обновление больше не пишет сразу в рабочие файлы.
-# Сначала всё скачивается и проверяется в STAGING_DIR, и только если
-# ВСЕ файлы прошли проверку SHA256 — делается backup рабочих файлов
-# и staged-файлы переносятся на место.
-STAGING_DIR = os.path.join(BASE_DIR, "_update_staging")
-BACKUP_DIR = os.path.join(BASE_DIR, "_update_backup")
-ROLLBACK_MARKER = os.path.join(BASE_DIR, "_update_pending.json")
-
-MAX_RETRIES = 4
-RETRY_DELAY_SEC = 1.5  # увеличивается с каждой попыткой (backoff)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+GENERATE_FILES_SCRIPT = PROJECT_ROOT / "tools" / "generate_version_files.py"
+GENERATE_MANIFEST_SCRIPT = PROJECT_ROOT / "generate_version_manifest.py"
+VERSION_JSON_PATH = PROJECT_ROOT / "version.json"
 
 
-def get_local_version() -> str:
+def run_python_script(script_path: Path, args: list) -> int:
+    """Run a Python script with the same interpreter that's running this script."""
+    r = subprocess.run(
+        [sys.executable, str(script_path)] + args,
+        cwd=str(PROJECT_ROOT),
+    )
+    return r.returncode
+
+
+def _read_current_changelog() -> str:
+    if not VERSION_JSON_PATH.exists():
+        return ""
     try:
-        with open(LOCAL_VERSION_PATH, "r", encoding="utf-8") as f:
-            return json.load(f).get("version", "0.0.0")
+        with open(VERSION_JSON_PATH, "r", encoding="utf-8") as f:
+            return json.load(f).get("changelog", "")
     except Exception:
-        return "0.0.0"
+        return ""
 
 
-def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETRIES):
-    """urlopen с повторными попытками при временных SSL/сетевых обрывах."""
-    last_err = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            return urllib.request.urlopen(url, timeout=timeout, context=_SSL_CONTEXT)
-        except Exception as e:
-            last_err = e
-            if attempt < max_retries:
-                print(f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. Повтор через {RETRY_DELAY_SEC * attempt:.1f}с...")
-                time.sleep(RETRY_DELAY_SEC * attempt)
-            else:
-                print(f"[Updater] Все {max_retries} попыток не удались для {url}: {e}")
-    raise last_err
+def _prompt_changelog(current: str) -> str:
+    print("\n  Current changelog:")
+    if current:
+        for line in current.split("\n"):
+            print(f"    {line}")
+    else:
+        print("    (empty)")
+
+    choice = input("\n  Write a new changelog for this release? (y/n, Enter=keep current): ").strip().lower()
+    if choice != "y":
+        return current
+
+    print("  Enter changelog lines one by one. Empty line to finish:")
+    lines = []
+    while True:
+        line = input("    ").strip()
+        if not line:
+            break
+        lines.append(line if line.startswith("-") else f"- {line}")
+
+    if not lines:
+        print("  No lines entered — keeping current changelog.")
+        return current
+
+    return "\n".join(lines)
 
 
-def get_remote_version_info() -> dict:
-    try:
-        with _urlopen_with_retry(VERSION_URL, timeout=10) as r:
-            return json.loads(r.read().decode("utf-8"))
-    except Exception as e:
-        raise RuntimeError(f"Не удалось получить информацию об обновлении: {e}")
-
-
-def _sha256_of_file(path: str) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _version_gt(a: str, b: str) -> bool:
-    """Возвращает True если версия a новее b."""
-    def parse(v):
-        try:
-            return tuple(int(x) for x in v.strip().split("."))
-        except Exception:
-            return (0, 0, 0)
-    return parse(a) > parse(b)
-
-
-def _version_lt(a: str, b: str) -> bool:
-    return _version_gt(b, a)
-
-
-def check_update() -> dict:
+def update_version_manifest():
     """
-    Возвращает:
-      { "available": True/False, "local": "1.0.0", "remote": "1.0.1",
-        "files": [...], "sha256": {...}, "changelog": "...",
-        "min_app_version": "1.0.0" или None,
-        "needs_manual_reinstall": True/False }
+    Rebuilds version.json's file list, lets the user (re)write the changelog,
+    then generates SHA256 checksums for this release.
 
-    needs_manual_reinstall=True означает, что текущая версия слишком старая
-    для инкрементального автообновления (см. min_app_version в манифесте) —
-    в этом случае нужно предложить пользователю скачать установщик целиком,
-    а не тянуть файлы поштучно.
+    Returns:
+      - the version string on success (files/changelog/sha256 regenerated)
+      - "SKIP" if the user intentionally chose not to release this push
+        (e.g. just pushing test results or other non-release files)
+      - None on a real failure (missing script, empty version, generation error)
     """
-    local = get_local_version()
-    try:
-        info = get_remote_version_info()
-        remote = info.get("version", "0.0.0")
-        available = _version_gt(remote, local)
+    do_release = input(
+        "\n  Bump version and regenerate SHA256 checksums for this push? (y/n, Enter=y): "
+    ).strip().lower()
+    if do_release == "n":
+        print("  Skipping version/SHA256 update — this push will not be tagged as a release.")
+        return "SKIP"
 
-        min_required = info.get("min_app_version")
-        needs_manual = bool(min_required) and _version_lt(local, min_required)
+    if not GENERATE_FILES_SCRIPT.exists():
+        print(f"  [ERROR] {GENERATE_FILES_SCRIPT} not found.")
+        return None
 
-        return {
-            "available": available,
-            "local": local,
-            "remote": remote,
-            "files": info.get("files", []),
-            "sha256": info.get("sha256", {}),
-            "changelog": info.get("changelog", ""),
-            "min_app_version": min_required,
-            "needs_manual_reinstall": needs_manual,
-        }
-    except Exception as e:
-        return {"available": False, "local": local, "remote": None, "error": str(e)}
+    print("  Rebuilding file list...")
+    if run_python_script(GENERATE_FILES_SCRIPT, []) != 0:
+        print("  [ERROR] generate_version_files.py failed.")
+        return None
+
+    if not GENERATE_MANIFEST_SCRIPT.exists():
+        print(f"  [ERROR] {GENERATE_MANIFEST_SCRIPT} not found.")
+        return None
+
+    version = input("  Version for this release (e.g. 1.1.56): ").strip()
+    if not version:
+        print("  [ERROR] Version is required.")
+        return None
+    min_app_version = input("  Min app version for incremental update (Enter to skip): ").strip()
+
+    changelog = _prompt_changelog(_read_current_changelog())
+
+    args = ["--version", version, "--changelog", changelog]
+    if min_app_version:
+        args += ["--min-app-version", min_app_version]
+
+    print(f"  Generating SHA256 checksums for {version}...")
+    if run_python_script(GENERATE_MANIFEST_SCRIPT, args) != 0:
+        print("  [ERROR] generate_version_manifest.py failed.")
+        return None
+
+    print("  [OK] version.json + checksums.txt updated.")
+    return version
 
 
-def _clear_dir(path: str):
-    if os.path.isdir(path):
-        shutil.rmtree(path, ignore_errors=True)
+def git(*args: str) -> subprocess.CompletedProcess:
+    """Run git command from project root, return CompletedProcess."""
+    return subprocess.run(
+        ["git"] + list(args),
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
 
 
-def _download_to_staging(relative_path: str, expected_sha256: str = None) -> bool:
-    """
-    Скачивает файл во временный staging (НЕ в рабочую директорию) и
-    проверяет его SHA256 перед тем как считать файл готовым к применению.
+def git_show(*args: str) -> subprocess.CompletedProcess:
+    """Run git with output shown directly in console (pull, push, rebase)."""
+    return subprocess.run(
+        ["git"] + list(args),
+        cwd=str(PROJECT_ROOT),
+        timeout=120,
+    )
 
-    ВАЖНО: expected_sha256 обязателен. Если в манифесте (version.json ->
-    "sha256") для этого файла нет хэша — файл считается непрошедшим
-    проверку и НЕ применяется, даже если скачался без ошибок. Раньше
-    отсутствие хэша в манифесте тихо пропускало проверку — это было дырой:
-    сломанный/неполный релизный манифест приводил к обновлению без
-    проверки целостности вообще.
-    """
-    url = f"{RAW_BASE}/{urllib.parse.quote(relative_path)}"
-    dst = os.path.join(STAGING_DIR, relative_path.replace("/", os.sep))
-    tmp = dst + ".part"
-    try:
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        with _urlopen_with_retry(url, timeout=30) as resp:
-            with open(tmp, "wb") as f:
-                shutil.copyfileobj(resp, f)
 
-        if not expected_sha256:
-            print(f"[Updater] В манифесте нет SHA256 для {relative_path} — файл отклонён")
-            os.remove(tmp)
-            return False
-
-        actual = _sha256_of_file(tmp)
-        if actual.lower() != expected_sha256.lower():
-            print(f"[Updater] SHA256 не совпадает для {relative_path}: ожидалось {expected_sha256}, получено {actual}")
-            os.remove(tmp)
-            return False
-
-        if os.path.exists(dst):
-            os.remove(dst)
-        shutil.move(tmp, dst)
-        return True
-    except Exception as e:
-        print(f"[Updater] Ошибка загрузки {relative_path}: {e}")
-        try:
-            os.remove(tmp)
-        except Exception:
-            pass
+def check_git() -> bool:
+    r = subprocess.run(["git", "--version"], capture_output=True, timeout=5)
+    if r.returncode != 0:
+        print("[ERROR] Git not found. Install Git and add to PATH.")
         return False
-
-
-def _backup_current_files(files: list):
-    """Копирует текущие рабочие версии файлов в BACKUP_DIR перед заменой."""
-    _clear_dir(BACKUP_DIR)
-    os.makedirs(BACKUP_DIR, exist_ok=True)
-    for rel in files:
-        src = os.path.join(BASE_DIR, rel.replace("/", os.sep))
-        if os.path.exists(src):
-            dst = os.path.join(BACKUP_DIR, rel.replace("/", os.sep))
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copy2(src, dst)
-    if os.path.exists(LOCAL_VERSION_PATH):
-        shutil.copy2(LOCAL_VERSION_PATH, os.path.join(BACKUP_DIR, "version.json"))
-
-
-def _move_staged_to_live(files: list):
-    for rel in files:
-        staged = os.path.join(STAGING_DIR, rel.replace("/", os.sep))
-        if not os.path.exists(staged):
-            continue
-        live = os.path.join(BASE_DIR, rel.replace("/", os.sep))
-        os.makedirs(os.path.dirname(live), exist_ok=True)
-        if os.path.exists(live):
-            os.remove(live)
-        shutil.move(staged, live)
-
-
-def _write_rollback_marker(old_version: str, new_version: str, files: list):
-    data = {
-        "old_version": old_version,
-        "new_version": new_version,
-        "files": files,
-        "attempt": 0,
-        "timestamp": time.time(),
-    }
-    with open(ROLLBACK_MARKER, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def apply_update(files: list, sha256_map: dict = None, progress_callback=None) -> bool:
-    """
-    Безопасный цикл обновления:
-      1. скачать ВСЕ файлы в staging, не трогая рабочую копию
-      2. проверить SHA256 каждого файла (если хэш есть в манифесте)
-      3. если хоть один файл не прошёл проверку/не скачался — отменить всё,
-         рабочие файлы остаются как есть
-      4. если всё ок — сделать backup рабочих файлов
-      5. перенести staged-файлы поверх рабочих
-      6. записать маркер "обновление ожидает подтверждения" (см.
-         check_startup_health / confirm_update_success ниже)
-    """
-    sha256_map = sha256_map or {}
-    _clear_dir(STAGING_DIR)
-    os.makedirs(STAGING_DIR, exist_ok=True)
-
-    total = len(files)
-    failed = []
-    for i, f in enumerate(files):
-        ok = _download_to_staging(f, sha256_map.get(f))
-        if not ok:
-            failed.append(f)
-        if progress_callback:
-            progress_callback(i + 1, total)
-
-    if failed:
-        print(f"[Updater] Повторная попытка для {len(failed)} файлов после паузы...")
-        time.sleep(2.0)
-        still_failed = []
-        for f in failed:
-            ok = _download_to_staging(f, sha256_map.get(f))
-            if not ok:
-                still_failed.append(f)
-        failed = still_failed
-
-    if failed:
-        print(f"[Updater] Обновление отменено — не прошли скачивание/проверку: {failed}")
-        _clear_dir(STAGING_DIR)
+    if not (PROJECT_ROOT / ".git").exists():
+        print(f"[ERROR] {PROJECT_ROOT} is not a Git repository.")
         return False
-
-    old_version = get_local_version()
-
-    try:
-        _backup_current_files(files)
-    except Exception as e:
-        print(f"[Updater] Не удалось создать backup, обновление отменено: {e}")
-        _clear_dir(STAGING_DIR)
-        return False
-
-    try:
-        _move_staged_to_live(files)
-    except Exception as e:
-        print(f"[Updater] Ошибка применения обновления, откатываю: {e}")
-        rollback_update()
-        return False
-
-    try:
-        info = get_remote_version_info()
-        new_version = info.get("version", "?")
-        with open(LOCAL_VERSION_PATH, "w", encoding="utf-8") as fp:
-            json.dump(info, fp, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"[Updater] Не удалось сохранить version.json: {e}")
-        new_version = "?"
-
-    _write_rollback_marker(old_version, new_version, files)
-    _clear_dir(STAGING_DIR)
     return True
 
 
-def has_pending_update_confirmation() -> bool:
-    """True, если обновление применено, но ещё не подтверждено успешным запуском."""
-    return os.path.exists(ROLLBACK_MARKER)
+def get_branch() -> str:
+    r = git("rev-parse", "--abbrev-ref", "HEAD")
+    return r.stdout.strip() or "main"
 
 
-def check_startup_health() -> str:
-    """
-    Вызывать САМЫМ ПЕРВЫМ делом при старте приложения, до создания GUI.
+def has_staged() -> bool:
+    r = git("diff", "--cached", "--quiet")
+    return r.returncode != 0
 
-    Возвращает:
-      "ok"            — обновление не ожидает подтверждения, всё штатно
-      "first_attempt" — это первый запуск после применения обновления,
-                         можно продолжать грузить приложение как обычно
-      "rolled_back"   — прошлый запуск после обновления не дошёл до
-                         confirm_update_success() (упал/завис) — файлы
-                         уже автоматически откачены на предыдущую версию
 
-    После "first_attempt": как только главное окно успешно открылось,
-    ОБЯЗАТЕЛЬНО вызвать confirm_update_success(), иначе при следующем
-    запуске будет откат, даже если на самом деле всё было в порядке.
-    """
-    if not os.path.exists(ROLLBACK_MARKER):
-        return "ok"
+# ----------------------------------------------------------------
+#  UPDATE  (commit first → pull → push)
+# ----------------------------------------------------------------
+
+def do_update() -> None:
+    branch = get_branch()
+    print()
+    print("=" * 50)
+    print("  UPDATE")
+    print("=" * 50)
+    print(f"\nCurrent changes:")
+    r = git("status", "--short")
+    if r.stdout.strip():
+        print(r.stdout)
+    else:
+        print("  (no changes)")
+
+    print()
+    confirm = input("Proceed? (y/n): ").strip().lower()
+    if confirm != "y":
+        return
+
+    # --- 1. Stage ALL local changes ---
+    print("\n[1/4] Committing local changes...")
+    git_show("add", "-A")
+
+    if has_staged():
+        msg = input("  Commit message (Enter=Update): ").strip() or "Update"
+        r = git("commit", "-m", msg)
+        if r.returncode != 0:
+            if "nothing to commit" in r.stderr.lower() + r.stdout.lower():
+                print("  Nothing to commit.")
+            else:
+                print(f"  [ERROR] Commit failed:\n{r.stderr}")
+                input("\nPress Enter...")
+                return
+        print(f"  [OK] Committed: {msg}")
+    else:
+        print("  Nothing to stage.")
+
+    # --- 2. Rebuild version.json + SHA256 checksums (optional per push) ---
+    print("\n[2/4] Version / SHA256 checksums...")
+    version = update_version_manifest()
+    if version == "SKIP":
+        pass  # user intentionally skipped — not an error, just proceed to pull/push
+    elif version:
+        git_show("add", "-A")
+        if has_staged():
+            r = git("commit", "-m", f"Release {version}")
+            if r.returncode != 0 and "nothing to commit" not in (r.stderr.lower() + r.stdout.lower()):
+                print(f"  [ERROR] Commit failed:\n{r.stderr}")
+                input("\nPress Enter...")
+                return
+            print(f"  [OK] Committed: Release {version}")
+        else:
+            print("  version.json unchanged, nothing new to commit.")
+    else:
+        cont = input("\n  Continue push WITHOUT updated version.json/SHA256? (y/n): ").strip().lower()
+        if cont != "y":
+            print("  Aborted. Fix the issue above and run Update again.")
+            input("\nPress Enter...")
+            return
+
+    # --- 3. Pull with rebase ---
+    print("\n[3/4] Pulling from remote...")
+    r = git_show("pull", "--rebase", "--no-edit", "origin", branch)
+    if r.returncode != 0:
+        print("\n[!] Conflict during rebase!")
+        print("    Your commits are saved. To abort the rebase:")
+        print("    git rebase --abort")
+        print("    (Your local commits will still be there)")
+        input("\nPress Enter...")
+        return
+
+    # --- 4. Push ---
+    print("\n[4/4] Pushing to remote...")
+    r = git_show("push", "origin", branch)
+    if r.returncode != 0:
+        print("\n[ERROR] Push failed. Check remote access.")
+        input("\nPress Enter...")
+        return
+
+    print("\n" + "=" * 50)
+    print("  DONE!")
+    print("=" * 50)
+    input("\nPress Enter...")
+
+
+# ----------------------------------------------------------------
+#  ROLLBACK
+# ----------------------------------------------------------------
+
+def do_rollback() -> None:
+    print()
+    print("=" * 50)
+    print("  RECENT COMMITS")
+    print("=" * 50)
+
+    r = git("log", "--oneline", "-10")
+    print("\n" + (r.stdout if r.stdout.strip() else "(no commits)"))
+
+    print("\n" + "-" * 40)
+    print("  [1] Soft reset  — undo commit, keep files staged")
+    print("  [2] Mixed reset — undo commit, unstage (default)")
+    print("  [3] Hard reset  — DELETE files permanently !!!")
+    print("  [0] Cancel")
+
+    choice = input("\nType (1/2/3, Enter=2): ").strip() or "2"
+    if choice == "0":
+        return
+
+    flags = {"1": "--soft", "2": "--mixed", "3": "--hard"}
+    flag = flags.get(choice)
+    if not flag:
+        print("Invalid.")
+        input("Press Enter...")
+        return
+
+    if choice == "3":
+        print("\n[!] HARD RESET — files will be PERMANENTLY DELETED!")
+
+    commit = input("\nCommit hash to roll back to: ").strip()
+    if not commit:
+        return
+
+    print("\nWill undo:")
+    r = git("log", "--oneline", f"{commit}..HEAD")
+    print(r.stdout if r.stdout.strip() else "  (none)")
+
+    c = input("\nType 'yes' to confirm: ").strip().lower()
+    if c != "yes":
+        print("Cancelled.")
+        input("Press Enter...")
+        return
+
+    print(f"\nRolling back to {commit}...")
+    r = git_show("reset", flag, commit)
+    if r.returncode != 0:
+        print("\n[ERROR] Reset failed.")
+    else:
+        print(f"\n[OK] Rolled back.")
+        print(f"Push this: git push --force-with-lease origin {get_branch()}")
+
+    input("\nPress Enter...")
+
+
+# ----------------------------------------------------------------
+#  UNTRACK IGNORED FILES  (remove from Git index, keep on disk)
+# ----------------------------------------------------------------
+
+def do_untrack_ignored() -> None:
+    print()
+    print("=" * 50)
+    print("  UNTRACK IGNORED FILES")
+    print("=" * 50)
+    print("\nRemoves files matching .gitignore from Git tracking.")
+    print("Files stay on your disk — only the Git index is affected.")
+    print("\nSteps: git rm -r --cached . -> git add -A -> review -> commit")
+
+    confirm = input("\nProceed? (y/n): ").strip().lower()
+    if confirm != "y":
+        return
+
+    print("\n[1/3] Removing all files from the Git index (kept on disk)...")
+    r = subprocess.run(
+        ["git", "rm", "-r", "--cached", "-q", "."],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    if r.returncode != 0:
+        print(f"  [ERROR] {r.stderr}")
+        input("\nPress Enter...")
+        return
+    print("  [OK] Index cleared.")
+
+    print("\n[2/3] Re-adding files (this time .gitignore is respected)...")
+    r = git("add", "-A")
+    if r.returncode != 0:
+        print(f"  [ERROR] {r.stderr}")
+        input("\nPress Enter...")
+        return
+    print("  [OK] Re-added.")
+
+    print("\n[3/3] Changes staged for commit:")
+    r = git("status", "--short")
+    if not r.stdout.strip():
+        print("  (nothing changed — the index already matched .gitignore)")
+        input("\nPress Enter...")
+        return
+    print(r.stdout)
+
+    print("\nOnly 'D' (removed-from-index) lines for ignored paths are expected.")
+    print("If something unexpected shows up, fix .gitignore, then run this again")
+    print("before committing (nothing has been committed yet).")
+
+    confirm2 = input("\nCommit these changes now? (y/n): ").strip().lower()
+    if confirm2 != "y":
+        print("Left staged, not committed. Re-run or commit manually when ready.")
+        input("\nPress Enter...")
+        return
+
+    msg = input("  Commit message (Enter=Untrack ignored files): ").strip() or "Untrack ignored files"
+    r = git("commit", "-m", msg)
+    if r.returncode != 0:
+        print(f"  [ERROR] Commit failed:\n{r.stderr}")
+        input("\nPress Enter...")
+        return
+    print(f"  [OK] Committed: {msg}")
+
+    push = input("\nPush now? (y/n): ").strip().lower()
+    if push == "y":
+        branch = get_branch()
+        print("\nPushing...")
+        r = git_show("push", "origin", branch)
+        if r.returncode != 0:
+            print("\n[ERROR] Push failed. Check remote access.")
+        else:
+            print("\n[OK] Pushed.")
+
+    input("\nPress Enter...")
+
+
+# ----------------------------------------------------------------
+#  MENU
+# ----------------------------------------------------------------
+
+def menu() -> None:
+    print("\n" * 2)
+    print("=" * 50)
+    print("       XTTS Studio Git Manager")
+    print("=" * 50)
+    print(f"\nProject : {PROJECT_ROOT}")
+    print(f"Branch  : {get_branch()}")
+
+    r = git("status", "--short")
+    print("\n" + (r.stdout if r.stdout.strip() else "(clean tree)"))
+
+    print("\n  [1] Update   (commit + pull + push)")
+    print("  [2] Rollback (revert to earlier commit)")
+    print("  [3] Untrack ignored files (remove from Git, keep on disk)")
+    print("  [0] Exit")
+    choice = input("\nChoose: ").strip()
+
+    if choice == "1":
+        do_update()
+    elif choice == "2":
+        do_rollback()
+    elif choice == "3":
+        do_untrack_ignored()
+    elif choice == "0":
+        print("Bye.")
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    if not check_git():
+        input("Press Enter to exit.")
+        sys.exit(1)
 
     try:
-        with open(ROLLBACK_MARKER, "r", encoding="utf-8") as f:
-            marker = json.load(f)
-    except Exception:
-        marker = {}
-
-    attempt = marker.get("attempt", 0)
-    if attempt >= 1:
-        # Прошлый запуск не подтвердился успешным стартом — откатываемся
-        rollback_update()
-        return "rolled_back"
-
-    marker["attempt"] = attempt + 1
-    try:
-        with open(ROLLBACK_MARKER, "w", encoding="utf-8") as f:
-            json.dump(marker, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-    return "first_attempt"
-
-
-def confirm_update_success():
-    """
-    Вызвать из gui.py сразу после того, как главное окно успешно открылось.
-    Значит обновление прошло нормально — удаляем маркер и backup.
-    """
-    try:
-        if os.path.exists(ROLLBACK_MARKER):
-            os.remove(ROLLBACK_MARKER)
-        _clear_dir(BACKUP_DIR)
-    except Exception as e:
-        print(f"[Updater] Не удалось подтвердить обновление: {e}")
-
-
-def rollback_update() -> bool:
-    """
-    Восстанавливает файлы из backup. Вызывается автоматически из
-    check_startup_health(), если прошлый запуск не подтвердился.
-    Можно также вызвать вручную (например, из XTTS_DIAG.bat через
-    отдельный python-вызов) для принудительного отката.
-    """
-    if not os.path.isdir(BACKUP_DIR):
-        print("[Updater] Backup не найден, откат невозможен.")
-        try:
-            os.remove(ROLLBACK_MARKER)
-        except Exception:
-            pass
-        return False
-    try:
-        marker = {}
-        if os.path.exists(ROLLBACK_MARKER):
-            with open(ROLLBACK_MARKER, "r", encoding="utf-8") as f:
-                marker = json.load(f)
-        files = marker.get("files", [])
-        for rel in files:
-            backup_src = os.path.join(BACKUP_DIR, rel.replace("/", os.sep))
-            if os.path.exists(backup_src):
-                live = os.path.join(BASE_DIR, rel.replace("/", os.sep))
-                os.makedirs(os.path.dirname(live), exist_ok=True)
-                shutil.copy2(backup_src, live)
-        backup_version = os.path.join(BACKUP_DIR, "version.json")
-        if os.path.exists(backup_version):
-            shutil.copy2(backup_version, LOCAL_VERSION_PATH)
-        print(f"[Updater] Откат выполнен, версия восстановлена: {marker.get('old_version', '?')}")
-        return True
-    except Exception as e:
-        print(f"[Updater] Ошибка отката: {e}")
-        return False
-    finally:
-        try:
-            os.remove(ROLLBACK_MARKER)
-        except Exception:
-            pass
-        _clear_dir(BACKUP_DIR)
-
-
-def restart():
-    python = sys.executable
-    os.execv(python, [python] + sys.argv)
+        while True:
+            menu()
+    except KeyboardInterrupt:
+        print("\nBye.")
+        sys.exit(0)
