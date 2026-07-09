@@ -451,6 +451,6 @@ The project uses the **XTTS v2** model (Coqui), distributed under the [Coqui Pub
 
 <div align="center">
 
-**XTTS Studio** · by EXIZ10TION · Made with ❤️ and 
+**XTTS Studio** · by EXIZ10TION · Made with ❤️ 
 
 </div>
