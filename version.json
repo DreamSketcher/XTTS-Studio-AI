@@ -205,5 +205,7 @@
     "settings.json": "e4077df10e8c1d8762a7562f4c01379a5b33c83cc59885a063366db8c327c513",
     "theme_settings.json": "3c9f0570cbeb39a5be0f2df1d6cf97de3cc4980e6413ae73873e9975cde97311"
   },
-  "removed_files": []
+  "removed_files": [
+    "engine/gui/voice_panel.py.bak"
+  ]
 }
