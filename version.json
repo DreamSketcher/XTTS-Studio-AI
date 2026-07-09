@@ -68,7 +68,6 @@
     "engine/gui/tooltip.py",
     "engine/gui/updates.py",
     "engine/gui/voice_panel.py",
-    "engine/gui/voice_panel.py.bak",
     "engine/gui/widgets.py",
     "engine/gui/word_replacer_panel.py",
     "engine/gui/word_replacer_window.py",
