@@ -215,7 +215,7 @@ def run_tts(
         use_gpt = quality_params.get("use_gpt", False) if quality_params else False
 
         if use_gpt:
-            from .gpt_client import preprocess_for_tts
+            from ..gpt_client import preprocess_for_tts
 
             send("LLM", 12, "LLM обработка текста...")
             # preprocess_for_tts (через improve_for_tts) сама гасит недоступность
@@ -296,7 +296,7 @@ def run_tts(
         # AI Conductor — один вызов на весь текст до старта генерации
         conductor_map = None
         if ai_conductor_enabled:
-            from .ai_conductor import conduct
+            from ..ai_conductor import conduct
             send("ai_conductor_on", None)   # ← пульсация сразу при старте
             send("generate", 30, "AI Conductor анализирует текст...")
             chunks_wr = [word_replacer.apply(c) if (quality_params is None or quality_params.get("word_replacer_enabled", True)) else c for c in chunks]
@@ -327,7 +327,7 @@ def run_tts(
                 # Если длина чанков изменилась — кондуктор переназначает параметры
                 if len(conductor_map) != len(chunks):
                     print(f"[Conductor] Rewrite changed chunk count {len(conductor_map)}→{len(chunks)}, re-conducting")
-                    from .ai_conductor import _fallback_params
+                    from ..ai_conductor import _fallback_params
                     conductor_map = _fallback_params(chunks)
             elif isinstance(conductor_result, dict) and "chunks" in conductor_result:
                 # rewrite_enabled=False, но conduct() всё же вернул словарь —

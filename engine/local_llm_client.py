@@ -395,6 +395,8 @@ def _default_n_gpu_layers() -> int:
     -1 = все слои (если обнаружен GPU и llama-cpp-python установлен).
      0 = только CPU.
     """
+    if _read_settings().get("gpu_backend_broken"):
+        return 0
     try:
         from engine import env_setup
         gpu = env_setup.detect_gpu()
@@ -513,6 +515,11 @@ def _get_llm(path: str):
         n_gpu_layers = entry.get("n_gpu_layers") if entry else None
         if n_gpu_layers is None:
             n_gpu_layers = _default_n_gpu_layers()
+        # Модель могла быть зарегистрирована ещё до того, как backend
+        # подтверждённо оказался нерабочим (n_gpu_layers=-1 уже сохранён
+        # в записи модели) — не даём такому устаревшему значению пройти.
+        if n_gpu_layers != 0 and _read_settings().get("gpu_backend_broken"):
+            n_gpu_layers = 0
 
         try:
             _loaded_llm = Llama(
@@ -528,8 +535,20 @@ def _get_llm(path: str):
             
             # Если слоев > 0 или мы словили C++ Exception (ошибка инициализации Vulkan/CUDA)
             if n_gpu_layers != 0 or "529697949" in err_str or "e06d7363" in err_str.lower():
+                print("[LLM] GPU-backend неисправен на этой сборке — фиксирую как broken...")
+
+                # Персистентно помечаем backend как нерабочий: переживает
+                # рестарт приложения и следующий REPAIR/переустановку
+                # (env_setup._pick_llama_backend больше не предложит его).
+                try:
+                    from engine import env_setup
+                    env_setup.mark_backend_broken(env_setup.get_installed_backend() or "vulkan")
+                except Exception:
+                    pass
+                _write_settings({"gpu_backend_broken": True})
+
                 print("[LLM] Включаем автоматический откат на CPU-инференс...")
-                
+
                 # Изолируем llama.cpp от проблемных GPU-драйверов
                 os.environ["GGML_VK_VISIBLE_DEVICES"] = "" 
                 os.environ["CUDA_VISIBLE_DEVICES"] = ""

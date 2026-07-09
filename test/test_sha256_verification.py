@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 test/test_sha256_verification.py
 
@@ -8,24 +9,36 @@ test/test_sha256_verification.py
      которая раньше тихо пропускала проверку — теперь должна блокировать).
 
 Работает БЕЗ сети: подменяет сетевую загрузку локальными тестовыми
-данными, чтобы не трогать GitHub и не зависеть от реального релиза.
+данными, и без риска для реального проекта: STAGING_DIR подменяется на
+временную папку pytest (tmp_path), а не на настоящий _update_staging/.
 
-Запуск (из корня проекта):
-    python\\runtime\\python.exe test\\test_sha256_verification.py
+Раньше эти проверки жили в обычной функции run(), которую можно было
+запустить только вручную (`python test/test_sha256_verification.py`) —
+pytest её не видел и не запускал через "Run ALL tests". Теперь это
+настоящие test_*() функции, которые pytest собирает и гоняет наравне
+со всеми остальными.
+
+Запуск:
+    pytest test/test_sha256_verification.py -v
 """
-import hashlib
 import io
 import os
 import sys
 from pathlib import Path
 
+import pytest
+
+# Нужно для запуска и как pytest-теста (через rootdir), и как отдельного
+# скрипта (python test/test_sha256_verification.py) — во втором случае
+# "engine" не будет в sys.path без этой строчки.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from engine import updater  # noqa: E402
 
 FAKE_CONTENT = b"XTTS Studio SHA256 self-test payload - do not modify"
-CORRECT_HASH = hashlib.sha256(FAKE_CONTENT).hexdigest()
+CORRECT_HASH = __import__("hashlib").sha256(FAKE_CONTENT).hexdigest()
 WRONG_HASH = "0" * 64
 TEST_RELATIVE_PATH = "test/_sha256_selftest.tmp"
 
@@ -35,63 +48,63 @@ def _fake_urlopen(url, timeout=15, max_retries=None):
     return io.BytesIO(FAKE_CONTENT)
 
 
-def _staged_path() -> str:
-    return os.path.join(updater.STAGING_DIR, TEST_RELATIVE_PATH.replace("/", os.sep))
+@pytest.fixture
+def isolated_staging(tmp_path, monkeypatch):
+    """
+    Подменяет STAGING_DIR на временную папку pytest и _urlopen_with_retry —
+    на фейковый ответ. Никогда не трогает реальный проект/сеть.
+    """
+    staging = tmp_path / "_update_staging"
+    monkeypatch.setattr(updater, "STAGING_DIR", str(staging))
+    monkeypatch.setattr(updater, "_urlopen_with_retry", _fake_urlopen)
+    os.makedirs(staging, exist_ok=True)
+    return staging
 
 
-def _cleanup():
-    for p in (_staged_path(), _staged_path() + ".part"):
-        if os.path.exists(p):
-            os.remove(p)
+def _staged_path(staging_dir) -> str:
+    return os.path.join(str(staging_dir), TEST_RELATIVE_PATH.replace("/", os.sep))
 
 
-def _check(name: str, ok: bool, expect_ok: bool) -> bool:
-    file_exists = os.path.exists(_staged_path())
-    success = (ok == expect_ok) and (file_exists == expect_ok)
-    status = "PASS" if success else "FAIL"
-    print(f"  [{status}] {name} (вернул={ok}, файл в staging={file_exists})")
-    return success
+# ───────────────────────── правильный хэш ─────────────────────────
+
+def test_correct_hash_accepted(isolated_staging):
+    ok = updater._download_to_staging(TEST_RELATIVE_PATH, CORRECT_HASH)
+
+    assert ok is True
+    assert os.path.exists(_staged_path(isolated_staging)), \
+        "файл с верным хэшем должен остаться в staging"
 
 
-def run() -> bool:
-    results = []
-    original_urlopen = updater._urlopen_with_retry
-    updater._urlopen_with_retry = _fake_urlopen
+# ───────────────────────── неправильный хэш ─────────────────────────
 
-    try:
-        os.makedirs(updater.STAGING_DIR, exist_ok=True)
+def test_wrong_hash_rejected(isolated_staging):
+    ok = updater._download_to_staging(TEST_RELATIVE_PATH, WRONG_HASH)
 
-        print("[1/3] Правильный SHA256 — файл должен пройти проверку")
-        _cleanup()
-        ok = updater._download_to_staging(TEST_RELATIVE_PATH, CORRECT_HASH)
-        results.append(_check("correct hash accepted", ok, expect_ok=True))
-        _cleanup()
+    assert ok is False
+    assert not os.path.exists(_staged_path(isolated_staging)), \
+        "файл с неверным хэшем должен быть удалён из staging"
 
-        print("[2/3] Неправильный SHA256 — файл должен быть отклонён")
-        ok = updater._download_to_staging(TEST_RELATIVE_PATH, WRONG_HASH)
-        results.append(_check("wrong hash rejected", ok, expect_ok=False))
-        _cleanup()
 
-        print("[3/3] Хэш отсутствует в манифесте (None) — файл должен быть отклонён")
-        ok = updater._download_to_staging(TEST_RELATIVE_PATH, None)
-        results.append(_check("missing hash rejected", ok, expect_ok=False))
-        _cleanup()
+# ───────────────────────── хэш отсутствует в манифесте ─────────────────────────
 
-    finally:
-        updater._urlopen_with_retry = original_urlopen
-        _cleanup()
-        try:
-            if os.path.isdir(updater.STAGING_DIR) and not os.listdir(updater.STAGING_DIR):
-                os.rmdir(updater.STAGING_DIR)
-        except OSError:
-            pass
+def test_missing_hash_rejected(isolated_staging):
+    """
+    Раньше отсутствие хэша в манифесте (None) тихо пропускало проверку —
+    файл применялся без верификации целостности вообще. Это была дыра:
+    сломанный/неполный релизный манифест приводил к обновлению без всякой
+    проверки. Теперь отсутствующий хэш должен блокировать файл так же, как
+    и неверный.
+    """
+    ok = updater._download_to_staging(TEST_RELATIVE_PATH, None)
 
-    passed = sum(results)
-    total = len(results)
-    print(f"\nИтого: {passed}/{total} passed")
-    return passed == total
+    assert ok is False
+    assert not os.path.exists(_staged_path(isolated_staging)), \
+        "файл без хэша в манифесте должен быть отклонён, а не тихо принят"
 
 
 if __name__ == "__main__":
-    success = run()
-    sys.exit(0 if success else 1)
+    # Совместимость с прежним способом запуска
+    # (python\runtime\python.exe test\test_sha256_verification.py) —
+    # просто делегируем в pytest на этот же файл.
+    import sys
+    sys.exit(pytest.main([__file__, "-v"]))

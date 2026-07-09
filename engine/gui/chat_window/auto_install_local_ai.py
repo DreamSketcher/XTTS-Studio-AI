@@ -171,18 +171,42 @@ class LocalAIInstallController:
 
     # ── Установка / удаление ──────────────────────────────────────────────────
 
-    def install(self, resume: bool = False):
-        """Запускает установку llama-cpp-python в фоновом потоке."""
+    def list_local_model_files(self) -> list:
+        """Список .gguf файлов в models/ — для выбора конкретной модели
+        перед установкой ("установить зависимости под выбранную модель")."""
+        try:
+            from engine import env_setup
+            import os as _os
+            models_dir = _os.path.join(env_setup.BASE_DIR, "models")
+            if not _os.path.isdir(models_dir):
+                return []
+            return sorted(f for f in _os.listdir(models_dir) if f.lower().endswith(".gguf"))
+        except Exception:
+            return []
+
+    def install(self, resume: bool = False, model_path: Optional[str] = None):
+        """
+        Запускает установку llama-cpp-python в фоновом потоке.
+        model_path — явно выбранная пользователем модель (кнопка "установить
+        зависимости под выбранную модель"). Если передан, smoke-тест реальной
+        GPU-инициализации (внутри env_setup.install_llama_cpp) проверяется
+        именно на ней, а не на первой попавшейся в models/. Если не передан —
+        универсальный авто-режим, как раньше.
+        """
         if not self._start_operation():
             return
 
         self._buttons(installing=True)
-        self._log("── Установка llama-cpp-python ──")
+        if model_path:
+            import os as _os
+            self._log(f"── Установка llama-cpp-python под модель: {_os.path.basename(model_path)} ──")
+        else:
+            self._log("── Установка llama-cpp-python ──")
 
         def worker():
             try:
                 from engine import env_setup
-                env_setup.install_llama_cpp(progress_cb=self._log, resume=resume)
+                env_setup.install_llama_cpp(progress_cb=self._log, resume=resume, model_path=model_path)
                 self._status("llama-cpp-python установлен и работает", "success")
                 self._log("✅ Установка завершена")
             except Exception as e:

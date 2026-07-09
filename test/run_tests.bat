@@ -116,6 +116,9 @@ echo   [2] test_updater.py       ^(updates^)
 echo   [3] test_normalizer.py    ^(numbers, abbreviations^)
 echo   [4] test_chunker.py       ^(text chunking^)
 echo   [5] test_smart_pauses.py  ^(pauses, emotions^)
+echo   [9] test_updater_cancel_and_removed_files.py  ^(update cancel + removed_files^)
+echo   [10] test_generate_version_manifest.py         ^(release manifest, removed_files diff^)
+echo   [11] test_local_llm_client_download.py         ^(model download retry/resume^)
 echo.
 echo   [6] Run all tests - verbose ^(-v^)
 echo   [7] Run only last failed  ^(--lf^)
@@ -131,6 +134,9 @@ if "%CHOICE%"=="2" goto RUN_ONE
 if "%CHOICE%"=="3" goto RUN_ONE
 if "%CHOICE%"=="4" goto RUN_ONE
 if "%CHOICE%"=="5" goto RUN_ONE
+if "%CHOICE%"=="9" goto RUN_ONE
+if "%CHOICE%"=="10" goto RUN_ONE
+if "%CHOICE%"=="11" goto RUN_ONE
 if "%CHOICE%"=="6" goto RUN_ALL_VERBOSE
 if "%CHOICE%"=="7" goto RUN_LAST_FAILED
 if "%CHOICE%"=="8" call :RUN_VERIFY
@@ -149,6 +155,9 @@ if "%CHOICE%"=="2" set "FILE=%TESTDIR%\test_updater.py"
 if "%CHOICE%"=="3" set "FILE=%TESTDIR%\test_normalizer.py"
 if "%CHOICE%"=="4" set "FILE=%TESTDIR%\test_chunker.py"
 if "%CHOICE%"=="5" set "FILE=%TESTDIR%\test_smart_pauses.py"
+if "%CHOICE%"=="9" set "FILE=%TESTDIR%\test_updater_cancel_and_removed_files.py"
+if "%CHOICE%"=="10" set "FILE=%TESTDIR%\test_generate_version_manifest.py"
+if "%CHOICE%"=="11" set "FILE=%TESTDIR%\test_local_llm_client_download.py"
 
 if not exist "%FILE%" (
     echo.

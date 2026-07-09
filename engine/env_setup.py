@@ -273,6 +273,32 @@ CHECKPOINT_PATH = os.path.join(BASE_DIR, ".llama_install_checkpoint.json")
 # обычного Python try/except.
 INSTALLED_BACKEND_PATH = os.path.join(BASE_DIR, ".llama_installed_backend.json")
 
+# Backend'ы, для которых подтверждён нативный краш при реальной инициализации
+# GPU (Llama(n_gpu_layers=-1)) — в отличие от INSTALLED_BACKEND_PATH (что
+# сейчас стоит) это "чёрный список" того, что автовыбору больше НЕЛЬЗЯ
+# предлагать на этой машине, пока файл не удалят вручную (например, после
+# смены GPU/драйвера).
+BROKEN_BACKENDS_PATH = os.path.join(BASE_DIR, ".llama_broken_backends.json")
+
+
+def mark_backend_broken(backend: str):
+    """Помечает backend как подтверждённо нерабочий на этой машине."""
+    broken = get_broken_backends()
+    broken.add(backend)
+    try:
+        with open(BROKEN_BACKENDS_PATH, "w", encoding="utf-8") as f:
+            json.dump(sorted(broken), f)
+    except Exception:
+        pass
+
+
+def get_broken_backends() -> set:
+    try:
+        with open(BROKEN_BACKENDS_PATH, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
 
 def _save_installed_backend(backend: str):
     try:
@@ -409,16 +435,21 @@ def _pick_llama_backend(gpu_info: dict) -> tuple:
     Выбирает backend для llama-cpp-python на основе GPU.
     Возвращает кортеж (backend_name, extra_index_url).
     backend_name: "cuda" | "vulkan" | "cpu"
+
+    Учитывает BROKEN_BACKENDS_PATH: если backend уже подтверждённо крашился
+    при реальной GPU-инициализации на этой машине (см. mark_backend_broken),
+    автовыбор больше не предложит его повторно — сразу CPU.
     """
     vendor = (gpu_info or {}).get("vendor", "unknown")
     cuda_version = (gpu_info or {}).get("cuda_version")
+    broken = get_broken_backends()
 
     if vendor == "nvidia" and cuda_version:
         index = _cuda_index_from_version(cuda_version)
-        if index:
+        if index and "cuda" not in broken:
             return ("cuda", f"https://abetlen.github.io/llama-cpp-python/whl/{index}")
 
-    if vendor in ("amd", "intel"):
+    if vendor in ("amd", "intel") and "vulkan" not in broken:
         # Vulkan — единственный realistic prebuilt путь для AMD/Intel на Windows
         # без установки ROCm/HIP SDK.
         return ("vulkan", "https://abetlen.github.io/llama-cpp-python/whl/vulkan")
@@ -444,6 +475,77 @@ def _build_install_cmd(backend: str, extra_index: str, site_packages: str) -> li
         # процесс действительно работает, а не завис.
         cmd.append("-v")
     return cmd
+
+
+def _find_any_local_model() -> Optional[str]:
+    """Ищет любой уже скачанный .gguf в models/ — не важно какой конкретно,
+    лишь бы можно было реально попытаться создать Llama() для проверки
+    backend'а. Если моделей ещё нет — smoke-тест на этапе установки просто
+    пропускается (проверка тогда произойдёт при первой реальной загрузке,
+    см. local_llm_client.py::_get_llm)."""
+    models_dir = os.path.join(BASE_DIR, "models")
+    if not os.path.isdir(models_dir):
+        return None
+    for name in sorted(os.listdir(models_dir)):
+        if name.lower().endswith(".gguf"):
+            return os.path.join(models_dir, name)
+    return None
+
+
+def smoke_test_gpu_init(backend: str, model_path: str = None, timeout: float = 60.0) -> dict:
+    """
+    Реальная проверка, что backend может проинициализировать GPU-контекст
+    (а не просто импортируется — llama_cpp_status() это уже покрывает).
+    Запускается в ИЗОЛИРОВАННОМ сабпроцессе: нативный краш вроде SEH
+    0xE06D7363 убьёт только сабпроцесс, не основной процесс установки.
+
+    model_path — явно выбранная пользователем модель (например, через кнопку
+    "установить зависимости под выбранную модель" в интерфейсе). Если не
+    передан — берём любую уже скачанную модель из models/ (универсальный
+    авто-режим); если и такой нет — тест пропускается.
+
+    Возвращает {"ok": bool, "skipped": bool, "error": str|None}.
+    skipped=True — не нашлось ни одной модели для теста; в этом случае
+    ok всегда True (нечего опровергать), а реальная проверка отложится на
+    первую загрузку модели пользователем.
+    """
+    if backend == "cpu":
+        return {"ok": True, "skipped": False, "error": None}
+
+    if not model_path:
+        model_path = _find_any_local_model()
+    elif not os.path.isfile(model_path):
+        # Явно передан путь, но файла там нет — не тихо переключаемся на
+        # автопоиск (это скрыло бы ошибку пользователя), а честно считаем
+        # тест пропущенным.
+        model_path = None
+
+    if not model_path:
+        return {"ok": True, "skipped": True, "error": None}
+
+    probe = (
+        "import sys; sys.path.insert(0, r'%s'); "
+        "from llama_cpp import Llama; "
+        "m = Llama(model_path=r'%s', n_ctx=16, n_gpu_layers=-1, verbose=False); "
+        "print('SMOKE_OK')"
+    ) % (SITE_PACKAGES, model_path)
+
+    try:
+        proc = subprocess.run(
+            [PYTHON_EXE, "-c", probe],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        out = (proc.stdout or "") + (proc.stderr or "")
+        if proc.returncode == 0 and "SMOKE_OK" in out:
+            return {"ok": True, "skipped": False, "error": None}
+        if proc.returncode < 0:
+            return {"ok": False, "skipped": False,
+                     "error": f"процесс завершён аварийно (код {proc.returncode})"}
+        return {"ok": False, "skipped": False, "error": out.strip()[-500:] or f"exit code {proc.returncode}"}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "skipped": False, "error": "smoke-тест не уложился в таймаут"}
+    except Exception as e:
+        return {"ok": False, "skipped": False, "error": str(e)}
 
 
 def resolve_backend() -> dict:
@@ -698,7 +800,7 @@ def get_startup_install_state() -> dict:
     }
 
 
-def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = None) -> dict:
+def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = None, model_path: str = None) -> dict:
     """
     Устанавливает llama-cpp-python с автовыбором backend:
       - NVIDIA + CUDA  → prebuilt CUDA wheel
@@ -707,6 +809,10 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     progress_cb(line: str) — вызывается на каждую строку вывода.
     resume=True — продолжить прерванную установку с тем же backend.
     backend="cuda"|"vulkan"|"cpu" — принудительный выбор (иначе авто).
+    model_path — явно выбранная пользователем модель для smoke-теста GPU-
+    инициализации (кнопка "установить зависимости под выбранную модель" в
+    интерфейсе). Если не передан — smoke-тест берёт любую модель из models/
+    (универсальный авто-режим) либо пропускается, если моделей ещё нет.
     Бросает RuntimeError при неуспехе. Возвращает llama_cpp_status() при успехе.
     """
     def emit(line):
@@ -812,7 +918,7 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
         # GPU-установка не удалась → fallback на CPU, если это был не CPU
         if backend != "cpu":
             emit(f"❌ {backend}-сборка не установилась (код {proc.returncode}). Перехожу на CPU-fallback...")
-            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu")
+            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
         raise RuntimeError(f"pip завершился с кодом {proc.returncode}")
 
     _save_checkpoint("building", {"backend": backend, "cpu": cpu, "gpu": gpu})
@@ -841,10 +947,33 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
         _save_checkpoint("failed", {"error": status.get("error"), "backend": backend})
         if backend != "cpu":
             emit(f"❌ {backend}-сборка установилась, но не импортируется. Перехожу на CPU-fallback...")
-            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu")
+            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
         raise RuntimeError(f"Установка прошла, но импорт не удался: {status['error']}")
 
     _clear_checkpoint()
+
+    # Финальная проверка: пакет импортируется — это ещё не значит, что GPU
+    # реально инициализируется на этой карте (см. историю с Vulkan на RX 570).
+    # Если в models/ уже лежит скачанная модель — пробуем реально её
+    # загрузить с n_gpu_layers=-1 в изолированном сабпроцессе. Если backend
+    # не проходит эту проверку — сразу помечаем его broken и откатываемся
+    # на CPU, не дожидаясь краха у пользователя в проде.
+    if backend != "cpu":
+        if model_path:
+            emit(f"Проверяю реальную GPU-инициализацию на выбранной модели ({os.path.basename(model_path)})...")
+        else:
+            emit("Проверяю реальную GPU-инициализацию...")
+        smoke = smoke_test_gpu_init(backend, model_path=model_path)
+        if smoke["skipped"]:
+            emit("⚠️ Нет модели для проверки — GPU-инициализация будет проверена при первой загрузке модели.")
+        elif not smoke["ok"]:
+            emit(f"❌ {backend}-backend не проходит реальную GPU-инициализацию: {smoke['error']}")
+            mark_backend_broken(backend)
+            emit("Перехожу на CPU-fallback...")
+            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
+        else:
+            emit(f"✅ GPU-инициализация ({backend}) подтверждена на реальной модели.")
+
     _save_installed_backend(backend)
     backend_msg = {"cuda": "CUDA", "vulkan": "Vulkan", "cpu": "CPU"}.get(backend, backend)
     emit(f"✅ Готово — llama-cpp-python ({backend_msg}) установлен и работает.")
