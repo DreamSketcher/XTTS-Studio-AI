@@ -16,12 +16,12 @@ Version : 3.11.7
   OK — 1 config(s) found: settings.json
 
 [3/5] Syntax check of .py files...
-  Checked: 98 files, errors: 0
+  Checked: 99 files, errors: 0
 
 [4/5] Import check of engine.* modules...
 pygame 2.6.1 (SDL 2.28.4, Python 3.11.7)
 Hello from the pygame community. https://www.pygame.org/contribute.html
-  OK — 93 modules imported successfully
+  OK — 94 modules imported successfully
 
 ----------------------------------------------------------------------
 CRITICAL: 0  |  WARNINGS: 0

@@ -86,4 +86,4 @@ test_updater_cancel_and_removed_files.py::test_apply_update_bad_checksum_does_no
 test_updater_cancel_and_removed_files.py::test_rollback_restores_deleted_removed_file PASSED [ 98%]
 test_updater_cancel_and_removed_files.py::test_confirm_update_success_after_removed_files_clears_backup PASSED [100%]
 
-============================= 79 passed in 10.46s =============================
+============================= 79 passed in 10.49s =============================

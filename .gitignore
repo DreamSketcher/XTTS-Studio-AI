@@ -24,6 +24,7 @@ git_update.py
 generate_version_files.py
 update_version_files.bat
 git_update.bat
+.llama_broken_backends.json
 # =========================
 # PYTHON
 # =========================
