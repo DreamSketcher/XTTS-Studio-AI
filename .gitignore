@@ -25,6 +25,7 @@ generate_version_files.py
 update_version_files.bat
 git_update.bat
 .llama_broken_backends.json
+gpt_settings.json
 # =========================
 # PYTHON
 # =========================
