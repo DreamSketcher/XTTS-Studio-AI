@@ -17,8 +17,29 @@ except ImportError:
 
 REPO = "DreamSketcher/XTTS-Studio-portable-"
 BRANCH = "main"
-RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}"
-VERSION_URL = f"{RAW_BASE}/version.json"
+# BRANCH_RAW_BASE используется ТОЛЬКО для version.json — нам всегда нужен
+# HEAD ветки, чтобы вовремя увидеть новый релиз.
+BRANCH_RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}"
+VERSION_URL = f"{BRANCH_RAW_BASE}/version.json"
+
+
+def _raw_base_for(commit_sha: str = None) -> str:
+    """
+    URL-база для скачивания файлов релиза.
+
+    Если известен commit_sha (получен через _get_latest_commit_sha(),
+    api.github.com) — используем его: у каждого коммита свой уникальный
+    URL на raw.githubusercontent.com, поэтому Fastly-кеш GitHub не может
+    подсунуть под ним контент от старого коммита (в отличие от /main/...,
+    который переиспользует один и тот же URL и может некоторое время
+    отдавать закешированную старую версию файла сразу после пуша).
+
+    Без commit_sha (не удалось получить через API — сеть, rate limit)
+    — откатываемся на ветку, как раньше.
+    """
+    if commit_sha:
+        return f"https://raw.githubusercontent.com/{REPO}/{commit_sha}"
+    return BRANCH_RAW_BASE
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_VERSION_PATH = os.path.join(BASE_DIR, "version.json")
@@ -44,11 +65,16 @@ def get_local_version() -> str:
 
 
 def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETRIES):
-    """urlopen с повторными попытками при временных SSL/сетевых обрывах."""
+    """urlopen с повторными попытками при временных SSL/сетевых обрывах.
+
+    User-Agent обязателен для api.github.com (без него — 403 Forbidden).
+    raw.githubusercontent.com его не требует, но лишним не будет.
+    """
+    req = urllib.request.Request(url, headers={"User-Agent": "XTTS-Studio-Updater"})
     last_err = None
     for attempt in range(1, max_retries + 1):
         try:
-            return urllib.request.urlopen(url, timeout=timeout, context=_SSL_CONTEXT)
+            return urllib.request.urlopen(req, timeout=timeout, context=_SSL_CONTEXT)
         except Exception as e:
             last_err = e
             if attempt < max_retries:
@@ -57,6 +83,32 @@ def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETR
             else:
                 print(f"[Updater] Все {max_retries} попыток не удались для {url}: {e}")
     raise last_err
+
+
+COMMITS_API_URL = f"https://api.github.com/repos/{REPO}/commits/{BRANCH}"
+
+
+def _get_latest_commit_sha() -> str:
+    """
+    Узнаёт актуальный commit SHA ветки через api.github.com, а не через
+    raw.githubusercontent.com. У raw-CDN (Fastly) после пуша бывает лаг
+    в несколько минут, когда он ещё отдаёт закешированное старое содержимое
+    файла по тому же URL ветки — из-за этого возникают ложные SHA256
+    mismatch сразу после релиза. api.github.com — обычный REST-эндпоинт,
+    отдаёт актуальный HEAD без этой проблемы.
+
+    Если запрос не удался (сеть, rate limit и т.п.) — возвращает None,
+    и вызывающий код просто откатывается на скачивание по ветке (как было
+    раньше), т.е. без commit_sha ничего не ломается, просто теряется
+    защита от гонки с кешем.
+    """
+    try:
+        with _urlopen_with_retry(COMMITS_API_URL, timeout=10, max_retries=2) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return data.get("sha")
+    except Exception as e:
+        print(f"[Updater] Не удалось получить актуальный commit_sha (не критично): {e}")
+        return None
 
 
 def get_remote_version_info() -> dict:
@@ -121,6 +173,7 @@ def check_update() -> dict:
             "changelog": info.get("changelog", ""),
             "min_app_version": min_required,
             "needs_manual_reinstall": needs_manual,
+            "commit_sha": _get_latest_commit_sha() if available else None,
         }
     except Exception as e:
         return {"available": False, "local": local, "remote": None, "error": str(e)}
@@ -142,7 +195,8 @@ def _is_cancelled(cancelled_flag) -> bool:
     return False
 
 
-def _download_to_staging(relative_path: str, expected_sha256: str = None, cancelled_flag=None) -> bool:
+def _download_to_staging(relative_path: str, expected_sha256: str = None, cancelled_flag=None,
+                          raw_base: str = None) -> bool:
     """
     Скачивает файл во временный staging (НЕ в рабочую директорию) и
     проверяет его SHA256 перед тем как считать файл готовым к применению.
@@ -158,7 +212,8 @@ def _download_to_staging(relative_path: str, expected_sha256: str = None, cancel
     чтобы отмена пользователем срабатывала быстро даже на крупном файле,
     а не только между файлами.
     """
-    url = f"{RAW_BASE}/{urllib.parse.quote(relative_path)}"
+    base = raw_base or BRANCH_RAW_BASE
+    url = f"{base}/{urllib.parse.quote(relative_path)}"
     dst = os.path.join(STAGING_DIR, relative_path.replace("/", os.sep))
     tmp = dst + ".part"
     try:
@@ -275,7 +330,7 @@ def _write_rollback_marker(old_version: str, new_version: str, files: list, remo
 
 
 def apply_update(files: list, sha256_map: dict = None, removed_files: list = None,
-                  progress_callback=None, cancelled_flag=None) -> bool:
+                  progress_callback=None, cancelled_flag=None, commit_sha: str = None) -> bool:
     """
     Безопасный цикл обновления:
       1. скачать ВСЕ файлы в staging, не трогая рабочую копию
@@ -302,6 +357,7 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
     """
     sha256_map = sha256_map or {}
     removed_files = removed_files or []
+    raw_base = _raw_base_for(commit_sha)
     _clear_dir(STAGING_DIR)
     os.makedirs(STAGING_DIR, exist_ok=True)
 
@@ -316,7 +372,7 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
         if _is_cancelled(cancelled_flag):
             return _cancel_cleanup()
         try:
-            ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag)
+            ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag, raw_base=raw_base)
         except InterruptedError:
             return _cancel_cleanup()
         if not ok:
@@ -332,7 +388,7 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
             if _is_cancelled(cancelled_flag):
                 break
             try:
-                ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag)
+                ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag, raw_base=raw_base)
             except InterruptedError:
                 break
             if not ok:

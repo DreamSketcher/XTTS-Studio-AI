@@ -40,6 +40,7 @@ def _do_update(result):
             removed_files=result.get("removed_files", []),
             progress_callback=lambda i, t_val: set_progress(int(i / t_val * 100)),
             cancelled_flag=_update_cancelled_flag,
+            commit_sha=result.get("commit_sha"),
         )
         hide_cancel_button()
         was_cancelled = _update_cancelled_flag["cancelled"]
