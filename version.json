@@ -1,5 +1,5 @@
 {
-  "version": "1.1.176",
+  "version": "1.1.177",
   "files": [
     ".torch_broken_variants.json",
     ".torch_installed_variant.json",
