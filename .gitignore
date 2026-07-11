@@ -14,7 +14,6 @@ env_cache.cfg
 icon.ico
 icon.png
 word_rules.json
-XTTS_DIAG.bat
 ProjectAnalyzer.ps1
 generate_version_manifest.py
 generate_version_files.py
