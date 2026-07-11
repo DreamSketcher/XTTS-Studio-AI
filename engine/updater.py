@@ -562,6 +562,34 @@ def rollback_update() -> bool:
         _clear_dir(BACKUP_DIR)
 
 
+def collect_update_diagnostics(check_result: dict = None) -> str:
+    """
+    Собирает контекст для отчёта об ошибке (см. error_report.py):
+    версии, наличие маркеров/staging/backup, и последнюю ошибку check_update(),
+    если она была передана.
+
+    Не читает содержимое файлов и не логирует ничего нового — только
+    текущее состояние апдейтера на момент вызова. Используется GUI-слоем
+    при показе диалога "не удалось обновиться" — вызывающий код сам решает,
+    когда и стоит ли предлагать пользователю отправить отчёт.
+    """
+    lines = [
+        f"local_version = {get_local_version()}",
+        f"staging_dir_exists = {os.path.isdir(STAGING_DIR)}",
+        f"backup_dir_exists = {os.path.isdir(BACKUP_DIR)}",
+        f"pending_confirmation = {has_pending_update_confirmation()}",
+    ]
+    if check_result:
+        lines.append(f"check_update_result = {json.dumps(check_result, ensure_ascii=False)}")
+    if os.path.exists(ROLLBACK_MARKER):
+        try:
+            with open(ROLLBACK_MARKER, "r", encoding="utf-8") as f:
+                lines.append(f"rollback_marker = {f.read()}")
+        except Exception:
+            pass
+    return "\n".join(lines)
+
+
 def restart():
     python = sys.executable
     os.execv(python, [python] + sys.argv)
