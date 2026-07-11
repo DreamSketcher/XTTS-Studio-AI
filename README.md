@@ -28,7 +28,7 @@ The AI module is optional and connects through any OpenAI-compatible provider.
 
 > ⚠️ Google Drive may show a "file too large to scan" warning before download — that's expected, the file just isn't scanned by Google's antivirus due to its size, not because of any threat.
 
-**One build for everyone** — [📥 Download XTTS Studio](https://drive.google.com/file/d/1GINiNWjvMMayfOdK6JiSzIqVU6UhpG5x/view?usp=drive_link)
+**One build for everyone** — [📥 Download XTTS Studio](https://drive.google.com/file/d/1HEk1dZqFqeSe8lYouefPlvR_oGSCPaEi/view?usp=drive_link)
 
 Runs on CPU out of the box. If you have an NVIDIA GPU, enable CUDA acceleration anytime from **⚙ Settings → Acceleration** — it detects your GPU and installs only what your machine needs.
 
