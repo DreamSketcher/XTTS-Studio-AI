@@ -58,7 +58,11 @@ jobs:
             pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
             pip install -r requirements.txt || true
           fi
-          pip install pytest pytest-cov ruff==0.6.9 black==24.10.0
+          # Лёгкие зависимости, которые нужны тестам напрямую. Ставятся явно,
+          # т.к. requirements.txt выше может частично не установиться (|| true)
+          # из-за тяжёлых пакетов (coqui-tts / llama-cpp-python) на голом раннере.
+          pip install num2words
+          pip install pytest pytest-cov pytest-timeout ruff==0.6.9 black==24.10.0
         shell: bash
 
       - name: Run pytest
