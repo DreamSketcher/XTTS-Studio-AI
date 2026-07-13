@@ -1,5 +1,5 @@
 {
-  "version": "1.1.179",
+  "version": "1.1.180",
   "files": [
     ".known_safe_files.json",
     ".torch_installed_variant.json",
@@ -80,6 +80,7 @@
     "engine/gui/theme_manager.py",
     "engine/gui/toolbar.py",
     "engine/gui/tooltip.py",
+    "engine/gui/updates.py",
     "engine/gui/voice_panel.py",
     "engine/gui/widgets.py",
     "engine/gui/word_replacer_panel.py",
@@ -207,6 +208,7 @@
     "engine/gui/theme_manager.py": "23b3f40c8c179575230cfb595bea1632b9dc7b3480220d1a291d800f87c5f625",
     "engine/gui/toolbar.py": "d347a54200eda4020d7763b9ae667d9dab799185f8a83c95a1ed6e394f3b1914",
     "engine/gui/tooltip.py": "af5175173b2fd9d48a29d7e5bb122a8ee061a061a5a1ab216963d8fa4615117a",
+    "engine/gui/updates.py": "29fdff998dc6d185b9f7268c4f211f5406a9c9093c3ebbfbf59c838a54193043",
     "engine/gui/voice_panel.py": "0ad37151666dcefa6822a77df07f9c3d2691a23be34cf92765f5aaba9e7d482c",
     "engine/gui/widgets.py": "bd6249b7f7c62eddcc98bdcf4d742c3a1f7354981e31638c40f68248620faf22",
     "engine/gui/word_replacer_panel.py": "eae6a910e1ce9d3d9d04fafef418f09b6ecb90a782526d2e8ef55377101406b9",
