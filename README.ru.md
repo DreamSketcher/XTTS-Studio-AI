@@ -10,12 +10,24 @@
 
 <br/>
 
-[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](#-скачать)
-[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#почему-xtts-studio)
-[![Portable](https://img.shields.io/badge/Portable-без%20установки-orange)](#-скачать)
-[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#возможности-кратко)
-[![RVC](https://img.shields.io/badge/RVC-улучшение%20голоса-e11d48)](#возможности-кратко)
-[![Themes](https://img.shields.io/badge/Темы-Тёмная%20%2F%20Светлая-7c3aed)](#возможности-кратко)
+<div align="center">
+
+[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](#download)
+[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#why-xtts-studio)
+[![Portable](https://img.shields.io/badge/Portable-No%20Installation-orange)](#download)
+[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#features)
+[![RVC](https://img.shields.io/badge/RVC-Voice%20Enhancement-e11d48)](#features)
+[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed)](#features)
+
+<br/>
+
+**[📥 Скачать](#download)** ·
+**[🎧 Примеры звука](#audio-examples)** ·
+**[📖 Документация RU](./DOCUMENTATION.RU.md)** ·
+**[📖 Docs EN](./DOCUMENTATION.EN.md)** ·
+**[📜 Лицензия](./LICENSE.md)**
+
+</div>
 
 <br/>
 
