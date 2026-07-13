@@ -17,12 +17,12 @@ LANGUAGES = {
         "btn_update": "⚙ Настройки",
         "btn_ai_status": "🔌 AI статус",
         # ── Voice Reference Card ──
-        "card_voice_ref": "🎤 Голос-референс",
-        "btn_pick_ref": "📁 Выбрать",
-        "ref_info": "✅ ... в WAV | Обрезан | Нормализован",
-        # ── Voice Library ──
-        "card_voice_lib": "📚 Библиотека голосов",
-        "tip_pick_from_lib": "Выбрать голос из библиотеки",
+         "card_voice_ref": "🎤 Голос-референс",
+         "btn_pick_ref": "📁 Выбрать",
+         "ref_info": "✅ Конвертиртация в WAV\n✅ Обрезка\n✅ Нормализация",
+         # ── Voice Library ──
+         "card_voice_lib": "📚 Библиотека голосов",
+         "tip_pick_from_lib": "Выбрать голос из библиотеки",
         "active_voice": "🎤 Активный голос: {}",
         # ── Queue ──
         "card_queue": "📋 Очередь задач",
@@ -664,7 +664,7 @@ LANGUAGES = {
 
         "win_update_settings_title": "⚙ Системные настройки, CUDA и обновления",
         "section_updates": "📋 Обновления",
-        "chk_auto_check": "☑ Автоматически проверять обновления при запуске",
+        "chk_auto_check": "Автоматически проверять обновления при запуске",
         "btn_check_now": "🔍 Проверить обновления сейчас",
         "section_accel": "⚡ Ускорение (CPU/GPU)",
         "section_diag": "📋 Диагностика",
@@ -746,7 +746,7 @@ LANGUAGES = {
     "en": {
         # ── Header / Left Panel ──
         "app_title": "XTTS Studio",
-        "app_author": " by EXIZ10TION",
+        "app_author": "  by EXIZ10TION",
         "btn_update": "⚙ Settings",
         "btn_ai_status": "🔌 AI Status",
         # ── Voice Reference Card ──
@@ -1397,7 +1397,7 @@ LANGUAGES = {
 
         "win_update_settings_title": "⚙ System Settings, CUDA & Updates",
         "section_updates": "📋 Updates",
-        "chk_auto_check": "☑ Automatically check for updates on startup",
+        "chk_auto_check": "Automatically check for updates on startup",
         "btn_check_now": "🔍 Check for updates now",
         "section_accel": "⚡ Acceleration (CPU/GPU)",
         "section_diag": "📋 Diagnostics",

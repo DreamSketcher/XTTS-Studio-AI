@@ -139,10 +139,16 @@ def _redistribute_left_panel():
                     console_card.pack_propagate(False)
             except Exception:
                 pass
-            for card in [vp.ref_card, vp.voice_card, qp.queue_card]:
+            try:
+                if vp.ref_card and vp.ref_card.winfo_exists():
+                    vp.ref_card.configure(height=160)
+                    vp.ref_card.pack_propagate(False)
+            except Exception:
+                pass
+            for card in [vp.voice_card, qp.queue_card]:
                 try:
                     if card and card.winfo_exists():
-                        card.configure(height=210)
+                        card.configure(height=220)
                         card.pack_propagate(False)
                 except Exception:
                     pass

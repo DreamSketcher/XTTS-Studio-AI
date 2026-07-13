@@ -170,7 +170,7 @@ def build_voice_cards(left_panel):
     create_entry(ref_card, ref_var).pack(fill="x", padx=10, pady=(3, 5))
     ref_btn_row = tk.Frame(ref_card, bg=Colors.BG_CARD)
     ref_btn_row.pack(fill="x", padx=10, pady=(0, 4))
-    create_button(ref_btn_row, t("btn_pick_ref"), pick_reference, bg=Colors.BG_INPUT, font_size=9).pack(side="left", ipady=0)
+    create_button(ref_btn_row, t("btn_pick_ref"), pick_reference, bg=Colors.BG_INPUT, font_size=10, height=0.75).pack(side="left", ipady=0)
     # Только эта карточка меняет шрифт — сохраняем ссылку
     ref_info_label = tk.Label(ref_card, text=t("ref_info"), bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
              font=("Consolas", scaled_font_size(9)), justify="left", anchor="w")
