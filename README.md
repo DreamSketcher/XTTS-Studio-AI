@@ -19,7 +19,7 @@
 
 <br/>
 
-**[📥 Download](#-download)** · **[🎧 Hear samples](#-hear-it)** · **[📖 Documentation](./DOCUMENTATION.EN.md)** · **[📜 License](./LICENSE.md)**
+**[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** · **[🎧 Hear samples](#-hear-it)** · **[📖 Documentation](./DOCUMENTATION.EN.md)** · **[📜 License](./LICENSE.md)**
 
 </div>
 
