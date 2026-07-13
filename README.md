@@ -1,6 +1,6 @@
 <div align="center">
 
-**[English](./README.EN.md)** · **[Русский](./README.RU.md)**
+**[Русский](./README.ru.md)** · **[English](./README.md)**
 
 # 🎙️ XTTS Studio
 
@@ -10,24 +10,16 @@
 
 <br/>
 
-[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](#-download)
-[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#-why-xtts-studio)
-[![Portable](https://img.shields.io/badge/Portable-no%20install-orange)](#-download)
-[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#-features-at-a-glance)
-[![RVC](https://img.shields.io/badge/RVC-voice%20enhance-e11d48)](#-features-at-a-glance)
-[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed)](#-features-at-a-glance)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](https://github.com/DreamSketcher/XTTS-Studio/releases)
+[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](https://github.com/DreamSketcher/XTTS-Studio)
+[![Portable](https://img.shields.io/badge/Portable-no%20install-orange)](https://github.com/DreamSketcher/XTTS-Studio/releases)
+[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](https://github.com/DreamSketcher/XTTS-Studio)
+[![RVC](https://img.shields.io/badge/RVC-voice%20enhance-e11d48)](https://github.com/DreamSketcher/XTTS-Studio)
+[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed)](https://github.com/DreamSketcher/XTTS-Studio)
 
 <br/>
 
-<!-- DEMO VIDEO: drop a short product trailer here
-[![Watch the demo](images/demo-thumb.png)](https://youtu.be/YOUR_DEMO_VIDEO)
--->
-
-<!-- HERO GIF: main UI walkthrough
-![XTTS Studio in action](images/demo-hero.gif)
--->
-
-**[📥 Download](#-download)** · **[🎧 Hear samples](#-hear-it)** · **[📖 Full documentation](./DOCUMENTATION.EN.md) · [RU](./DOCUMENTATION.RU.md)** · **[📜 License](./LICENSE.md)**
+**[📥 Download](#-download)** · **[🎧 Hear samples](#-hear-it)** · **[📖 Documentation](./DOCUMENTATION.EN.md)** · **[📜 License](./LICENSE.md)**
 
 </div>
 
@@ -39,13 +31,13 @@ Most voice tools want your data, your subscription, and a permanent internet con
 
 **XTTS Studio is different:**
 
-| | Cloud TTS | XTTS Studio |
-|---|---|---|
-| Internet required | Always | **Never** (AI module is optional) |
-| Install | App + accounts + drivers | **Unpack & run** |
-| Your voice / text leave the PC | Yes | **No** |
-| Long scripts | Often limited | **No length limit** |
-| GPU | Sometimes locked behind tiers | **CPU free · CUDA on demand** |
+| Feature                  | Cloud TTS          | XTTS Studio                     |
+|--------------------------|--------------------|---------------------------------|
+| Internet required        | Always             | **Never** (AI optional)         |
+| Installation             | App + accounts     | **Unpack & run**                |
+| Your voice/text leaves PC| Yes                | **No**                          |
+| Long scripts             | Often limited      | **No length limit**             |
+| GPU                      | Often paid         | **CPU free · CUDA on demand**   |
 
 One portable folder. One double-click. Your machine, your rules.
 
@@ -53,22 +45,12 @@ One portable folder. One double-click. Your machine, your rules.
 
 ## Hear it
 
-> Drop real demos here — they sell better than any feature list.
-
-<!-- AUDIO SAMPLES
-### Same text · different voices
-| Sample | Listen |
-|--------|--------|
-| Narrative RU | [▶ sample-narrative-ru.mp3](media/sample-narrative-ru.mp3) |
-| Dynamic EN | [▶ sample-dynamic-en.mp3](media/sample-dynamic-en.mp3) |
-| Clone A → Clone B | [▶ sample-clone-ab.mp3](media/sample-clone-ab.mp3) |
-| XTTS only vs XTTS+RVC | [▶ sample-rvc-compare.mp3](media/sample-rvc-compare.mp3) |
--->
+> Real demos are coming soon — they sell better than any feature list.
 
 ```text
-[ media/demo-before-after.mp3 ]   ← placeholder
-[ media/demo-rvc-enhance.mp3 ]    ← placeholder
-[ media/demo-long-form.mp3 ]      ← placeholder
+[ media/demo-before-after.mp3 ]     ← placeholder
+[ media/demo-rvc-enhance.mp3 ]      ← placeholder
+[ media/demo-long-form.mp3 ]        ← placeholder
 ```
 
 ---
@@ -77,39 +59,39 @@ One portable folder. One double-click. Your machine, your rules.
 
 ### 🎤 Voice that sounds like *someone*
 
-- Clone from a **10–20 s** reference clip  
-- Voice library with cached embeddings (fast re-use)  
-- **RVC post-processing** — per-chunk second stage for tighter timbre (index rate, pitch, f0 method)  
-- **Built-in RVC model picker** — local models + offline seed catalog + optional online search (voice-models / Hugging Face)  
-- One-click install of the RVC stack into the portable env (Windows-safe fairseq wheels, no “compile hell”)  
-- Long-form ready: books, scripts, ads, narration  
+- Clone from a **10–20 s** reference clip
+- Voice library with cached embeddings
+- **RVC post-processing** — per-chunk second stage (index rate, pitch, f0)
+- Built-in RVC model picker (local + offline catalog + optional Hugging Face search)
+- One-click RVC stack installation (Windows-safe wheels)
+- Long-form ready: books, scripts, ads, narration
 
-### 🧠 Text that reads the way people speak
+### 🧠 Text that reads naturally
 
-- Numbers → words, abbreviations → dictionary  
-- Russian **ё-restoration**, smart pauses, clean prosody  
-- Initials protected so “А. С. Пушкин” never tears into junk chunks  
+- Numbers → words, abbreviations → dictionary
+- Russian **ё-restoration**, smart pauses, clean prosody
+- Initials protected (`А. С. Пушкин`)
 
 ### 🎛 Quality you control
 
-- **4 presets:** High Quality · Narrative · Dynamic · Expressive  
-- **Tabbed preset settings** (sticky): RVC · Trim · Output · XTTS — no endless scrolling  
-- Per-preset fine-tuning (temperature, speed, trim, de-esser, QC, RVC…) — **saved between sessions**  
-- Chunk QC with auto-retry on loops / bad cuts  
-- Export **WAV** or **MP3**  
+- **4 presets:** High Quality · Narrative · Dynamic · Expressive
+- Sticky tabbed settings (RVC · Trim · Output · XTTS)
+- Fine-tuning saved between sessions
+- Chunk QC with auto-retry
+- Export **WAV** or **MP3**
 
 ### 🤖 AI when you want it — offline when you don’t
 
-- Optional **AI Conductor** — per-chunk temperature/speed/pauses (+ optional style rewrite)  
-- Built-in **AI chat** + multi-provider fallback chain (Groq / OpenRouter / RU proxy / custom)  
-- **Local GGUF LLMs** in-process (llama-cpp) — catalog download, resume, CPU/GPU with safe fallback  
+- Optional **AI Conductor** (per-chunk temperature/speed/pauses + style rewrite)
+- Built-in **AI chat** with multi-provider fallback (Groq / OpenRouter / RU proxy)
+- **Local GGUF LLMs** (llama-cpp) with safe fallback
 
 ### 🖥 Desktop app, not a browser toy
 
-- Dark / light themes + full theme constructor  
-- RU / EN interface  
-- Portable layout, neon accents, adaptive toolbar  
-- Safe auto-update with **SHA256** + rollback  
+- Dark / light themes + full theme constructor
+- RU / EN interface
+- Portable layout with neon accents
+- Safe auto-update with **SHA256** + rollback
 
 ---
 
@@ -129,39 +111,27 @@ One portable folder. One double-click. Your machine, your rules.
   <img src="images/ai-settings.PNG" width="45%" alt="AI settings" />
 </p>
 
-<!-- MORE VISUALS
-### UI walkthrough GIF
-![Settings tabs](images/demo-settings-tabs.gif)
-
-### RVC model picker
-![RVC dropdown](images/demo-rvc-dropdown.gif)
-
-### Generation flow
-![Generate](images/demo-generate.gif)
--->
-
 ---
 
 ## Download
 
-> ⚠️ Google Drive may show *“file too large to scan”* — expected for a full portable build, not a virus warning.
+> ⚠️ Google Drive may show *“file too large to scan”* — normal for portable builds.
 
-**One build for everyone** — [📥 Download XTTS Studio](https://YOUR_DOWNLOAD_LINK_HERE)
+**[📥 Download XTTS Studio](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)**
 
-- Runs on **CPU** immediately after unpack  
-- Have an **NVIDIA GPU**? Turn on CUDA in **⚙ Settings → Acceleration** — installs only what your card needs  
-
-📜 **License:** [LICENSE.md](./LICENSE.md) — free to use, attribution required  
+- Runs on **CPU** immediately after unpacking
+- NVIDIA GPU? Enable CUDA in **⚙ Settings → Acceleration**
+- **License:** [LICENSE.md](./LICENSE.md) — free with attribution
 
 ---
 
 ## 60-second start
 
-1. Unpack the archive (**no Cyrillic in the path**)  
-2. Run `XTTS Studio.exe`  
-3. Pick a **10–20 s** voice reference  
-4. Paste text → **🚀 GENERATE**  
-5. Find audio in `outputs/` (or open **🎵 Audio**)  
+1. Unpack the archive (**no Cyrillic in the path**)
+2. Run `XTTS Studio.exe`
+3. Pick a **10–20 s** voice reference
+4. Paste text → **🚀 GENERATE**
+5. Find audio in `outputs/` folder
 
 ```text
 ✔  C:\XTTS\
@@ -172,21 +142,21 @@ One portable folder. One double-click. Your machine, your rules.
 
 ## Who it’s for
 
-- **Creators** — YouTube, ads, podcasts, character VO  
-- **Authors & studios** — audiobooks, long narration  
-- **Privacy-first teams** — scripts that must not leave the LAN  
-- **Power users** — presets, RVC, local AI, full theme control  
+- **Creators** — YouTube, ads, podcasts, character VO
+- **Authors & studios** — audiobooks, long narration
+- **Privacy-first teams** — scripts that must not leave the LAN
+- **Power users** — presets, RVC, local AI, theme control
 
 ---
 
 ## Requirements
 
-| | CPU (default) | CUDA (optional) |
-|---|---|---|
-| OS | Windows 10/11 x64 | Windows 10/11 x64 |
-| RAM | 8+ GB | 8+ GB |
-| GPU | — | NVIDIA, 4+ GB VRAM, CC 6.0+ |
-| Speed | slower than real-time | often faster than real-time |
+|                  | CPU (default)       | CUDA (optional)               |
+|------------------|---------------------|-------------------------------|
+| **OS**           | Windows 10/11 x64   | Windows 10/11 x64             |
+| **RAM**          | 8+ GB               | 8+ GB                         |
+| **GPU**          | —                   | NVIDIA, 4+ GB VRAM, CC 6.0+   |
+| **Speed**        | Slower than real-time | Often faster than real-time |
 
 ---
 
@@ -194,12 +164,10 @@ One portable folder. One double-click. Your machine, your rules.
 
 This page is the **product pitch**.
 
-| Language | Docs | Function reference |
-|----------|------|--------------------|
-| English | [DOCUMENTATION.EN.md](./DOCUMENTATION.EN.md) | [unified_function_reference.EN.md](./unified_function_reference.EN.md) |
-| Русский | [DOCUMENTATION.RU.md](./DOCUMENTATION.RU.md) | [unified_function_reference.RU.md](./unified_function_reference.RU.md) |
-
-Includes: pipeline (reference → text → chunks → RVC → export), AI / local LLMs, dictionary, diagnostics, updater, full tree.
+| Language | Full Docs                        | Function Reference                     |
+|----------|----------------------------------|----------------------------------------|
+| English  | [DOCUMENTATION.EN.md](./DOCUMENTATION.EN.md) | [unified_function_reference.EN.md](./unified_function_reference.EN.md) |
+| Русский  | [DOCUMENTATION.RU.md](./DOCUMENTATION.RU.md) | [unified_function_reference.RU.md](./unified_function_reference.RU.md) |
 
 ---
 
@@ -211,9 +179,9 @@ If XTTS Studio saves you time or money:
 
 ---
 
-## Third-party
+## Third-party components
 
-Uses **XTTS v2** (Coqui) under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml). Model use is governed by CPML independently of this project’s license.
+Uses **XTTS v2** (Coqui) under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml).
 
 ---
 
@@ -221,6 +189,6 @@ Uses **XTTS v2** (Coqui) under the [Coqui Public Model License (CPML)](https://c
 
 **XTTS Studio** · by EXIZ10TION · Made with ❤️
 
-[Download](#-download) · [Docs EN](./DOCUMENTATION.EN.md) · [Docs RU](./DOCUMENTATION.RU.md) · [License](./LICENSE.md)
+[Download](https://github.com/DreamSketcher/XTTS-Studio/releases) · [Docs EN](./DOCUMENTATION.EN.md) · [Docs RU](./DOCUMENTATION.RU.md) · [License](./LICENSE.md)
 
 </div>
