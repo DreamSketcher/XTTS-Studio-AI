@@ -19,7 +19,7 @@
 
 <br/>
 
-**[📥 Скачать Github Releases 3 GB → 5.7 ](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** · **[🎧 Послушать](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Документация EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
+**[📥 Скачать Github Releases 3 GB → 5.7 GB](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** · **[🎧 Послушать](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Документация EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
 
 </div>
 
