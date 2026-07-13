@@ -16,8 +16,6 @@
 
 <br/><br/>
 
-<br/><br/>
-
 **[📥 Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** ·
 **[🎧 Примеры звука](#audio-examples)** ·
 **[📖 Документация RU](./DOCUMENTATION.RU.md)** ·
@@ -27,8 +25,6 @@
 <br/>
 
 </div>
-
-<br/>
 
 <!-- DEMO VIDEO
 [![Смотреть демо](images/demo-thumb.png)](https://youtu.be/YOUR_DEMO_VIDEO)
