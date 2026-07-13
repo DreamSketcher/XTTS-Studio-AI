@@ -12,24 +12,30 @@
 
 <div align="center">
 
-[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](#download)
-[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#why-xtts-studio)
-[![Portable](https://img.shields.io/badge/Portable-No%20Installation-orange)](#download)
-[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#features)
-[![RVC](https://img.shields.io/badge/RVC-Voice%20Enhancement-e11d48)](#features)
-[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed)](#features)
+<img src="https://img.shields.io/badge/XTTS%20Studio-v1.0.10-58a6ff?style=for-the-badge&logo=python&logoColor=white" />
+
+<br/><br/>
+
+[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](#download)
+[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e?style=for-the-badge)](#why-xtts-studio)
+[![Portable](https://img.shields.io/badge/Portable-No%20Installation-orange?style=for-the-badge)](#download)
+[![UI](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff?style=for-the-badge)](#features)
+[![RVC](https://img.shields.io/badge/RVC-Voice%20Enhancement-e11d48?style=for-the-badge)](#features)
+[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed?style=for-the-badge)](#features)
+
+<br/><br/>
+
+**[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)**
+&nbsp;&nbsp;•&nbsp;&nbsp;
+**[🎧 Audio Samples](#audio-examples)**
+&nbsp;&nbsp;•&nbsp;&nbsp;
+**[📖 Documentation RU](./DOCUMENTATION.RU.md)**
+&nbsp;&nbsp;•&nbsp;&nbsp;
+**[📖 Documentation EN](./DOCUMENTATION.EN.md)**
+&nbsp;&nbsp;•&nbsp;&nbsp;
+**[📜 License](./LICENSE.md)**
 
 <br/>
-
-[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)
-&nbsp;•&nbsp;
-[🎧 Audio Samples](#audio-examples)
-&nbsp;•&nbsp;
-[📖 Documentation RU](./DOCUMENTATION.RU.md)
-&nbsp;•&nbsp;
-[📖 Docs EN](./DOCUMENTATION.EN.md)
-&nbsp;•&nbsp;
-[📜 License](./LICENSE.md)
 
 </div>
 
