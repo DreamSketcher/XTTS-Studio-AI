@@ -115,6 +115,7 @@
     "engine/voice_manager.py",
     "engine/word_replacer.py",
     "engine/word_replacer_window.py",
+    "generate_version_manifest.py",
     "gui.py",
     "i18n.py",
     "json/rvc_catalog_seed.json",
