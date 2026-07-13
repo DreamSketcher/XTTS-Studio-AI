@@ -11,11 +11,11 @@
 <br/>
 
 [![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](#-скачать)
-[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#-почему-xtts-studio)
+[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](#почему-xtts-studio)
 [![Portable](https://img.shields.io/badge/Portable-без%20установки-orange)](#-скачать)
-[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#-возможности-кратко)
-[![RVC](https://img.shields.io/badge/RVC-улучшение%20голоса-e11d48)](#-возможности-кратко)
-[![Themes](https://img.shields.io/badge/Темы-Тёмная%20%2F%20Светлая-7c3aed)](#-возможности-кратко)
+[![RU/EN](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff)](#возможности-кратко)
+[![RVC](https://img.shields.io/badge/RVC-улучшение%20голоса-e11d48)](#возможности-кратко)
+[![Themes](https://img.shields.io/badge/Темы-Тёмная%20%2F%20Светлая-7c3aed)](#возможности-кратко)
 
 <br/>
 
