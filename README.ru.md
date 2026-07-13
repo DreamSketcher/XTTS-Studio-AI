@@ -27,7 +27,7 @@
 ![XTTS Studio в деле](images/demo-hero.gif)
 -->
 
-**[📥 Скачать](#-скачать)** · **[🎧 Примеры звука](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Docs EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
+**[📥 Скачать](#https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** · **[🎧 Примеры звука](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Docs EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
 
 </div>
 
