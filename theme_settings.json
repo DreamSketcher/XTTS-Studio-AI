@@ -68,7 +68,7 @@
   "layout": "classic",
   "audio_repeat_one": true,
   "console_visible": true,
-  "console_scroll_pos": 0.8813025210084033,
+  "console_scroll_pos": 0.7360248447204969,
   "sidebar_side": "left",
   "toolbar_order": [
     "file",
@@ -76,7 +76,7 @@
     "ai",
     "action"
   ],
-  "header_rainbow": true,
+  "header_rainbow": false,
   "header_rainbow_style": {
     "speed_ms": 40,
     "saturation": 1.0,

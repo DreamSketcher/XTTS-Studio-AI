@@ -99,6 +99,6 @@
   "torch_device_preference": "cpu",
   "open_updates_on_startup": false,
   "install_variant_on_startup": null,
-  "auto_check_updates": false,
-  "quality_settings_last_tab": "out"
+  "auto_check_updates": true,
+  "quality_settings_last_tab": "xtts"
 }

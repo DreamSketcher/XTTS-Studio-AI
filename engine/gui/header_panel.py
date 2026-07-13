@@ -73,6 +73,12 @@ _author_style = {
 _author_style_sig = None
 _author_row = None  # parent frame for author widget
 
+# --- Underline animation (переливающееся подчёркивание) ---
+_title_underline = None
+_author_underline = None
+_underline_timer = None
+_underline_hue = 0.0
+
 
 def init(**deps):
     """Внедрение зависимостей из engine.gui.main_window (имена совпадают с
@@ -279,6 +285,52 @@ def _author_tick():
             _author_timer = root.after(delay, _author_tick)
     except Exception:
         _author_timer = None
+
+
+# ── Underline animation ──
+def _stop_underline():
+    global _underline_timer
+    if _underline_timer is not None:
+        try:
+            if root is not None:
+                root.after_cancel(_underline_timer)
+        except Exception:
+            pass
+    _underline_timer = None
+
+
+def _start_underline():
+    global _underline_timer
+    _stop_underline()
+    if not _is_rainbow_enabled():
+        return
+    _underline_tick()
+
+
+def _underline_tick():
+    global _underline_timer, _underline_hue
+    import colorsys
+    try:
+        if _title_underline is None and _author_underline is None:
+            _underline_timer = None
+            return
+        _underline_hue = (_underline_hue + 0.006) % 1.0
+        r, g, b = colorsys.hsv_to_rgb(_underline_hue, 0.75, 0.9)
+        color = f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+        if _title_underline is not None:
+            try:
+                _title_underline.configure(bg=color)
+            except Exception:
+                pass
+        if _author_underline is not None:
+            try:
+                _author_underline.configure(bg=color)
+            except Exception:
+                pass
+        if root is not None:
+            _underline_timer = root.after(40, _underline_tick)
+    except Exception:
+        _underline_timer = None
 
 
 def _build_rainbow_frames(text: str, font_size: int, style: dict | None = None, n_frames: int | None = None):
@@ -506,7 +558,7 @@ def _apply_rainbow_to_title(parent, text):
         _title_label = tk.Label(
             parent,
             text=text,
-            bg=Colors.BG_DARK,
+            bg=Colors.BG_CARD,
             fg=Colors.TEXT_MAIN,
             font=("Segoe UI", font_sz, "bold")
         )
@@ -526,7 +578,7 @@ def _apply_rainbow_to_title(parent, text):
     if not frames:
         # fallback на обычный Label если генерация не удалась
         _rainbow_enabled = False
-        lbl = tk.Label(parent, text=text, bg=Colors.BG_DARK, fg=Colors.TEXT_MAIN,
+        lbl = tk.Label(parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
                        font=("Segoe UI", font_sz, "bold"))
         lbl.pack(side="left", padx=(4, 0))
         _title_label = lbl
@@ -543,7 +595,7 @@ def _apply_rainbow_to_title(parent, text):
     try:
         bg = parent.cget("bg")
     except Exception:
-        bg = Colors.BG_DARK
+        bg = Colors.BG_CARD
     _title_canvas = tk.Canvas(parent, width=w, height=h, bg=bg,
                               highlightthickness=0, bd=0)
     _title_canvas.pack(side="left", padx=(4, 0))
@@ -560,9 +612,6 @@ def _apply_rainbow_to_title(parent, text):
     try:
         _title_canvas.bind("<Map>", _on_map, add="+")
         _title_canvas.bind("<Unmap>", _on_unmap, add="+")
-        if root is not None:
-            root.bind("<FocusIn>", lambda e: _start_rainbow(), add="+")
-            root.bind("<FocusOut>", lambda e: _stop_rainbow(), add="+")
     except Exception:
         pass
 
@@ -597,20 +646,20 @@ def _apply_rainbow_to_author(parent, text):
 
     if not enabled:
         _author_label = tk.Label(
-            parent, text=text, bg=Colors.BG_DARK, fg=Colors.TEXT_DIM,
+            parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
             font=("Segoe UI", font_sz),
         )
-        _author_label.pack(anchor="w")
+        _author_label.pack(side="left")
         return _author_label
 
     frames = _build_rainbow_frames(text, font_sz + 1, style=_author_style, n_frames=12)
     if not frames:
         _author_enabled = False
         _author_label = tk.Label(
-            parent, text=text, bg=Colors.BG_DARK, fg=Colors.TEXT_DIM,
+            parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
             font=("Segoe UI", font_sz),
         )
-        _author_label.pack(anchor="w")
+        _author_label.pack(side="left")
         return _author_label
 
     _author_frames = frames
@@ -621,10 +670,10 @@ def _apply_rainbow_to_author(parent, text):
     try:
         bg = parent.cget("bg")
     except Exception:
-        bg = Colors.BG_DARK
+        bg = Colors.BG_CARD
     _author_canvas = tk.Canvas(parent, width=w, height=h, bg=bg,
                                highlightthickness=0, bd=0)
-    _author_canvas.pack(anchor="w")
+    _author_canvas.pack(side="left")
     _author_canvas_img = _author_canvas.create_image(0, 0, anchor="nw", image=frames[0])
     globals()["_author_canvas_img"] = _author_canvas_img
 
@@ -644,32 +693,57 @@ def _apply_rainbow_to_author(parent, text):
 def build_header(left_panel):
     global header_frame, title_row, header_btn_row, upd_btn, ai_status_btn, ui_lang_btn
     global _title_label, _title_canvas, _author_row, _author_label
+    global _title_underline, _author_underline
     header_frame = CompatCTkFrame(left_panel, fg_color="transparent", bg="transparent")
     header_frame.pack(fill="x", pady=(0, 8))
-    title_row = tk.Frame(header_frame, bg=Colors.BG_DARK)
-    title_row.pack(anchor="w", fill="x")
+
+    # ── КАРТОЧКА ЗАГОЛОВКА ──
+    title_card = CompatCTkFrame(header_frame, fg_color=Colors.BG_CARD, corner_radius=10)
+    title_card.pack(fill="x", padx=4, pady=(0, 4))
+
+    # Цвет акцентной полоски (fallback — голубой, как в splash)
+    _accent_color = getattr(Colors, "ACCENT", "#58a6ff")
+
+    # ── Заголовок с акцентной полоской ──
+    title_row = tk.Frame(title_card, bg=Colors.BG_CARD)
+    title_row.pack(anchor="w", fill="x", padx=10, pady=(10, 0))
+    _accent_bar_title = tk.Frame(title_row, bg="#ffffff", width=2)
+    _accent_bar_title.pack(side="left", fill="y", padx=(0, 10))
     # Сначала обычные Label — окно рисуется сразу.
     # Неон (Pillow) — ПОСЛЕ idle, иначе «Не отвечает» на старте.
     title_text = t("app_title")
     _title_label = tk.Label(
         title_row,
         text=title_text,
-        bg=Colors.BG_DARK,
+        bg=Colors.BG_CARD,
         fg=Colors.TEXT_MAIN,
         font=("Segoe UI", scaled_font_size(16), "bold"),
     )
-    _title_label.pack(side="left", padx=(4, 0))
+    _title_label.pack(side="left", padx=(0, 0))
 
-    _author_row = tk.Frame(header_frame, bg=Colors.BG_DARK)
-    _author_row.pack(anchor="w")
+    # ── Подчёркивание заголовка (переливающееся) ──
+    _title_underline = tk.Canvas(title_card, height=1, bg="#ffffff",
+                                  highlightthickness=0, bd=0)
+    _title_underline.pack(fill="x", padx=20, pady=(2, 6))
+
+    # ── Подпись с акцентной полоской ──
+    _author_row = tk.Frame(title_card, bg=Colors.BG_CARD)
+    _author_row.pack(anchor="w", fill="x", padx=10, pady=(0, 0))
+    _accent_bar_author = tk.Frame(_author_row, bg="#ffffff", width=2)
+    _accent_bar_author.pack(side="left", fill="y", padx=(0, 10))
     _author_label = tk.Label(
         _author_row,
         text=t("app_author"),
-        bg=Colors.BG_DARK,
+        bg=Colors.BG_CARD,
         fg=Colors.TEXT_DIM,
         font=("Segoe UI", scaled_font_size(9)),
     )
-    _author_label.pack(anchor="w")
+    _author_label.pack(side="left")
+
+    # ── Подчёркивание подписи (переливающееся) ──
+    _author_underline = tk.Canvas(title_card, height=1, bg="#ffffff",
+                                   highlightthickness=0, bd=0)
+    _author_underline.pack(fill="x", padx=20, pady=(2, 10))
 
     def _deferred_neon_title():
         try:
@@ -813,6 +887,7 @@ def apply_layout(preset: dict) -> bool:
 def stop_rainbow():
     _stop_rainbow()
     _stop_author_rainbow()
+    _stop_underline()
 
 
 def start_rainbow():
