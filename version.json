@@ -1,8 +1,6 @@
 {
-  "version": "1.1.220",
+  "version": "1.1.221",
   "files": [
-    ".known_safe_files.json",
-    ".torch_installed_variant.json",
     "DOCUMENTATION.EN.md",
     "DOCUMENTATION.RU.md",
     "XTTS Studio.exe",
@@ -118,16 +116,11 @@
     "gui.py",
     "i18n.py",
     "json/rvc_catalog_seed.json",
-    "patch_updates.py",
     "pyproject.toml",
-    "requirements.txt",
-    "settings.json",
-    "theme_settings.json"
+    "requirements.txt"
   ],
   "changelog": "- RVC: постобработка голоса после XTTS (на каждый чанк) — index rate, pitch, f0 (rmvpe/harvest/pm/crepe)\n- RVC: установка rvc-python в portable-окружение (Windows: prebuilt fairseq, без ручной компиляции)\n- RVC: каталог моделей — офлайн seed (json/rvc_catalog_seed.json), кэш, поиск/скачивание (HF; best-effort Google Drive)\n- RVC: выпадающий список моделей в настройках пресета (локальные 🗑, загрузка ⬇, отмена ✕, страница 🔗)\n- Настройки пресета: вкладки RVC · Обрезка · Вывод · XTTS (панель вкладок закреплена сверху, не уезжает при скролле)\n- Настройки пресета: ползунок trim вместе с режимом; де-эссер на вкладке «Вывод»; параметры XTTS отдельно\n- Сохранение RVC и параметров пресета между сессиями (quality_params в settings.json); запоминается последняя вкладка\n- Документация: README и DOCUMENTATION на RU/EN; справочник функций (API) на RU/EN\n- Единая сборка вместо CPU/CUDA-версий: CUDA по желанию в Настройках под конкретное железо\n- Самопроверка torch при запуске: кэш или переустановка совместимой версии\n- Диагностика и Устранение ошибок: проверка библиотек, карантин мусора, автопереустановка сломанных пакетов\n- Редизайн UI, конструктор тем, раскладка и панели\n- Автообновление: staged-загрузка, SHA256, бэкап и rollback; min_app_version для полной переустановки\n- Локальные LLM: автоскан окружения, каталог моделей, своя модель из папки\n- Исправления и оптимизация",
   "sha256": {
-    ".known_safe_files.json": "a63bb8c5a6436c694cdcbd2c5e4b0b550b3743ef7879059b2236d263d2e5b97a",
-    ".torch_installed_variant.json": "c6623ae00bc8048a72d01e48ce36b77ec6455aa753240ca426ebce5412b87044",
     "DOCUMENTATION.EN.md": "05bd149e141db09d11ab2f3b5c21fe8cd73f69616aab5906f9db469976af5f3e",
     "DOCUMENTATION.RU.md": "1c0630cab36eef45c6b4ffcc8e8ab3776f2862b8b3b42113c17f6a765f99a8ad",
     "XTTS Studio.exe": "704a9b34cbf3f382c787da5c08db8cd2a6885ac183b43240d490c47d3602e0cf",
@@ -235,7 +228,7 @@
     "engine/tts/qc.py": "ba8d7fd846c1006706cf3c2bc84d2010e4fb77b35cf56c547bf73c5c984f2cab",
     "engine/tts/utils.py": "d2ce8e043ded787bdf4f48c8d02d816da20db639e87482c4733b88dccf21bb52",
     "engine/tts_runner.py": "cce1a0c70d0f53f7bb54a842876e9a3e0139fc10f7b686781408d7659bc2e180",
-    "engine/updater.py": "d86332742084edea738d75b4417c677055a4a6d89acf4fe966db5d0fd472af73",
+    "engine/updater.py": "768850a046367d4d7117d4a5da3891654f3643c67c49f398290d75e63f27e0d5",
     "engine/validation.py": "91474d50b60db76dc041772f925655732bf20062f020b0265d966e91552d1a6b",
     "engine/voice_manager.py": "181495e80f0d99a675ab160ffaf6ff0e199e28054980b6de21f19837e63fa441",
     "engine/word_replacer.py": "e90d1304376b54d2cc94f4a4a3cb9b5f60b07c380ab1fd3cd554a3b4c493e88c",
@@ -243,14 +236,13 @@
     "gui.py": "034840056c95b680e60b66ad99f6f8d7e0e81d69aac56ec0e73a62add9efe4af",
     "i18n.py": "af2a8d0000a4def84691d548a1e698cd7172c3958fb86fd08ed5832d47ff176b",
     "json/rvc_catalog_seed.json": "0c94eb3b8468f04839b23cc38d65e96ceb1977d12ca58fb594839bbff0339044",
-    "patch_updates.py": "d0e6627c56ca426318dc3af013f9f056e78015f46585497ca244500a70b1513a",
     "pyproject.toml": "ded6327a5261c7f72de85457581687ec3e4a7ec9abbf1a80443b8c9acfd1d537",
-    "requirements.txt": "5fac87e286e3e0088189176c6a8f063380f3b1591290ac7d013d24e4b027fa98",
-    "settings.json": "b4eb67e4a404a0f027e8f74b9d356941f973d989fba715105dda33181891675d",
-    "theme_settings.json": "4be79a79757cb84b31c6948f15f52a9cae9733c4c7b348e47d8114261f69fa2d"
+    "requirements.txt": "5fac87e286e3e0088189176c6a8f063380f3b1591290ac7d013d24e4b027fa98"
   },
   "removed_files": [
+    ".known_safe_files.json",
     ".llama_broken_backends.json",
+    ".torch_installed_variant.json",
     "__pycache__/i18n.cpython-311.pyc",
     "chat_history.json",
     "engine/.vscode/settings.json",
@@ -353,6 +345,9 @@
     "generate_version_manifest.py",
     "gpt_settings.json",
     "icon.ico",
+    "patch_updates.py",
+    "settings.json",
+    "theme_settings.json",
     "unified_function_reference.EN.md",
     "unified_function_reference.RU.md",
     "word_rules.json"
