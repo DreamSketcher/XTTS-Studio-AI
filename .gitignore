@@ -16,7 +16,6 @@ icon.ico
 icon.png
 word_rules.json
 ProjectAnalyzer.ps1
-generate_version_manifest.py
 generate_version_files.py
 version_ignore.txt
 version_force_include.txt
