@@ -357,7 +357,7 @@ In-process **GGUF** inference via `llama-cpp-python` (no Ollama server).
 
 Models dir: `{BASE}/models/`. Marks broken GPU backends via `env_setup.mark_backend_broken` + `gpu_backend_broken` setting.
 
-> `local_env_section.py` mirrors much of the local-model catalog/download API for the **settings UI section** (parallel surface over the same domain). Prefer `local_llm_client` for inference truth.
+> **Removed:** an old file `local_env_section.py` used to sit next to this module with a near-identical copy of the same catalog/download API. Audit showed it was **not imported anywhere** (`chat_settings.py`, `env_settings.py`, and all GUI modules go through `local_llm_client` directly) and was missing critical fixes present in `local_llm_client.py`: certifi/SSL context, download retry-on-transient-drop, and the GPU-backend crash self-healing (Vulkan/CUDA C++ exception → mark broken → CPU fallback). It was a stale fork, not a parallel surface — deleted rather than merged.
 
 ### GUI entry / self-heal — `gui.py`
 
@@ -581,7 +581,6 @@ XTTS Studio (portable)
 │   ├── chunker.py
 │   ├── normalizer.py
 │   ├── word_replacer.py
-│   ├── word_replacer_window.py
 │   ├── text_utils.py
 │   ├── smart_pauses.py
 │   ├── prosody_layer.py
@@ -594,7 +593,6 @@ XTTS Studio (portable)
 │   ├── chat_window.py
 │   ├── gpt_client.py
 │   ├── local_llm_client.py
-│   ├── local_env_section.py
 │   ├── env_setup.py
 │   │
 │   │   ── voice and audio ──
@@ -695,7 +693,7 @@ XTTS Studio (portable)
 - **`engine/tts/cache.py` / `export.py`** — cache + WAV/MP3.  
 - **`chunker.py`** — sentences, merge/split, initials SBD, bad boundary checks.  
 - **`normalizer.py`** — numbers, abbreviations, punctuation, ё-fication.  
-- **`word_replacer.py` / `word_replacer_window.py`** — dictionary categories, dry-run, backups.  
+- **`word_replacer.py`** (core, `engine/`) **/ `gui/word_replacer_window.py`** (UI) — dictionary categories, dry-run, backups. Reached via `gui/word_replacer_panel.py`, not imported directly by GUI callers. A legacy compatibility bridge that used to sit at `engine/word_replacer_window.py` was removed after confirming nothing still imported the old path.  
 - **`smart_pauses.py` / `prosody_layer.py`** — skipped when AI Conductor is active (pauses/schedule from `conductor_map`).  
 - **`rvc_pipeline.py`** — `RVCPostProcessor` / `XTTSWithRVCPipeline` via `rvc-python` (not a class named `RVCPipeline`).  
 - **`rvc_catalog.py`** — seed / cache / GitHub catalog / voice-models search / download.  
@@ -706,7 +704,7 @@ XTTS Studio (portable)
 - **`ai_conductor.py`** — `conduct()`, rewrite, corrections → dictionary; levels gated; never aborts TTS on AI failure.  
 - **`gui/chat_window.py` + `gui/chat_window/`** — chat UI + modules.  
 - **`gpt_client.py`** — cloud chain, keys, catalog.  
-- **`local_llm_client.py` / `local_env_section.py` / `env_setup.py`** — offline LLMs.  
+- **`local_llm_client.py` / `env_setup.py`** — offline LLMs (`local_env_section.py`, a stale duplicate with no callers, was removed).  
 - **`gui/ai_status_window.py`** — chain diagnostics.  
 
 ### Voice and audio
@@ -738,6 +736,8 @@ XTTS Studio (portable)
 Built with AI-assisted tooling (Claude, ChatGPT, and others). Architecture refactor (`engine/` + `engine/gui/`), localization, light theme, and UI polish used **[Arena.ai](https://arena.ai) Agent Mode** (multi-model agent).
 
 Tests: **pytest** in `test/` (`RUN_TESTS.bat`) covering updater, chunker, normalizer, smart pauses, etc.
+
+> **Known fixed gotcha:** `test_sha256_verification.py::test_wrong_hash_rejected` used to burn a real **~24s** (`updater._download_to_staging`'s SHA256-mismatch backoff: 4s+8s+12s) because `time.sleep` wasn't mocked in the `isolated_staging` fixture — unlike the equivalent fixture in `test_local_llm_client_download.py`. Under `run_tests.bat` (output redirected to a file, printed only after the whole run finishes) this looked exactly like a hang. Fixed by adding `monkeypatch.setattr(updater.time, "sleep", lambda s: None)`; verified 24.05s → <0.005s for that test.
 
 Tools in `tools/`:
 

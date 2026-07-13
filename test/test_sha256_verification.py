@@ -57,6 +57,11 @@ def isolated_staging(tmp_path, monkeypatch):
     staging = tmp_path / "_update_staging"
     monkeypatch.setattr(updater, "STAGING_DIR", str(staging))
     monkeypatch.setattr(updater, "_urlopen_with_retry", _fake_urlopen)
+    # SHA256-mismatch retry в _download_to_staging делает реальные time.sleep()
+    # (4с+8с+12с = ~24с backoff) — без мока test_wrong_hash_rejected честно
+    # тормозит на эти секунды при каждом прогоне, что выглядит как зависание
+    # при redirect-в-файл запуске (run_tests.bat, пункт [6]).
+    monkeypatch.setattr(updater.time, "sleep", lambda s: None)
     os.makedirs(staging, exist_ok=True)
     return staging
 

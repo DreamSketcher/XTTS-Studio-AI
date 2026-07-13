@@ -213,8 +213,7 @@ QC: до **3** попыток при `qc_enabled`. Де-эссер: `export_audi
 
 ### Локальные LLM — `local_llm_client.py`
 
-GGUF in-process (`llama-cpp-python`). Каталог HF, download+resume, `call_local_llm` (CPU max_tokens ≤256). GPU→CPU fallback + broken backend.  
-`local_env_section.py` — UI/хелперы.
+GGUF in-process (`llama-cpp-python`). Каталог HF, download+resume, `call_local_llm` (CPU max_tokens ≤256). GPU→CPU fallback + broken backend.
 
 ### `gui.py`
 
@@ -317,7 +316,6 @@ XTTS Studio (portable)
 │   ├── chunker.py
 │   ├── normalizer.py
 │   ├── word_replacer.py
-│   ├── word_replacer_window.py
 │   ├── text_utils.py
 │   ├── smart_pauses.py
 │   ├── prosody_layer.py
@@ -330,7 +328,6 @@ XTTS Studio (portable)
 │   ├── chat_window.py
 │   ├── gpt_client.py
 │   ├── local_llm_client.py
-│   ├── local_env_section.py
 │   ├── env_setup.py
 │   │
 │   │   ── voice and audio ──
@@ -430,7 +427,7 @@ XTTS Studio (portable)
 `tts_runner` (facade) · `tts/*` · `chunker` · `normalizer` · `word_replacer` · `smart_pauses` / `prosody_layer` (off при Conductor) · `rvc_pipeline` · `rvc_catalog` · `de_esser`
 
 ### AI
-`ai_conductor` · `gpt_client` · `local_llm_client` · `local_env_section` · chat UI
+`ai_conductor` · `gpt_client` · `local_llm_client` · chat UI
 
 ### Голос
 `reference_processor` (trim + SNR) · `voice_manager` · `de_esser`
@@ -444,6 +441,8 @@ XTTS Studio (portable)
 
 AI-assisted tooling; pytest в `test/`; утилиты в `tools/`.  
 Архитектура и UI-полировка — в т.ч. с Arena.ai Agent Mode.
+
+> **Исправленная ловушка:** `test_sha256_verification.py::test_wrong_hash_rejected` реально спал **~24с** (backoff в `updater._download_to_staging` при несовпадении SHA256: 4с+8с+12с), потому что `time.sleep` не был замокан в фикстуре `isolated_staging` — в отличие от аналогичной фикстуры в `test_local_llm_client_download.py`. Под `run_tests.bat` (вывод редиректится в файл и печатается только после завершения всего прогона) это выглядело как зависание. Исправлено добавлением `monkeypatch.setattr(updater.time, "sleep", lambda s: None)`; проверено: 24.05с → <0.005с.
 
 ---
 
