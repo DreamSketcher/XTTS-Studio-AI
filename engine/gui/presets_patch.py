@@ -12,11 +12,11 @@ from typing import Dict, Any, Union
 # Добавьте эти ключи в базовый словарь настроек по умолчанию (обычно находится в engine/settings_store.py или engine/gui/presets.py)
 
 DEFAULT_RVC_PRESET_VALUES = {
-    "rvc_enable": False,            # Включено ли RVC-улучшение по умолчанию
-    "rvc_model": "",               # Имя выбранной RVC модели (*.pth)
-    "rvc_index_rate": 0.75,         # Схожесть тембра (индексный файл): 0.0 - 1.0
-    "rvc_pitch_shift": 0,          # Сдвиг тональности (полутона): -12 до +12
-    "rvc_f0_method": "rmvpe",       # Метод определения высоты тона (f0): rmvpe, harvest, pm, crepe
+    "rvc_enable": False,  # Включено ли RVC-улучшение по умолчанию
+    "rvc_model": "",  # Имя выбранной RVC модели (*.pth)
+    "rvc_index_rate": 0.75,  # Схожесть тембра (индексный файл): 0.0 - 1.0
+    "rvc_pitch_shift": 0,  # Сдвиг тональности (полутона): -12 до +12
+    "rvc_f0_method": "rmvpe",  # Метод определения высоты тона (f0): rmvpe, harvest, pm, crepe
 }
 
 
@@ -52,11 +52,15 @@ class PresetManagerPatch:
             preset["rvc_index_rate"] = 0.85  # Для спокойного чтения берем больше оригинала
             preset["rvc_f0_method"] = "rmvpe"
         elif name == "dynamic":
-            preset["rvc_index_rate"] = 0.65  # Для энергичного темпа снижаем влияние индекса во избежание сбоев
+            preset["rvc_index_rate"] = (
+                0.65  # Для энергичного темпа снижаем влияние индекса во избежание сбоев
+            )
             preset["rvc_f0_method"] = "pm"
         elif name == "expressive":
             preset["rvc_index_rate"] = 0.75
-            preset["rvc_f0_method"] = "harvest"  # Harvest хорош на выразительных эмоциях, хотя и медленнее
+            preset["rvc_f0_method"] = (
+                "harvest"  # Harvest хорош на выразительных эмоциях, хотя и медленнее
+            )
 
         return preset
 
@@ -75,14 +79,16 @@ class PresetManagerPatch:
 
 # ── 2. ШАБЛОН ДЛЯ ИНТЕГРАЦИИ В ИНТЕРФЕЙС GUI (gui.py / presets.py) ──
 
+
 class PresetWindowUIController:
     """
     Контроллер для биндинга виджетов RVC к данным пресета в окне настроек качества (Quality Settings).
     Показывает, как связать CustomTkinter (или PySide/Tkinter) виджеты с данными пресета.
     """
+
     def __init__(self, ui_widgets: Dict[str, Any]):
         # Сохраняем ссылки на виджеты интерфейса
-        self.widgets = ui_widgets 
+        self.widgets = ui_widgets
         # Виджеты обычно представляют собой:
         # self.widgets["chk_rvc"] -> ctk.CTkCheckBox
         # self.widgets["combo_rvc_model"] -> ctk.CTkOptionMenu
@@ -103,7 +109,7 @@ class PresetWindowUIController:
                 self.widgets["chk_rvc"].select()
             else:
                 self.widgets["chk_rvc"].deselect()
-                
+
             # Вызываем переключатель активности остальных RVC-контролов
             self.toggle_rvc_widgets_state(data["rvc_enable"])
 
@@ -121,7 +127,7 @@ class PresetWindowUIController:
 
         # 4. Сдвиг тона Pitch
         if "spin_rvc_pitch" in self.widgets:
-            self.widgets["spin_rvc_pitch"].delete(0, 'end')
+            self.widgets["spin_rvc_pitch"].delete(0, "end")
             # Форматируем как "+3" или "-2" или "0"
             pitch_val = int(data["rvc_pitch_shift"])
             pitch_str = f"+{pitch_val}" if pitch_val > 0 else str(pitch_val)
@@ -150,7 +156,9 @@ class PresetWindowUIController:
 
         # 3. Слайдер Index
         if "slider_rvc_index" in self.widgets:
-            preset_rvc_data["rvc_index_rate"] = round(float(self.widgets["slider_rvc_index"].get()), 2)
+            preset_rvc_data["rvc_index_rate"] = round(
+                float(self.widgets["slider_rvc_index"].get()), 2
+            )
 
         # 4. Pitch
         if "spin_rvc_pitch" in self.widgets:
@@ -173,15 +181,28 @@ class PresetWindowUIController:
         Повышает эргономику интерфейса: если RVC выключен, слайдеры и меню становятся серыми.
         """
         state = "normal" if enabled else "disabled"
-        
-        target_keys = ["combo_rvc_model", "slider_rvc_index", "spin_rvc_pitch", "combo_rvc_f0", "btn_pitch_up", "btn_pitch_down"]
+
+        target_keys = [
+            "combo_rvc_model",
+            "slider_rvc_index",
+            "spin_rvc_pitch",
+            "combo_rvc_f0",
+            "btn_pitch_up",
+            "btn_pitch_down",
+        ]
         for key in target_keys:
             if key in self.widgets:
                 self.widgets[key].configure(state=state)
-                
+
         # Если есть текстовые подписи, приглушаем их цвет
         text_color = "#ffffff" if enabled else "#777777"
-        label_keys = ["lbl_rvc_model_title", "lbl_rvc_index_title", "lbl_rvc_pitch_title", "lbl_rvc_f0_title", "lbl_rvc_index_val"]
+        label_keys = [
+            "lbl_rvc_model_title",
+            "lbl_rvc_index_title",
+            "lbl_rvc_pitch_title",
+            "lbl_rvc_f0_title",
+            "lbl_rvc_index_val",
+        ]
         for key in label_keys:
             if key in self.widgets:
                 self.widgets[key].configure(text_color=text_color)

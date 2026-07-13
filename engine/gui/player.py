@@ -38,6 +38,7 @@ def init(**deps):
 def _base_dir() -> str:
     try:
         from engine.paths import BASE_DIR
+
         return str(BASE_DIR)
     except Exception:
         # player.py = engine/gui/player.py → 3 уровня вверх = корень приложения
@@ -75,12 +76,14 @@ def _resolve_library_dir() -> str:
         candidates.append(str(BACKUP_DIR))
     try:
         from engine.paths import LIBRARY_DIR as _P_LIB
+
         if _P_LIB:
             candidates.append(str(_P_LIB))
     except Exception:
         pass
     try:
         from engine.paths import BACKUP_DIR as _P_BAK
+
         if _P_BAK:
             candidates.append(str(_P_BAK))
     except Exception:
@@ -107,6 +110,7 @@ def _resolve_ref_dir() -> str:
     """Папка «сырых» референсов (кнопка выбора reference). Не library."""
     try:
         from engine.paths import REF_DIR
+
         if REF_DIR and os.path.isdir(str(REF_DIR)):
             return str(REF_DIR)
     except Exception:
@@ -137,9 +141,7 @@ def get_volume():
 
 def pick_reference():
     path = filedialog.askopenfilename(
-        initialdir=_resolve_ref_dir(),
-        title="Выбор reference",
-        filetypes=[("Audio", "*.wav *.mp3")]
+        initialdir=_resolve_ref_dir(), title="Выбор reference", filetypes=[("Audio", "*.wav *.mp3")]
     )
     if path:
         ref_var.set(path)
@@ -154,7 +156,7 @@ def pick_backup_reference():
     path = filedialog.askopenfilename(
         initialdir=lib,
         title="Выбор reference из библиотеки",
-        filetypes=[("Audio", "*.wav *.mp3 *.flac *.ogg"), ("WAV", "*.wav"), ("All", "*.*")]
+        filetypes=[("Audio", "*.wav *.mp3 *.flac *.ogg"), ("WAV", "*.wav"), ("All", "*.*")],
     )
     if not path:
         return

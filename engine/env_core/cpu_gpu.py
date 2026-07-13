@@ -15,18 +15,31 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(_CORE_DIR))
 PYTHON_EXE = sys.executable
 SITE_PACKAGES = os.path.join(PROJECT_ROOT, "python", "xtts_env", "Lib", "site-packages")
 
+
 def _ensure_cpuinfo() -> bool:
     """py-cpuinfo — чистый python-пакет, компиляция не нужна, ставится за секунды."""
     sys.path.insert(0, SITE_PACKAGES)
     try:
         import cpuinfo  # noqa: F401
+
         return True
     except ImportError:
         try:
             subprocess.run(
-                [PYTHON_EXE, "-m", "pip", "install", "py-cpuinfo",
-                 "--no-cache-dir", "--target", SITE_PACKAGES],
-                check=True, capture_output=True, timeout=60, text=True,
+                [
+                    PYTHON_EXE,
+                    "-m",
+                    "pip",
+                    "install",
+                    "py-cpuinfo",
+                    "--no-cache-dir",
+                    "--target",
+                    SITE_PACKAGES,
+                ],
+                check=True,
+                capture_output=True,
+                timeout=60,
+                text=True,
             )
             return True
         except Exception:
@@ -35,12 +48,19 @@ def _ensure_cpuinfo() -> bool:
 
 def detect_cpu() -> dict:
     """Определяет параметры CPU."""
-    result = {"name": "не определено", "flags": set(),
-              "avx": False, "avx2": False, "fma": False, "f16c": False}
+    result = {
+        "name": "не определено",
+        "flags": set(),
+        "avx": False,
+        "avx2": False,
+        "fma": False,
+        "f16c": False,
+    }
 
     if _ensure_cpuinfo():
         try:
             import cpuinfo
+
             info = cpuinfo.get_cpu_info()
             result["name"] = info.get("brand_raw", "не определено")
             flags = set(info.get("flags", []))
@@ -66,7 +86,9 @@ def _get_vram_gb_from_registry(name_hint: str) -> Optional[float]:
         )
         proc = subprocess.run(
             ["powershell", "-NoProfile", "-Command", ps_cmd],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if proc.returncode != 0 or not proc.stdout.strip():
             return None
@@ -85,7 +107,7 @@ def _get_vram_gb_from_registry(name_hint: str) -> Optional[float]:
                 size = int(size)
             except Exception:
                 continue
-            gb = size / (1024 ** 3)
+            gb = size / (1024**3)
             if hint_low and desc.strip().lower() == hint_low:
                 exact_match_gb = gb
                 break
@@ -105,14 +127,22 @@ def detect_gpu() -> dict:
     try:
         proc = subprocess.run(
             ["nvidia-smi"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if proc.returncode == 0 and proc.stdout:
             out = proc.stdout
             result["vendor"] = "nvidia"
 
             for line in out.splitlines():
-                if "NVIDIA" in line and ("GeForce" in line or "RTX" in line or "GTX" in line or "Quadro" in line or "Tesla" in line):
+                if "NVIDIA" in line and (
+                    "GeForce" in line
+                    or "RTX" in line
+                    or "GTX" in line
+                    or "Quadro" in line
+                    or "Tesla" in line
+                ):
                     parts = [p.strip() for p in line.split("|") if p.strip()]
                     if len(parts) >= 2:
                         result["name"] = parts[1].split("  ")[0].strip()
@@ -121,7 +151,9 @@ def detect_gpu() -> dict:
             for line in out.splitlines():
                 if "CUDA Version" in line:
                     try:
-                        result["cuda_version"] = line.split("CUDA Version:")[1].strip().split()[0].rstrip("|").strip()
+                        result["cuda_version"] = (
+                            line.split("CUDA Version:")[1].strip().split()[0].rstrip("|").strip()
+                        )
                     except Exception:
                         pass
                     break
@@ -129,7 +161,9 @@ def detect_gpu() -> dict:
             try:
                 vram_proc = subprocess.run(
                     ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 if vram_proc.returncode == 0 and vram_proc.stdout.strip():
                     vram_mb = float(vram_proc.stdout.strip().splitlines()[0].strip())
@@ -146,9 +180,15 @@ def detect_gpu() -> dict:
     # AMD / Intel через WMI
     try:
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-Command",
-             "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"],
-            capture_output=True, text=True, timeout=15,
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if proc.returncode == 0 and proc.stdout:
             names = [n.strip() for n in proc.stdout.splitlines() if n.strip()]
@@ -163,13 +203,20 @@ def detect_gpu() -> dict:
                     else:
                         try:
                             ram_proc = subprocess.run(
-                                ["powershell", "-NoProfile", "-Command",
-                                 "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM" % name],
-                                capture_output=True, text=True, timeout=15,
+                                [
+                                    "powershell",
+                                    "-NoProfile",
+                                    "-Command",
+                                    "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM"
+                                    % name,
+                                ],
+                                capture_output=True,
+                                text=True,
+                                timeout=15,
                             )
                             if ram_proc.returncode == 0 and ram_proc.stdout.strip():
                                 ram_bytes = int(ram_proc.stdout.strip().splitlines()[0].strip())
-                                result["vram_gb"] = round(ram_bytes / (1024 ** 3), 2)
+                                result["vram_gb"] = round(ram_bytes / (1024**3), 2)
                         except Exception:
                             pass
                     return result
@@ -182,13 +229,20 @@ def detect_gpu() -> dict:
                     else:
                         try:
                             ram_proc = subprocess.run(
-                                ["powershell", "-NoProfile", "-Command",
-                                 "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM" % name],
-                                capture_output=True, text=True, timeout=15,
+                                [
+                                    "powershell",
+                                    "-NoProfile",
+                                    "-Command",
+                                    "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM"
+                                    % name,
+                                ],
+                                capture_output=True,
+                                text=True,
+                                timeout=15,
                             )
                             if ram_proc.returncode == 0 and ram_proc.stdout.strip():
                                 ram_bytes = int(ram_proc.stdout.strip().splitlines()[0].strip())
-                                result["vram_gb"] = round(ram_bytes / (1024 ** 3), 2)
+                                result["vram_gb"] = round(ram_bytes / (1024**3), 2)
                         except Exception:
                             pass
                     return result

@@ -22,7 +22,11 @@ def setup(root, use_gpt):
 
 def toggle_chat_panel():
     chat_window.open_chat_window()
+
+
 def append_chat_message(role, message):
     chat_window.append_chat_message(role, message)
+
+
 def set_chat_status(message):
     chat_window.set_chat_status(message)

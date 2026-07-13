@@ -17,6 +17,7 @@ def engine():
 
 # ───────────────────────── базовые паузы по пунктуации ─────────────────────────
 
+
 def test_period_gives_medium_pause(engine):
     assert engine.get_pause_ms("Короткая фраза.") == engine.base_medium
 
@@ -46,6 +47,7 @@ def test_empty_chunk_gives_short_pause(engine):
 
 # ───────────────────────── пункты списка ─────────────────────────
 
+
 def test_list_item_gets_dedicated_long_pause(engine):
     assert engine.get_pause_ms("1. Пункт списка отдельный") == engine.list_item_pause
 
@@ -57,6 +59,7 @@ def test_pause_before_upcoming_list_item_is_also_long(engine):
 
 
 # ───────────────────────── модификатор длины и клэмп ─────────────────────────
+
 
 def test_long_chunk_gets_extra_pause_from_length_modifier(engine):
     short_pause = engine.get_pause_ms("Раз два три.")
@@ -74,6 +77,7 @@ def test_pause_is_always_clamped_between_50_and_450(engine):
 
 
 # ───────────────────────── детекция эмоции ─────────────────────────
+
 
 def test_detect_emotion_excited(engine):
     assert engine.detect_emotion("Это было потрясающе!") == "excited"

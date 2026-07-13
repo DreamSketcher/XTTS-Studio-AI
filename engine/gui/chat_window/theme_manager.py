@@ -30,8 +30,9 @@ DEFAULT_THEME = {
         "padding_inner": 5,
         "item_spacing": 8,
     },
-    "layout": "classic"
+    "layout": "classic",
 }
+
 
 def load_theme() -> dict:
     if not os.path.exists(THEME_FILE):
@@ -49,6 +50,7 @@ def load_theme() -> dict:
             return merged
     except Exception:
         return DEFAULT_THEME
+
 
 def save_theme(theme_data: dict):
     try:

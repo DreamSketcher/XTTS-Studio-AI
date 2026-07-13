@@ -20,8 +20,10 @@ from engine.gui.widgets import CompatCTkFrame
 # Делегируем в theme_manager, единственный источник истины
 try:
     from . import theme_manager
+
     def get_layout_preset(name: str | None = None) -> dict:
         return theme_manager.get_layout_preset(name)
+
 except Exception:
     # Fallback, если theme_manager ещё не готов
     def get_layout_preset(name=None):
@@ -33,6 +35,7 @@ except Exception:
             "toggle_strip_width": 22,
             "right_panel_left_pad": 8,
         }
+
 
 _SETTINGS_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -122,8 +125,7 @@ def toggle_left_panel(event=None):
                     pass
                 left_panel.pack(side="right", fill="y", padx=(gutter, 0))
             else:
-                left_panel.pack(side="left", fill="y", padx=(0, gutter),
-                                before=toggle_strip)
+                left_panel.pack(side="left", fill="y", padx=(0, gutter), before=toggle_strip)
             _update_toggle_arrow()
         _left_visible = not _left_visible
         _save_panel_state()
@@ -153,7 +155,7 @@ def _update_toggle_arrow():
         else:
             arrow = "◀" if _left_visible else "▶"
         # пробуем оба варианта виджета: CTkButton и tk.Label
-        if '_toggle_btn' in globals() and _toggle_btn is not None:
+        if "_toggle_btn" in globals() and _toggle_btn is not None:
             try:
                 _toggle_btn.configure(text=arrow)
                 return
@@ -250,7 +252,13 @@ def build_layout(root, preset: dict | None = None, sidebar_side: str | None = No
     main_container.pack(fill="both", expand=True, padx=padding_main_x, pady=padding_main_y)
 
     # ── Создаём виджеты БЕЗ pack — pack сделает apply_sidebar_side ──
-    left_panel = CompatCTkFrame(main_container, fg_color="transparent", bg="transparent", width=left_panel_width, corner_radius=0)
+    left_panel = CompatCTkFrame(
+        main_container,
+        fg_color="transparent",
+        bg="transparent",
+        width=left_panel_width,
+        corner_radius=0,
+    )
     left_panel.pack_propagate(False)
 
     # ── Полоса-переключатель (обновлённый UI: аккуратная округлая кнопка) ──
@@ -259,8 +267,13 @@ def build_layout(root, preset: dict | None = None, sidebar_side: str | None = No
     # Это централизует визуально переключатель и делает отступы симметричными.
     # PATCH 2026-07-09 rev2: уменьшена ширина кнопки по просьбе пользователя
     toggle_strip_width = max(16, preset.get("toggle_strip_width", 16))
-    toggle_strip = CompatCTkFrame(main_container, fg_color="transparent", bg="transparent",
-                                  width=toggle_strip_width, corner_radius=0)
+    toggle_strip = CompatCTkFrame(
+        main_container,
+        fg_color="transparent",
+        bg="transparent",
+        width=toggle_strip_width,
+        corner_radius=0,
+    )
     toggle_strip.pack_propagate(False)
 
     # Попробуем CTkButton (закруглённый), fallback → tk.Label
@@ -268,6 +281,7 @@ def build_layout(root, preset: dict | None = None, sidebar_side: str | None = No
     _toggle_arrow = None
     try:
         import customtkinter as ctk
+
         # Уменьшенная ширина: 18px вместо 26px, высота 44px вместо 56px
         _toggle_btn = ctk.CTkButton(
             toggle_strip,
@@ -281,29 +295,45 @@ def build_layout(root, preset: dict | None = None, sidebar_side: str | None = No
             border_width=1,
             border_color=Colors.BORDER,
             font=ctk.CTkFont(family="Segoe UI", size=scaled_font_size(10), weight="bold"),
-            command=toggle_left_panel
+            command=toggle_left_panel,
         )
         _toggle_btn.place(relx=0.5, rely=0.5, anchor="center")
         # тултип-подсказка
         try:
             from engine.gui.tooltip import ToolTip
+
             ToolTip(_toggle_btn, "Скрыть/показать боковую панель")
         except Exception:
             pass
     except Exception:
         # fallback: старый tk.Label
         _toggle_arrow = tk.Label(
-            toggle_strip, text="◀", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-            font=("Segoe UI", scaled_font_size(13), "bold"), cursor="hand2"
+            toggle_strip,
+            text="◀",
+            bg=Colors.BG_CARD,
+            fg=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(13), "bold"),
+            cursor="hand2",
         )
         _toggle_arrow.place(relx=0.5, rely=0.5, anchor="center")
         for w in (toggle_strip, _toggle_arrow):
             w.bind("<Button-1>", toggle_left_panel)
-            w.bind("<Enter>", lambda e: (_toggle_arrow.config(fg=Colors.ACCENT),
-                                         toggle_strip.configure(fg_color=Colors.BG_HOVER) if hasattr(toggle_strip, "configure") else None))
+            w.bind(
+                "<Enter>",
+                lambda e: (
+                    _toggle_arrow.config(fg=Colors.ACCENT),
+                    (
+                        toggle_strip.configure(fg_color=Colors.BG_HOVER)
+                        if hasattr(toggle_strip, "configure")
+                        else None
+                    ),
+                ),
+            )
             w.bind("<Leave>", lambda e: (_toggle_arrow.config(fg=Colors.TEXT_MAIN)))
 
-    right_panel = CompatCTkFrame(main_container, fg_color="transparent", bg="transparent", corner_radius=0)
+    right_panel = CompatCTkFrame(
+        main_container, fg_color="transparent", bg="transparent", corner_radius=0
+    )
 
     _left_visible = True
 
@@ -398,4 +428,3 @@ def apply_layout_preset(preset: dict) -> bool:
         pass
 
     return changed
-

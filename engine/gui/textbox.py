@@ -42,6 +42,7 @@ FONT_SIZE_MIN = 9
 FONT_SIZE_MAX = 22
 font_panel = {"btn": None, "panel": None, "open": False, "scale_var": None}
 
+
 def init(**deps):
     """Внедрение зависимостей из main_window.
     Поддерживает: root, use_gpt, textbox_updated, clean_path, show_help,
@@ -52,6 +53,7 @@ def init(**deps):
     on_open_theme_settings = deps.pop("on_open_theme_settings", None)
     _layout_preset = deps.pop("layout_preset", {}) or {}
     globals().update(deps)
+
 
 def apply_layout(preset: dict) -> bool:
     """Live-применение геометрии из пресета раскладки.
@@ -70,6 +72,7 @@ def apply_layout(preset: dict) -> bool:
         pass
     return False
 
+
 def apply_text_font_size(size):
     try:
         size = max(FONT_SIZE_MIN, min(FONT_SIZE_MAX, int(round(float(size)))))
@@ -80,6 +83,7 @@ def apply_text_font_size(size):
         text_box.configure(font=("Consolas", size))
     except Exception:
         pass
+
 
 def restore_text_font_size(size):
     try:
@@ -96,18 +100,22 @@ def restore_text_font_size(size):
     except Exception:
         pass
 
+
 def save_font_size_setting(_e=None):
     try:
         from engine.gui import settings_ui as settings_ui
+
         settings_ui.save_settings()
     except Exception:
         pass
+
 
 def toggle_font_panel(event=None):
     if font_panel["open"]:
         hide_font_panel()
     else:
         show_font_panel()
+
 
 def hide_font_panel(event=None):
     panel = font_panel.get("panel")
@@ -124,6 +132,7 @@ def hide_font_panel(event=None):
         except Exception:
             pass
 
+
 def show_font_panel():
     panel = font_panel.get("panel")
     if panel is None:
@@ -138,15 +147,22 @@ def show_font_panel():
         except Exception:
             pass
 
+
 def build_font_size_control():
     btn = tk.Button(
         text_box,
         text="Aa",
         command=toggle_font_panel,
-        bg=Colors.BG_HOVER, fg=Colors.TEXT_MAIN,
-        activebackground=Colors.ACCENT, activeforeground=Colors.TEXT_MAIN,
-        relief="flat", bd=0, font=("Segoe UI", 9, "bold"),
-        padx=6, pady=4, cursor="hand2",
+        bg=Colors.BG_HOVER,
+        fg=Colors.TEXT_MAIN,
+        activebackground=Colors.ACCENT,
+        activeforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        bd=0,
+        font=("Segoe UI", 9, "bold"),
+        padx=6,
+        pady=4,
+        cursor="hand2",
     )
     btn.place(relx=1.0, rely=0.5, anchor="e", x=-6)
     ToolTip(btn, t("tip_font_size"))
@@ -162,36 +178,50 @@ def build_font_size_control():
     scale_var = tk.IntVar(value=text_font_size["v"])
     font_panel["scale_var"] = scale_var
 
-    tk.Label(panel, text="A", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", 11, "bold")).pack(pady=(6, 0))
+    tk.Label(
+        panel, text="A", bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN, font=("Segoe UI", 11, "bold")
+    ).pack(pady=(6, 0))
     scale = tk.Scale(
         panel,
         variable=scale_var,
-        from_=FONT_SIZE_MAX, to=FONT_SIZE_MIN,
-        orient="vertical", length=140, showvalue=True,
-        bg=Colors.BG_CARD, fg=Colors.ACCENT,
+        from_=FONT_SIZE_MAX,
+        to=FONT_SIZE_MIN,
+        orient="vertical",
+        length=140,
+        showvalue=True,
+        bg=Colors.BG_CARD,
+        fg=Colors.ACCENT,
         troughcolor=Colors.BG_INPUT,
-        highlightthickness=0, sliderrelief="flat", sliderlength=18,
-        font=("Consolas", 8), bd=0,
+        highlightthickness=0,
+        sliderrelief="flat",
+        sliderlength=18,
+        font=("Consolas", 8),
+        bd=0,
         command=apply_text_font_size,
     )
     scale.bind("<ButtonRelease-1>", save_font_size_setting, add="+")
     scale.pack(padx=6, pady=(0, 2))
-    tk.Label(panel, text="A", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Segoe UI", 8)).pack(pady=(0, 6))
+    tk.Label(panel, text="A", bg=Colors.BG_CARD, fg=Colors.TEXT_DIM, font=("Segoe UI", 8)).pack(
+        pady=(0, 6)
+    )
     font_panel["panel"] = panel
     font_panel["open"] = False
+
 
 def lock_textbox():
     try:
         text_box.config(state="disabled")
     except Exception:
         pass
+
+
 def unlock_textbox():
     try:
         text_box.config(state="normal")
     except Exception:
         pass
+
+
 def set_textbox_content(content: str):
     unlock_textbox()
     text_box.delete("1.0", tk.END)
@@ -200,6 +230,8 @@ def set_textbox_content(content: str):
         text_box.config(fg=Colors.TEXT_MAIN)
     else:
         show_placeholder()
+
+
 def update_textbox_normalized(text: str):
     try:
         unlock_textbox()
@@ -210,11 +242,15 @@ def update_textbox_normalized(text: str):
         textbox_updated.set()
     except Exception as e:
         print(f"[TextBox update error]: {e}")
+
+
 def clear_chunk_highlight():
     try:
         text_box.tag_remove("chunk_highlight", "1.0", tk.END)
     except Exception:
         pass
+
+
 def highlight_chunk(start, end):
     try:
         clear_chunk_highlight()
@@ -232,15 +268,16 @@ def highlight_chunk(start, end):
         end_idx = f"1.0+{end} chars"
         text_box.tag_add("chunk_highlight", start_idx, end_idx)
         text_box.tag_configure(
-            "chunk_highlight",
-            background=Colors.CHUNK_BG,
-            foreground=Colors.CHUNK_FG)
+            "chunk_highlight", background=Colors.CHUNK_BG, foreground=Colors.CHUNK_FG
+        )
         text_box.tag_raise("chunk_highlight")
         text_box.see(start_idx)
     except Exception as e:
         print(f"[Highlight error]: {e}")
 
+
 _highlight_chunk = highlight_chunk
+
 
 def highlight_chunk_by_text(chunk_raw: str):
     global highlight_pos
@@ -252,6 +289,7 @@ def highlight_chunk_by_text(chunk_raw: str):
         chunk = (chunk_raw or "").replace("[NO_PAUSE]", "").strip()
         if not chunk:
             return
+
         def make_lookup(s: str):
             norm_chars = []
             index_map = []
@@ -274,6 +312,7 @@ def highlight_chunk_by_text(chunk_raw: str):
                 norm_chars.pop()
                 index_map.pop()
             return "".join(norm_chars), index_map
+
         norm_content, index_map = make_lookup(content)
         norm_chunk, _ = make_lookup(chunk)
         if not norm_content or not norm_chunk or not index_map:
@@ -320,9 +359,7 @@ def highlight_chunk_by_text(chunk_raw: str):
         end_idx = f"1.0+{end_orig} chars"
         text_box.tag_add("chunk_highlight", start_idx, end_idx)
         text_box.tag_configure(
-            "chunk_highlight",
-            background=Colors.CHUNK_BG,
-            foreground=Colors.CHUNK_FG
+            "chunk_highlight", background=Colors.CHUNK_BG, foreground=Colors.CHUNK_FG
         )
         text_box.tag_raise("chunk_highlight")
         text_box.see(start_idx)
@@ -330,10 +367,12 @@ def highlight_chunk_by_text(chunk_raw: str):
     except Exception as e:
         print(f"[Highlight error]: {e}")
 
+
 _highlight_chunk_by_text = highlight_chunk_by_text
 
 
 PLACEHOLDER = t("placeholder")
+
 
 def show_placeholder():
     unlock_textbox()
@@ -341,14 +380,17 @@ def show_placeholder():
         text_box.insert("1.0", PLACEHOLDER)
         text_box.config(fg=Colors.TEXT_DIM)
 
+
 def hide_placeholder(event=None):
     unlock_textbox()
     if text_box.get("1.0", "end-1c") == PLACEHOLDER:
         text_box.delete("1.0", tk.END)
         text_box.config(fg=Colors.TEXT_MAIN)
 
+
 def get_textbox_content():
     return text_box.get("1.0", "end-1c").strip()
+
 
 _get_textbox_content = get_textbox_content
 
@@ -362,6 +404,7 @@ def paste_safe(event=None):
         pass
     return "break"
 
+
 def copy_text(event=None):
     try:
         if text_box.tag_ranges(tk.SEL):
@@ -371,6 +414,7 @@ def copy_text(event=None):
     except Exception:
         pass
     return "break"
+
 
 def cut_text(event=None):
     try:
@@ -383,6 +427,7 @@ def cut_text(event=None):
         pass
     return "break"
 
+
 def select_all_text(event=None):
     try:
         text_box.tag_add(tk.SEL, "1.0", tk.END)
@@ -391,6 +436,7 @@ def select_all_text(event=None):
     except Exception:
         pass
     return "break"
+
 
 def on_text_key_press(event):
     if event.state & 0x4:
@@ -404,6 +450,7 @@ def on_text_key_press(event):
             return paste_safe(event)
     return None
 
+
 def load_txt():
     hide_placeholder()
     path = filedialog.askopenfilename(filetypes=[("TXT", "*.txt")])
@@ -416,34 +463,53 @@ def load_txt():
             write_log(traceback.format_exc())
             messagebox.showerror("❌", t("dlg_error_open_file"))
 
+
 def show_text_context_menu(event):
     hide_placeholder()
     menu = tk.Menu(
-        root, tearoff=0,
-        bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-        activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
-        relief="flat", borderwidth=1
+        root,
+        tearoff=0,
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_MAIN,
+        activebackground=Colors.BG_HOVER,
+        activeforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        borderwidth=1,
     )
-    menu.add_command(label=t("ctx_copy"), command=lambda: (
-        root.clipboard_clear(),
-        root.clipboard_append(text_box.get(tk.SEL_FIRST, tk.SEL_LAST))
-    ) if text_box.tag_ranges(tk.SEL) else None)
+    menu.add_command(
+        label=t("ctx_copy"),
+        command=lambda: (
+            (root.clipboard_clear(), root.clipboard_append(text_box.get(tk.SEL_FIRST, tk.SEL_LAST)))
+            if text_box.tag_ranges(tk.SEL)
+            else None
+        ),
+    )
     menu.add_command(label=t("ctx_paste"), command=paste_safe)
-    menu.add_command(label=t("ctx_cut"), command=lambda: (
-        root.clipboard_clear(),
-        root.clipboard_append(text_box.get(tk.SEL_FIRST, tk.SEL_LAST)),
-        text_box.delete(tk.SEL_FIRST, tk.SEL_LAST)
-    ) if text_box.tag_ranges(tk.SEL) else None)
+    menu.add_command(
+        label=t("ctx_cut"),
+        command=lambda: (
+            (
+                root.clipboard_clear(),
+                root.clipboard_append(text_box.get(tk.SEL_FIRST, tk.SEL_LAST)),
+                text_box.delete(tk.SEL_FIRST, tk.SEL_LAST),
+            )
+            if text_box.tag_ranges(tk.SEL)
+            else None
+        ),
+    )
     menu.add_separator()
-    menu.add_command(label=t("ctx_select_all"), command=lambda: text_box.tag_add(tk.SEL, "1.0", tk.END))
-    menu.add_command(label=t("ctx_clear"), command=lambda: (
-        text_box.delete("1.0", tk.END),
-        text_box.config(fg=Colors.TEXT_MAIN)
-    ))
+    menu.add_command(
+        label=t("ctx_select_all"), command=lambda: text_box.tag_add(tk.SEL, "1.0", tk.END)
+    )
+    menu.add_command(
+        label=t("ctx_clear"),
+        command=lambda: (text_box.delete("1.0", tk.END), text_box.config(fg=Colors.TEXT_MAIN)),
+    )
     try:
         menu.tk_popup(event.x_root, event.y_root)
     finally:
         menu.grab_release()
+
 
 def paste_clipboard():
     hide_placeholder()
@@ -452,6 +518,7 @@ def paste_clipboard():
         text_box.config(fg=Colors.TEXT_MAIN)
     except Exception:
         messagebox.showwarning("⚠", t("dlg_clipboard_empty"))
+
 
 def drop_handler(event):
     hide_placeholder()
@@ -465,13 +532,16 @@ def drop_handler(event):
             write_log(traceback.format_exc())
             messagebox.showerror("❌", t("dlg_error_open_file"))
 
+
 def _open_theme_customizer_fallback():
     """Fallback, если on_open_theme_settings не передан из main_window"""
     try:
         from engine.gui.chat_window.theme_settings import open_theme_customizer
+
         open_theme_customizer(root)
     except Exception:
         pass
+
 
 def build_text_card(right_panel):
     global text_card, text_header, text_box, gpt_checkbox
@@ -485,19 +555,27 @@ def build_text_card(right_panel):
         bg=Colors.BG_CARD,
         fg=Colors.TEXT_MAIN,
         font=("Segoe UI", 11, "bold"),
-        anchor="w"
+        anchor="w",
     ).pack(side="left")
     create_button(text_header, t("btn_help"), show_help, bg=Colors.BG_INPUT).pack(side="right")
     from engine.gui import header_panel as header_panel
-    ui_lang_btn = create_button(text_header, "RU/EN", header_panel.switch_ui_lang,
-                                bg=Colors.BG_INPUT, width=50)
+
+    ui_lang_btn = create_button(
+        text_header, "RU/EN", header_panel.switch_ui_lang, bg=Colors.BG_INPUT, width=50
+    )
     ui_lang_btn.pack(side="right", padx=(0, 6))
     ToolTip(ui_lang_btn, "Switch UI language / Переключить язык интерфейса")
     from engine.gui import theme as _theme
 
     # --- Theme button: click = toggle, long-press / double-click / right-click = open settings ---
     # Robust version: works with both tk.Button and CTkButton / custom create_button
-    _theme_btn_state = {"long_timer": None, "long_fired": False, "suppress_click": False, "press_x": 0, "press_y": 0}
+    _theme_btn_state = {
+        "long_timer": None,
+        "long_fired": False,
+        "suppress_click": False,
+        "press_x": 0,
+        "press_y": 0,
+    }
 
     def _do_toggle_theme():
         """Переключение темы"""
@@ -510,11 +588,13 @@ def build_text_card(right_panel):
                 pass
             try:
                 from engine.gui import chat_window as _cw
+
                 _cw.reapply_language()
             except Exception:
                 pass
             try:
                 from engine.gui import statusbar as _sb
+
                 _sb.set_status(t("theme_title"))
             except Exception:
                 pass
@@ -553,6 +633,7 @@ def build_text_card(right_panel):
         # 2. Fallback — напрямую
         try:
             from engine.gui.chat_window.theme_settings import open_theme_customizer
+
             open_theme_customizer(root)
             return True
         except Exception:
@@ -566,6 +647,7 @@ def build_text_card(right_panel):
         """Обработчик штатного клика кнопки (command=)"""
         # Если только что был long-press — подавляем toggle
         import time
+
         now = time.time()
         if _theme_btn_state.get("long_fired_time", 0) > now - 0.5:
             return
@@ -581,11 +663,13 @@ def build_text_card(right_panel):
             _theme_btn_state["press_y"] = event.y_root if event else 0
         except Exception:
             pass
+
         def _fire():
             _theme_btn_state["long_timer"] = None
             _theme_btn_state["long_pressed"] = True
             _theme_btn_state["long_fired"] = True
             import time
+
             _theme_btn_state["long_fired_time"] = time.time()
             _theme_btn_state["suppress_click"] = True
             # визуальный фидбек
@@ -600,6 +684,7 @@ def build_text_card(right_panel):
             except Exception:
                 pass
             _open_theme_settings_action("long-press")
+
         # отменяем старый таймер
         if _theme_btn_state["long_timer"] is not None:
             try:
@@ -623,8 +708,6 @@ def build_text_card(right_panel):
             return
         try:
             dx = abs(event.x_root - _theme_btn_state["press_x"])
-            dy = abs(event.y_root - _theme_press_state["press_y"]) if "press_y" in _theme_btn_state else 0
-            # исправление опечатки — используем правильное имя словаря
             dy = abs(event.y_root - _theme_btn_state.get("press_y", event.y_root))
             if dx > 25 or dy > 25:
                 _long_press_cancel()
@@ -636,7 +719,9 @@ def build_text_card(right_panel):
         text_header,
         "☀" if _theme.get_theme() == "dark" else "🌙",
         _theme_click_handler,
-        bg=Colors.BG_INPUT, width=34)
+        bg=Colors.BG_INPUT,
+        width=34,
+    )
     theme_btn.pack(side="right", padx=(0, 6))
 
     # Рекурсивная привязка long-press ко всем вложенным виджетам (нужно для CTkButton)
@@ -663,7 +748,9 @@ def build_text_card(right_panel):
         _bind_recursive(theme_btn, seq, fn)
 
     # ToolTip — явно указываем все способы открытия
-    tip_text = "Клик — смена темы | Удерживайте 0,8с / двойной клик / ПКМ — настройки темы и раскладки"
+    tip_text = (
+        "Клик — смена темы | Удерживайте 0,8с / двойной клик / ПКМ — настройки темы и раскладки"
+    )
     try:
         i18n_tip = t("theme_tooltip_advanced")
         if i18n_tip and i18n_tip != "theme_tooltip_advanced":
@@ -693,16 +780,23 @@ def build_text_card(right_panel):
     # Небольшая задержка (1.5с после построения интерфейса), чтобы окно
     # успело отрисоваться и подсказка не «прыгала» поверх недостроенного UI.
     root.after(1500, _show_layout_hint_once)
-    
+
     # Геометрия textbox из пресета раскладки
     _padx = _layout_preset.get("textbox_padx", 10)
     _pady = _layout_preset.get("textbox_pady", 7)
 
     text_box = tk.Text(
         text_card,
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN, insertbackground=Colors.TEXT_MAIN,
-        relief="flat", highlightthickness=0, font=("Consolas", text_font_size["v"]),
-        padx=10, pady=10, wrap="word", undo=True
+        bg=Colors.BG_INPUT,
+        fg=Colors.TEXT_MAIN,
+        insertbackground=Colors.TEXT_MAIN,
+        relief="flat",
+        highlightthickness=0,
+        font=("Consolas", text_font_size["v"]),
+        padx=10,
+        pady=10,
+        wrap="word",
+        undo=True,
     )
     text_box.pack(fill="both", expand=True, padx=_padx, pady=_pady)
     build_font_size_control()
@@ -724,5 +818,7 @@ def build_text_card(right_panel):
     text_box.dnd_bind("<<Drop>>", drop_handler)
     text_box.bind("<Button-3>", show_text_context_menu)
     text_box.bind("<Key>", on_text_key_press, add="+")
-    text_box.tag_configure("chunk_highlight", background=Colors.CHUNK_BG, foreground=Colors.CHUNK_FG)
+    text_box.tag_configure(
+        "chunk_highlight", background=Colors.CHUNK_BG, foreground=Colors.CHUNK_FG
+    )
     show_placeholder()

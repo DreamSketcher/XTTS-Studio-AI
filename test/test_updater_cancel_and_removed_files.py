@@ -32,6 +32,7 @@ from engine import updater
 
 class FakeResponse(io.BytesIO):
     """Имитирует объект, который возвращает urllib.request.urlopen()."""
+
     def __enter__(self):
         return self
 
@@ -69,23 +70,29 @@ def _mock_urlopen(contents_by_relpath: dict, remote_version_info: dict, monkeypa
             if url.endswith(relpath.replace(" ", "%20")) or url.endswith(relpath):
                 return FakeResponse(content)
         raise RuntimeError(f"Неожиданный URL в тесте: {url}")
+
     monkeypatch.setattr(updater, "_urlopen_with_retry", fake)
 
 
 # ───────────────────────── cancelled_flag: базовый формат ─────────────────────────
 
-@pytest.mark.parametrize("flag_before, flag_after, expected", [
-    ({"cancelled": False}, None, False),
-    ({"cancelled": True}, None, True),
-    ([False], None, False),
-    ([True], None, True),
-    (None, None, False),
-])
+
+@pytest.mark.parametrize(
+    "flag_before, flag_after, expected",
+    [
+        ({"cancelled": False}, None, False),
+        ({"cancelled": True}, None, True),
+        ([False], None, False),
+        ([True], None, True),
+        (None, None, False),
+    ],
+)
 def test_is_cancelled_supports_dict_and_list_formats(flag_before, flag_after, expected):
     assert updater._is_cancelled(flag_before) is expected
 
 
 # ───────────────────────── отмена во время скачивания ─────────────────────────
+
 
 def test_apply_update_cancelled_before_any_file_touches_nothing(isolated_project, monkeypatch):
     (isolated_project / "a.txt").write_bytes(b"OLD CONTENT")
@@ -126,14 +133,18 @@ def test_apply_update_cancelled_mid_download_between_files(isolated_project, mon
             cancelled_flag["cancelled"] = True  # отменяем сразу после первого файла
 
     ok = updater.apply_update(
-        files, sha256_map=sha256_map, cancelled_flag=cancelled_flag,
+        files,
+        sha256_map=sha256_map,
+        cancelled_flag=cancelled_flag,
         progress_callback=progress_cb,
     )
 
     assert ok is False
     assert (isolated_project / "a.txt").read_bytes() == b"OLD A"
     assert (isolated_project / "b.txt").read_bytes() == b"OLD B"
-    assert not os.path.isdir(updater.STAGING_DIR), "весь staging должен быть вычищен, включая уже скачанный a.txt"
+    assert not os.path.isdir(
+        updater.STAGING_DIR
+    ), "весь staging должен быть вычищен, включая уже скачанный a.txt"
     assert not os.path.isdir(updater.BACKUP_DIR)
     assert not os.path.exists(updater.ROLLBACK_MARKER)
 
@@ -163,14 +174,20 @@ def test_apply_update_cancelled_mid_chunk_download(isolated_project, monkeypatch
     monkeypatch.setattr(FakeResponse, "read", counting_read)
 
     with pytest.raises(InterruptedError):
-        updater._download_to_staging("big.bin", sha256_map["big.bin"], cancelled_flag=cancelled_flag)
+        updater._download_to_staging(
+            "big.bin", sha256_map["big.bin"], cancelled_flag=cancelled_flag
+        )
 
     staged_path = os.path.join(updater.STAGING_DIR, "big.bin")
     assert not os.path.exists(staged_path)
-    assert not os.path.exists(staged_path + ".part"), "частично скачанный .part должен удаляться при отмене"
+    assert not os.path.exists(
+        staged_path + ".part"
+    ), "частично скачанный .part должен удаляться при отмене"
 
 
-def test_cancellation_via_progress_callback_on_last_file_is_still_honored(isolated_project, monkeypatch):
+def test_cancellation_via_progress_callback_on_last_file_is_still_honored(
+    isolated_project, monkeypatch
+):
     """apply_update делает финальную проверку cancelled_flag ПОСЛЕ того как
     все файлы скачаны/проверены, но ДО начала backup+подмены — то есть
     отмена, выставленная даже в progress_callback последнего файла, всё
@@ -189,7 +206,9 @@ def test_cancellation_via_progress_callback_on_last_file_is_still_honored(isolat
         cancelled_flag["cancelled"] = True
 
     ok = updater.apply_update(
-        files, sha256_map=sha256_map, cancelled_flag=cancelled_flag,
+        files,
+        sha256_map=sha256_map,
+        cancelled_flag=cancelled_flag,
         progress_callback=progress_cb,
     )
 
@@ -199,7 +218,9 @@ def test_cancellation_via_progress_callback_on_last_file_is_still_honored(isolat
     assert not os.path.isdir(updater.BACKUP_DIR), "backup не должен был начаться"
 
 
-def test_cancellation_ignored_once_backup_and_swap_have_actually_started(isolated_project, monkeypatch):
+def test_cancellation_ignored_once_backup_and_swap_have_actually_started(
+    isolated_project, monkeypatch
+):
     """Настоящая точка невозврата — это момент, когда _backup_current_files
     уже начал выполняться. Если флаг отмены выставляется КАК ПОБОЧНЫЙ ЭФФЕКТ
     самого шага подмены (т.е. уже после финальной проверки), апдейт должен
@@ -226,12 +247,17 @@ def test_cancellation_ignored_once_backup_and_swap_have_actually_started(isolate
 
     ok = updater.apply_update(files, sha256_map=sha256_map, cancelled_flag=cancelled_flag)
 
-    assert ok is True, "отмена, поступившая во время подмены файлов, не должна прерывать/портить обновление"
+    assert (
+        ok is True
+    ), "отмена, поступившая во время подмены файлов, не должна прерывать/портить обновление"
     assert (isolated_project / "a.txt").read_bytes() == content_a
-    assert os.path.exists(updater.ROLLBACK_MARKER), "обновление должно было завершиться нормально, с маркером отката"
+    assert os.path.exists(
+        updater.ROLLBACK_MARKER
+    ), "обновление должно было завершиться нормально, с маркером отката"
 
 
 # ───────────────────────── removed_files: удаление устаревших файлов ─────────────────────────
+
 
 def test_apply_update_deletes_removed_files(isolated_project, monkeypatch):
     (isolated_project / "old_module.py").write_bytes(b"legacy code content")
@@ -240,7 +266,12 @@ def test_apply_update_deletes_removed_files(isolated_project, monkeypatch):
     files = ["a.txt"]
     removed = ["old_module.py"]
     sha256_map = {"a.txt": _sha256(content_a)}
-    remote_info = {"version": "1.0.1", "files": files, "sha256": sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
     ok = updater.apply_update(files, sha256_map=sha256_map, removed_files=removed)
@@ -259,7 +290,12 @@ def test_apply_update_removes_now_empty_directories(isolated_project, monkeypatc
     files = ["a.txt"]
     removed = ["engine/old_package/legacy.py"]
     sha256_map = {"a.txt": _sha256(content_a)}
-    remote_info = {"version": "1.0.1", "files": files, "sha256": sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
     ok = updater.apply_update(files, sha256_map=sha256_map, removed_files=removed)
@@ -283,10 +319,16 @@ def test_apply_update_keeps_directory_if_other_files_remain(isolated_project, mo
         "a.txt": _sha256(content_a),
         "engine/mixed_package/still_used.py": _sha256(b"still used content"),
     }
-    remote_info = {"version": "1.0.1", "files": files, "sha256": sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen(
         {"a.txt": content_a, "engine/mixed_package/still_used.py": b"still used content"},
-        remote_info, monkeypatch,
+        remote_info,
+        monkeypatch,
     )
 
     ok = updater.apply_update(files, sha256_map=sha256_map, removed_files=removed)
@@ -307,16 +349,24 @@ def test_apply_update_bad_checksum_does_not_delete_removed_files(isolated_projec
     files = ["a.txt"]
     removed = ["old_module.py"]
     wrong_sha256_map = {"a.txt": "0" * 64}
-    remote_info = {"version": "1.0.1", "files": files, "sha256": wrong_sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": wrong_sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
     ok = updater.apply_update(files, sha256_map=wrong_sha256_map, removed_files=removed)
 
     assert ok is False
-    assert (isolated_project / "old_module.py").exists(), "устаревший файл НЕ должен удаляться при провале обновления"
+    assert (
+        isolated_project / "old_module.py"
+    ).exists(), "устаревший файл НЕ должен удаляться при провале обновления"
 
 
 # ───────────────────────── removed_files: откат восстанавливает удалённое ─────────────────────────
+
 
 def test_rollback_restores_deleted_removed_file(isolated_project, monkeypatch):
     (isolated_project / "old_module.py").write_bytes(b"legacy code content")
@@ -325,7 +375,12 @@ def test_rollback_restores_deleted_removed_file(isolated_project, monkeypatch):
     files = ["a.txt"]
     removed = ["old_module.py"]
     sha256_map = {"a.txt": _sha256(content_a)}
-    remote_info = {"version": "1.0.1", "files": files, "sha256": sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
     assert updater.apply_update(files, sha256_map=sha256_map, removed_files=removed) is True
@@ -334,8 +389,11 @@ def test_rollback_restores_deleted_removed_file(isolated_project, monkeypatch):
     ok = updater.rollback_update()
 
     assert ok is True
-    assert (isolated_project / "old_module.py").read_bytes() == b"legacy code content", \
+    assert (
+        isolated_project / "old_module.py"
+    ).read_bytes() == b"legacy code content", (
         "откат должен вернуть удалённый устаревший файл обратно"
+    )
 
 
 def test_confirm_update_success_after_removed_files_clears_backup(isolated_project, monkeypatch):
@@ -345,7 +403,12 @@ def test_confirm_update_success_after_removed_files_clears_backup(isolated_proje
     files = ["a.txt"]
     removed = ["old_module.py"]
     sha256_map = {"a.txt": _sha256(content_a)}
-    remote_info = {"version": "1.0.1", "files": files, "sha256": sha256_map, "removed_files": removed}
+    remote_info = {
+        "version": "1.0.1",
+        "files": files,
+        "sha256": sha256_map,
+        "removed_files": removed,
+    }
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
     assert updater.apply_update(files, sha256_map=sha256_map, removed_files=removed) is True
@@ -353,4 +416,6 @@ def test_confirm_update_success_after_removed_files_clears_backup(isolated_proje
 
     assert not os.path.exists(updater.ROLLBACK_MARKER)
     assert not os.path.isdir(updater.BACKUP_DIR)
-    assert not (isolated_project / "old_module.py").exists(), "после подтверждения устаревший файл остаётся удалённым"
+    assert not (
+        isolated_project / "old_module.py"
+    ).exists(), "после подтверждения устаревший файл остаётся удалённым"

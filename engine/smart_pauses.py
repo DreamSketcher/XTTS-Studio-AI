@@ -5,9 +5,9 @@ from engine.text_utils import is_list_item as _is_list_item
 
 class SmartPauseEngine:
     def __init__(self):
-        self.base_short    = 70
-        self.base_medium   = 140
-        self.base_long     = 220
+        self.base_short = 70
+        self.base_medium = 140
+        self.base_long = 220
         self.base_dramatic = 420
 
         # #3: пауза между пунктами перечисления — длиннее стандартной,
@@ -23,7 +23,7 @@ class SmartPauseEngine:
         if _is_list_item(chunk) or (next_chunk and _is_list_item(next_chunk.strip())):
             return self.list_item_pause
 
-        words = re.findall(r'\w+', chunk)
+        words = re.findall(r"\w+", chunk)
         word_count = len(words)
 
         last_char = chunk[-1] if chunk else ""
@@ -66,15 +66,27 @@ class SmartPauseEngine:
         chunk_lower = chunk.lower()
 
         excited_words = [
-            "wow", "amazing", "incredible",
-            "потрясающе", "невероятно", "отлично",
-            "класс", "супер", "блестяще"
+            "wow",
+            "amazing",
+            "incredible",
+            "потрясающе",
+            "невероятно",
+            "отлично",
+            "класс",
+            "супер",
+            "блестяще",
         ]
 
         uncertain_words = [
-            "maybe", "perhaps", "not sure",
-            "может", "наверное", "возможно",
-            "не уверен", "пожалуй", "вроде"
+            "maybe",
+            "perhaps",
+            "not sure",
+            "может",
+            "наверное",
+            "возможно",
+            "не уверен",
+            "пожалуй",
+            "вроде",
         ]
 
         if any(w in chunk_lower for w in excited_words):

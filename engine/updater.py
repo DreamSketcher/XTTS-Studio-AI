@@ -11,6 +11,7 @@ from pathlib import Path
 
 try:
     import certifi
+
     _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 except ImportError:
     _SSL_CONTEXT = None  # если certifi не установлен — используем системное по умолчанию
@@ -40,6 +41,7 @@ def _raw_base_for(commit_sha: str = None) -> str:
     if commit_sha:
         return f"https://raw.githubusercontent.com/{REPO}/{commit_sha}"
     return BRANCH_RAW_BASE
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCAL_VERSION_PATH = os.path.join(BASE_DIR, "version.json")
@@ -78,7 +80,9 @@ def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETR
         except Exception as e:
             last_err = e
             if attempt < max_retries:
-                print(f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. Повтор через {RETRY_DELAY_SEC * attempt:.1f}с...")
+                print(
+                    f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. Повтор через {RETRY_DELAY_SEC * attempt:.1f}с..."
+                )
                 time.sleep(RETRY_DELAY_SEC * attempt)
             else:
                 print(f"[Updater] Все {max_retries} попыток не удались для {url}: {e}")
@@ -140,11 +144,13 @@ def _sha256_of_file(path: str) -> str:
 
 def _version_gt(a: str, b: str) -> bool:
     """Возвращает True если версия a новее b."""
+
     def parse(v):
         try:
             return tuple(int(x) for x in v.strip().split("."))
         except Exception:
             return (0, 0, 0)
+
     return parse(a) > parse(b)
 
 
@@ -207,9 +213,14 @@ def _is_cancelled(cancelled_flag) -> bool:
     return False
 
 
-def _download_to_staging(relative_path: str, expected_sha256: str = None, cancelled_flag=None,
-                          raw_base: str = None, sha_mismatch_retries: int = 3,
-                          sha_mismatch_delay: float = 4.0) -> bool:
+def _download_to_staging(
+    relative_path: str,
+    expected_sha256: str = None,
+    cancelled_flag=None,
+    raw_base: str = None,
+    sha_mismatch_retries: int = 3,
+    sha_mismatch_delay: float = 4.0,
+) -> bool:
     """
     Скачивает файл во временный staging (НЕ в рабочую директорию) и
     проверяет его SHA256 перед тем как считать файл готовым к применению.
@@ -258,9 +269,11 @@ def _download_to_staging(relative_path: str, expected_sha256: str = None, cancel
 
             actual = _sha256_of_file(tmp)
             if actual.lower() != expected_sha256.lower():
-                print(f"[Updater] SHA256 не совпадает для {relative_path} "
-                      f"(попытка {attempt}/{sha_mismatch_retries + 1}): "
-                      f"ожидалось {expected_sha256}, получено {actual}")
+                print(
+                    f"[Updater] SHA256 не совпадает для {relative_path} "
+                    f"(попытка {attempt}/{sha_mismatch_retries + 1}): "
+                    f"ожидалось {expected_sha256}, получено {actual}"
+                )
                 try:
                     os.remove(tmp)
                 except Exception:
@@ -315,7 +328,9 @@ def _delete_removed_files(removed_files: list):
             print(f"[Updater] Не удалось удалить устаревший файл {rel}: {e}")
 
     # Подчищаем опустевшие после удаления директории (best-effort)
-    dirs = {os.path.dirname(os.path.join(BASE_DIR, rel.replace("/", os.sep))) for rel in removed_files}
+    dirs = {
+        os.path.dirname(os.path.join(BASE_DIR, rel.replace("/", os.sep))) for rel in removed_files
+    }
     for d in sorted(dirs, key=len, reverse=True):  # сначала самые глубокие
         try:
             if os.path.isdir(d) and not os.listdir(d):
@@ -351,7 +366,9 @@ def _move_staged_to_live(files: list):
         shutil.move(staged, live)
 
 
-def _write_rollback_marker(old_version: str, new_version: str, files: list, removed_files: list = None):
+def _write_rollback_marker(
+    old_version: str, new_version: str, files: list, removed_files: list = None
+):
     data = {
         "old_version": old_version,
         "new_version": new_version,
@@ -364,8 +381,16 @@ def _write_rollback_marker(old_version: str, new_version: str, files: list, remo
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def apply_update(files: list, sha256_map: dict = None, removed_files: list = None,
-                  progress_callback=None, cancelled_flag=None, commit_sha: str = None) -> bool:
+def apply_update(
+    files: list,
+    sha256_map: dict = None,
+    removed_files: list = None,
+    progress_callback=None,
+    cancelled_flag=None,
+    commit_sha: str = None,
+    sha_mismatch_retries: int = 3,
+    sha_mismatch_delay: float = 4.0,
+) -> bool:
     """
     Безопасный цикл обновления:
       1. скачать ВСЕ файлы в staging, не трогая рабочую копию
@@ -407,7 +432,14 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
         if _is_cancelled(cancelled_flag):
             return _cancel_cleanup()
         try:
-            ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag, raw_base=raw_base)
+            ok = _download_to_staging(
+                f,
+                sha256_map.get(f),
+                cancelled_flag=cancelled_flag,
+                raw_base=raw_base,
+                sha_mismatch_retries=sha_mismatch_retries,
+                sha_mismatch_delay=sha_mismatch_delay,
+            )
         except InterruptedError:
             return _cancel_cleanup()
         if not ok:
@@ -417,13 +449,23 @@ def apply_update(files: list, sha256_map: dict = None, removed_files: list = Non
 
     if failed and not _is_cancelled(cancelled_flag):
         print(f"[Updater] Повторная попытка для {len(failed)} файлов после паузы...")
-        time.sleep(2.0)
+        # Пауза перед повторным проходом масштабируется от sha_mismatch_delay,
+        # чтобы тесты (sha_mismatch_delay=0) не ждали реального времени.
+        if sha_mismatch_delay:
+            time.sleep(2.0)
         still_failed = []
         for f in failed:
             if _is_cancelled(cancelled_flag):
                 break
             try:
-                ok = _download_to_staging(f, sha256_map.get(f), cancelled_flag=cancelled_flag, raw_base=raw_base)
+                ok = _download_to_staging(
+                    f,
+                    sha256_map.get(f),
+                    cancelled_flag=cancelled_flag,
+                    raw_base=raw_base,
+                    sha_mismatch_retries=sha_mismatch_retries,
+                    sha_mismatch_delay=sha_mismatch_delay,
+                )
             except InterruptedError:
                 break
             if not ok:

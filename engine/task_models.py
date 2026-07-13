@@ -16,7 +16,7 @@ class Task:
 
     # 👇 ВАЖНО ДЛЯ UI
     name: Optional[str] = None
-    raw_text: str = ""   
+    raw_text: str = ""
 
     status: str = "queued"
     progress: int = 0

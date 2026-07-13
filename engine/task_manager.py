@@ -7,10 +7,10 @@ from engine.tts_runner import run_tts
 
 class TaskManager:
     def __init__(self, ui_callback=None):
-        self.q             = queue.Queue()
+        self.q = queue.Queue()
         self.current_task = None
-        self.running      = False
-        self.ui_callback  = ui_callback
+        self.running = False
+        self.ui_callback = ui_callback
 
     # =========================
     # ДОБАВИТЬ ЗАДАЧУ В ОЧЕРЕДЬ
@@ -46,7 +46,7 @@ class TaskManager:
         for task in list(self.q.queue):
             if task.id == task_id:
                 task.cancelled = True
-                task.status    = "cancelled"
+                task.status = "cancelled"
                 self._notify(task)
                 return
 
@@ -75,7 +75,7 @@ class TaskManager:
                 continue
 
             try:
-                task.status   = "running"
+                task.status = "running"
                 task.progress = 5
                 self._notify(task)
 
@@ -86,7 +86,7 @@ class TaskManager:
                     status_callback=self._make_progress_cb(task),
                     # ← передаём лямбду-проверку флага отмены
                     is_cancelled=lambda: getattr(task, "cancelled", False),
-                    speed=getattr(task, "speed", 1.0),  
+                    speed=getattr(task, "speed", 1.0),
                     language=getattr(task, "language", "auto"),
                     quality=getattr(task, "quality", "Баланс"),
                     quality_params=getattr(task, "quality_params", None),
@@ -94,16 +94,16 @@ class TaskManager:
 
                 # run_tts вернул None — значит была отмена изнутри
                 if output is None or getattr(task, "cancelled", False):
-                    task.status   = "cancelled"
+                    task.status = "cancelled"
                     task.progress = 0
                 else:
                     task.output_path = output
-                    task.status      = "done"
-                    task.progress    = 100
+                    task.status = "done"
+                    task.progress = 100
 
             except Exception:
                 task.status = "error"
-                task.error  = traceback.format_exc()
+                task.error = traceback.format_exc()
 
             self._notify(task)
             self.q.task_done()
@@ -150,13 +150,14 @@ class TaskManager:
                     task.progress = int(data["progress"])
                 if data.get("final"):
                     task.output_path = data["final"]
-                    task.status      = "done"
-                    task.progress    = 100
+                    task.status = "done"
+                    task.progress = 100
                 if data.get("stage") == "stats":
                     task.stats = data
                 self._notify(task)
 
         return callback
+
     # =========================
     # УВЕДОМЛЕНИЕ GUI
     # =========================

@@ -5,28 +5,52 @@ import engine.gui.chat_window.state as state
 from engine.gui.chat_window.custom_widgets import TkFrame, TkLabel, TkButton
 from engine.gui.chat_window.ui_utils import _make_button, _set_dark_titlebar
 from engine.gui.theme_manager import (
-    load_theme, save_theme, get_layout_preset,
-    get_custom_colors, set_custom_colors, reset_custom_colors,
-    get_font_base_size, set_font_base_size as tm_set_font_base_size,
-    get_saved_presets, save_named_preset, delete_named_preset, apply_named_preset,
-    get_sidebar_side, set_sidebar_side,
-    get_toolbar_order, set_toolbar_order,
-    TOOLBAR_PANELS, DEFAULT_TOOLBAR_ORDER,
-    get_header_rainbow, set_header_rainbow,
-    get_header_rainbow_style, set_header_rainbow_style, reset_header_rainbow_style,
-    get_header_author_rainbow, set_header_author_rainbow,
-    get_header_author_rainbow_style, set_header_author_rainbow_style,
+    load_theme,
+    save_theme,
+    get_layout_preset,
+    get_custom_colors,
+    set_custom_colors,
+    reset_custom_colors,
+    get_font_base_size,
+    set_font_base_size as tm_set_font_base_size,
+    get_saved_presets,
+    save_named_preset,
+    delete_named_preset,
+    apply_named_preset,
+    get_sidebar_side,
+    set_sidebar_side,
+    get_toolbar_order,
+    set_toolbar_order,
+    TOOLBAR_PANELS,
+    DEFAULT_TOOLBAR_ORDER,
+    get_header_rainbow,
+    set_header_rainbow,
+    get_header_rainbow_style,
+    set_header_rainbow_style,
+    reset_header_rainbow_style,
+    get_header_author_rainbow,
+    set_header_author_rainbow,
+    get_header_author_rainbow_style,
+    set_header_author_rainbow_style,
     reset_header_author_rainbow_style,
-    DEFAULT_HEADER_RAINBOW_STYLE, DEFAULT_HEADER_AUTHOR_RAINBOW_STYLE,
-    get_neon_buttons, set_neon_buttons, NEON_BUTTON_IDS,
+    DEFAULT_HEADER_RAINBOW_STYLE,
+    DEFAULT_HEADER_AUTHOR_RAINBOW_STYLE,
+    get_neon_buttons,
+    set_neon_buttons,
+    NEON_BUTTON_IDS,
 )
 from engine.gui.colors import (
-    Colors, DARK_PALETTE, LIGHT_PALETTE, apply_palette,
-    set_font_base_size as rt_set_font_base_size, scaled_font_size,
+    Colors,
+    DARK_PALETTE,
+    LIGHT_PALETTE,
+    apply_palette,
+    set_font_base_size as rt_set_font_base_size,
+    scaled_font_size,
     BASE_FONT_SIZE_DEFAULT,
 )
 from engine.gui.theme import get_theme, set_theme
 from i18n import t
+
 
 # ПРИМЕЧАНИЕ (фикс): custom_widgets.py не экспортирует функцию "_c" —
 # её здесь никогда не было (ImportError на реальной машине пользователя
@@ -276,8 +300,7 @@ THEME_UI_FALLBACKS_RU = {
         "будут удалены."
     ),
     "theme_reset_all_done": (
-        "Поля сброшены к заводским значениям.\n"
-        "Нажмите «Сохранить», чтобы применить."
+        "Поля сброшены к заводским значениям.\n" "Нажмите «Сохранить», чтобы применить."
     ),
     "theme_saved_dlg_title": "Тема",
     "theme_saved_live_applied": (
@@ -348,7 +371,10 @@ _COLOR_I18N_KEYS = {
 }
 
 _COLOR_GROUP_I18N = [
-    ("theme_group_backgrounds", ["BG_DARK", "BG_CARD", "BG_INPUT", "BG_HOVER", "BG_ACTIVE", "BG_DANGER"]),
+    (
+        "theme_group_backgrounds",
+        ["BG_DARK", "BG_CARD", "BG_INPUT", "BG_HOVER", "BG_ACTIVE", "BG_DANGER"],
+    ),
     ("theme_group_text", ["TEXT_MAIN", "TEXT_DIM", "TEXT_SUCCESS", "TEXT_WARNING", "TEXT_ERROR"]),
     ("theme_group_accent_border", ["ACCENT", "BORDER"]),
     ("theme_group_progress", ["PROGRESS_BG", "PROGRESS_FG"]),
@@ -358,8 +384,6 @@ _COLOR_GROUP_I18N = [
     ("theme_group_toolbar", ["GROUP_BG", "GROUP_FILE_BG", "GROUP_OUTPUT_BG", "GROUP_ACTION_BG"]),
     ("theme_group_gradient", ["GRADIENT_BOTTOM"]),
 ]
-
-
 
 
 # ── Singleton: не открывать несколько «Конструктор темы» подряд ──
@@ -434,8 +458,11 @@ def open_theme_customizer(parent, on_layout_changed=None):
     main.pack(fill="both", expand=True, padx=12, pady=12)
 
     TkLabel(
-        main, text=_tr("theme_custom_desc"),
-        bg=_c("BG_DARK"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 17, "bold"),
+        main,
+        text=_tr("theme_custom_desc"),
+        bg=_c("BG_DARK"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 17, "bold"),
     ).pack(anchor="w", pady=(0, 16))
 
     # Область прокрутки
@@ -622,8 +649,9 @@ def open_theme_customizer(parent, on_layout_changed=None):
     # Переменная "colors_group" (и так же ниже для остальных секций)
     # намеренно указывает на ВНУТРЕННИЙ контейнер — все дочерние виджеты
     # ниже по коду не пришлось менять.
-    colors_group_outer = TkFrame(scroll_frame, bg=_c("BG_CARD"),
-                                 highlightthickness=1, highlightbackground=_c("BORDER"))
+    colors_group_outer = TkFrame(
+        scroll_frame, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+    )
     colors_group_outer.pack(fill="x", pady=(0, 12))
     colors_group = TkFrame(colors_group_outer, bg=_c("BG_CARD"))
     colors_group.pack(fill="both", expand=True, padx=14, pady=12)
@@ -639,18 +667,29 @@ def open_theme_customizer(parent, on_layout_changed=None):
     _base_palette = DARK_PALETTE if _active_theme_name == "dark" else LIGHT_PALETTE
     _existing_custom = get_custom_colors(_active_theme_name)
 
-    _theme_display_name = _tr("theme_name_dark" if _active_theme_name == "dark" else "theme_name_light")
-    TkLabel(colors_group, text=_tr("theme_colors_section_title", _theme_display_name),
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 4))
-    TkLabel(colors_group,
-            text=_tr("theme_colors_switch_hint"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 9),
-            justify="left", anchor="w").pack(anchor="w", pady=(0, 10))
+    _theme_display_name = _tr(
+        "theme_name_dark" if _active_theme_name == "dark" else "theme_name_light"
+    )
+    TkLabel(
+        colors_group,
+        text=_tr("theme_colors_section_title", _theme_display_name),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 14, "bold"),
+    ).pack(anchor="w", pady=(0, 4))
+    TkLabel(
+        colors_group,
+        text=_tr("theme_colors_switch_hint"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 9),
+        justify="left",
+        anchor="w",
+    ).pack(anchor="w", pady=(0, 10))
 
     color_vars = {}
     color_buttons = {}  # {color_name: button} — нужно для _reset_colors_to_default(),
-                        # чтобы сброс перекрашивал сами кнопки, а не только их StringVar
+    # чтобы сброс перекрашивал сами кнопки, а не только их StringVar
 
     def pick_color(name, var, btn):
         color = colorchooser.askcolor(initialcolor=var.get())[1]
@@ -659,8 +698,14 @@ def open_theme_customizer(parent, on_layout_changed=None):
             btn.config(bg=color)
 
     for group_key, color_names in _COLOR_GROUP_I18N:
-        TkLabel(colors_group, text=_tr(group_key), bg=_c("BG_CARD"), fg=_c("ACCENT"),
-                font=("Segoe UI", 11, "bold"), anchor="w").pack(fill="x", pady=(8, 4))
+        TkLabel(
+            colors_group,
+            text=_tr(group_key),
+            bg=_c("BG_CARD"),
+            fg=_c("ACCENT"),
+            font=("Segoe UI", 11, "bold"),
+            anchor="w",
+        ).pack(fill="x", pady=(8, 4))
         for color_name in color_names:
             # Значение по умолчанию — из встроенной палитры, если
             # пользователь его не переопределял (_existing_custom).
@@ -671,13 +716,20 @@ def open_theme_customizer(parent, on_layout_changed=None):
             var = tk.StringVar(value=current_val)
             color_vars[color_name] = var
 
-            TkLabel(row, text=_color_label(color_name), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-                    font=("Segoe UI", 11), width=24, anchor="w").pack(side="left")
+            TkLabel(
+                row,
+                text=_color_label(color_name),
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_MAIN"),
+                font=("Segoe UI", 11),
+                width=24,
+                anchor="w",
+            ).pack(side="left")
 
             # Кнопка выбора цвета — сама показывает текущий выбранный цвет
-            btn = TkButton(row, text=" 🎨 ",
-                           bg=current_val, fg="white",
-                           width=5, relief="flat", cursor="hand2")
+            btn = TkButton(
+                row, text=" 🎨 ", bg=current_val, fg="white", width=5, relief="flat", cursor="hand2"
+            )
             # ИСПРАВЛЕН ПРЕДСУЩЕСТВОВАВШИЙ БАГ (был в коде ещё до этой
             # правки, просто не был заметен раньше): раньше здесь было
             # `b=btn: pick_color(n, v, btn)` — внутри тела лямбды
@@ -712,11 +764,18 @@ def open_theme_customizer(parent, on_layout_changed=None):
                 except Exception:
                     pass
 
-    TkButton(colors_group, text=_tr("theme_colors_reset_btn"),
-             command=_reset_colors_to_default,
-             bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 10), cursor="hand2", padx=10, pady=6
-             ).pack(anchor="w", pady=(10, 0))
+    TkButton(
+        colors_group,
+        text=_tr("theme_colors_reset_btn"),
+        command=_reset_colors_to_default,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 10),
+        cursor="hand2",
+        padx=10,
+        pady=6,
+    ).pack(anchor="w", pady=(10, 0))
 
     # ── Секция Типографики ──────────────────────────────────────────────
     # ИСПРАВЛЕНО: раньше здесь было поле "имя шрифта" (font_main_var) —
@@ -730,27 +789,44 @@ def open_theme_customizer(parent, on_layout_changed=None):
     # "Aa" в textbox.py, который НЕ трогаем).
     # См. пояснение про padx/pady у TkFrame выше (секция "Цветов") — тот же
     # паттерн внешний/внутренний контейнер применяется здесь.
-    fonts_group_outer = TkFrame(scroll_frame, bg=_c("BG_CARD"),
-                                highlightthickness=1, highlightbackground=_c("BORDER"))
+    fonts_group_outer = TkFrame(
+        scroll_frame, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+    )
     fonts_group_outer.pack(fill="x", pady=(0, 12))
     fonts_group = TkFrame(fonts_group_outer, bg=_c("BG_CARD"))
     fonts_group.pack(fill="both", expand=True, padx=14, pady=12)
 
-    TkLabel(fonts_group, text=_tr("theme_font_section_title"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 4))
-    TkLabel(fonts_group,
-            text=_tr("theme_font_section_desc"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 9),
-            justify="left", anchor="w").pack(anchor="w", pady=(0, 10))
+    TkLabel(
+        fonts_group,
+        text=_tr("theme_font_section_title"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 14, "bold"),
+    ).pack(anchor="w", pady=(0, 4))
+    TkLabel(
+        fonts_group,
+        text=_tr("theme_font_section_desc"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 9),
+        justify="left",
+        anchor="w",
+    ).pack(anchor="w", pady=(0, 10))
 
     font_base_size_var = tk.IntVar(value=get_font_base_size())
 
     row_fs = TkFrame(fonts_group, bg=_c("BG_CARD"))
     row_fs.pack(fill="x")
 
-    font_size_value_label = TkLabel(row_fs, text=str(font_base_size_var.get()),
-                                    bg=_c("BG_CARD"), fg=_c("ACCENT"),
-                                    font=("Segoe UI", 12, "bold"), width=3, anchor="e")
+    font_size_value_label = TkLabel(
+        row_fs,
+        text=str(font_base_size_var.get()),
+        bg=_c("BG_CARD"),
+        fg=_c("ACCENT"),
+        font=("Segoe UI", 12, "bold"),
+        width=3,
+        anchor="e",
+    )
     font_size_value_label.pack(side="right", padx=(6, 0))
 
     def _on_font_size_slider(value):
@@ -771,10 +847,16 @@ def open_theme_customizer(parent, on_layout_changed=None):
     )
 
     font_size_scale = tk.Scale(
-        row_fs, from_=6, to=24, orient="horizontal", variable=font_base_size_var,
+        row_fs,
+        from_=6,
+        to=24,
+        orient="horizontal",
+        variable=font_base_size_var,
         command=_on_font_size_slider,
-        bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), highlightthickness=0,
-        troughcolor=_c("BG_INPUT")
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        highlightthickness=0,
+        troughcolor=_c("BG_INPUT"),
     )
     font_size_scale.pack(side="left", fill="x", expand=True)
 
@@ -790,22 +872,44 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
     # ── Секция Расположения ────────────────────────────────────────────────────────
     # См. пояснение про padx/pady у TkFrame выше (секция "Цветов").
-    lay_group_outer = TkFrame(scroll_frame, bg=_c("BG_CARD"),
-                              highlightthickness=1, highlightbackground=_c("BORDER"))
+    lay_group_outer = TkFrame(
+        scroll_frame, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+    )
     lay_group_outer.pack(fill="x", pady=(0, 12))
     lay_group = TkFrame(lay_group_outer, bg=_c("BG_CARD"))
     lay_group.pack(fill="both", expand=True, padx=14, pady=12)
 
-    TkLabel(lay_group, text=_tr("theme_layout_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 10))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_layout_label"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 14, "bold"),
+    ).pack(anchor="w", pady=(0, 10))
 
     # Читаем текущий пресет раскладки (поддержка старого ключа "layout"
     # реализована внутри theme_manager.load_theme() — merged содержит оба).
-    _current_layout_name = current_theme.get("layout_preset") or current_theme.get("layout") or "classic"
+    _current_layout_name = (
+        current_theme.get("layout_preset") or current_theme.get("layout") or "classic"
+    )
     lay_var = tk.StringVar(value=_current_layout_name)
-    for l_id, l_label in [("classic", _tr("theme_layout_classic")), ("compact", _tr("theme_layout_compact")), ("wide", _tr("theme_layout_wide"))]:
-        tk.Radiobutton(lay_group, text=l_label, variable=lay_var, value=l_id, 
-                       bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), selectcolor=_c("BG_INPUT"), 
-                       activebackground=_c("BG_CARD"), font=("Segoe UI", 12), anchor="w").pack(fill="x")
+    for l_id, l_label in [
+        ("classic", _tr("theme_layout_classic")),
+        ("compact", _tr("theme_layout_compact")),
+        ("wide", _tr("theme_layout_wide")),
+    ]:
+        tk.Radiobutton(
+            lay_group,
+            text=l_label,
+            variable=lay_var,
+            value=l_id,
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            selectcolor=_c("BG_INPUT"),
+            activebackground=_c("BG_CARD"),
+            font=("Segoe UI", 12),
+            anchor="w",
+        ).pack(fill="x")
 
     # Честное предупреждение: большинство параметров (ширина левой панели,
     # отступы окна, отступы панелей, размер консоли/статусбара, отступы
@@ -818,36 +922,71 @@ def open_theme_customizer(parent, on_layout_changed=None):
     TkLabel(
         lay_group,
         text=_tr("theme_layout_restart_note"),
-        bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11),
-        justify="left", anchor="w"
-
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 11),
+        justify="left",
+        anchor="w",
     ).pack(fill="x", pady=(8, 0))
 
     # ── NEW: Расположение интерфейса — боковая панель + порядок тулбара ──
     # Боковая панель: слева / справа
-    TkLabel(lay_group, text=_tr("theme_sidebar_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x", pady=(16, 6))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_sidebar_label"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 12, "bold"),
+        anchor="w",
+    ).pack(fill="x", pady=(16, 6))
 
     sidebar_side_var = tk.StringVar(value=get_sidebar_side())
     side_row = TkFrame(lay_group, bg=_c("BG_CARD"))
     side_row.pack(fill="x", pady=(0, 4))
-    tk.Radiobutton(side_row, text=_tr("theme_sidebar_left"), variable=sidebar_side_var, value="left",
-                   bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), selectcolor=_c("BG_INPUT"),
-                   activebackground=_c("BG_CARD"), font=("Segoe UI", 11), anchor="w"
-                   ).pack(side="left", padx=(0, 20))
-    tk.Radiobutton(side_row, text=_tr("theme_sidebar_right"), variable=sidebar_side_var, value="right",
-                   bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), selectcolor=_c("BG_INPUT"),
-                   activebackground=_c("BG_CARD"), font=("Segoe UI", 11), anchor="w"
-                   ).pack(side="left")
+    tk.Radiobutton(
+        side_row,
+        text=_tr("theme_sidebar_left"),
+        variable=sidebar_side_var,
+        value="left",
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        selectcolor=_c("BG_INPUT"),
+        activebackground=_c("BG_CARD"),
+        font=("Segoe UI", 11),
+        anchor="w",
+    ).pack(side="left", padx=(0, 20))
+    tk.Radiobutton(
+        side_row,
+        text=_tr("theme_sidebar_right"),
+        variable=sidebar_side_var,
+        value="right",
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        selectcolor=_c("BG_INPUT"),
+        activebackground=_c("BG_CARD"),
+        font=("Segoe UI", 11),
+        anchor="w",
+    ).pack(side="left")
 
-    TkLabel(lay_group,
-            text=_tr("theme_sidebar_apply_note"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 9),
-            justify="left", anchor="w").pack(fill="x", pady=(0, 8))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_sidebar_apply_note"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 9),
+        justify="left",
+        anchor="w",
+    ).pack(fill="x", pady=(0, 8))
 
     # Порядок панелей тулбара
-    TkLabel(lay_group, text=_tr("theme_toolbar_order_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x", pady=(12, 6))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_toolbar_order_label"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 12, "bold"),
+        anchor="w",
+    ).pack(fill="x", pady=(12, 6))
 
     _toolbar_labels = {
         "file": _tr("theme_toolbar_panel_file"),
@@ -860,15 +999,18 @@ def open_theme_customizer(parent, on_layout_changed=None):
     order_frame = TkFrame(lay_group, bg=_c("BG_CARD"))
     order_frame.pack(fill="x", pady=(0, 4))
 
-    order_listbox = tk.Listbox(order_frame,
-                               height=4,
-                               bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-                               selectbackground=Colors.ACCENT,
-                               selectforeground=_c("TEXT_MAIN"),
-                               highlightthickness=1,
-                               highlightbackground=_c("BORDER"),
-                               relief="flat",
-                               font=("Segoe UI", 11))
+    order_listbox = tk.Listbox(
+        order_frame,
+        height=4,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        selectbackground=Colors.ACCENT,
+        selectforeground=_c("TEXT_MAIN"),
+        highlightthickness=1,
+        highlightbackground=_c("BORDER"),
+        relief="flat",
+        font=("Segoe UI", 11),
+    )
     order_listbox.pack(side="left", fill="both", expand=True)
 
     def _refresh_order_listbox(select_index=None):
@@ -893,8 +1035,11 @@ def open_theme_customizer(parent, on_layout_changed=None):
         i = sel[0]
         if i == 0:
             return
-        toolbar_order_list[i-1], toolbar_order_list[i] = toolbar_order_list[i], toolbar_order_list[i-1]
-        _refresh_order_listbox(i-1)
+        toolbar_order_list[i - 1], toolbar_order_list[i] = (
+            toolbar_order_list[i],
+            toolbar_order_list[i - 1],
+        )
+        _refresh_order_listbox(i - 1)
 
     def _move_down():
         nonlocal toolbar_order_list
@@ -902,37 +1047,75 @@ def open_theme_customizer(parent, on_layout_changed=None):
         if not sel:
             return
         i = sel[0]
-        if i >= len(toolbar_order_list)-1:
+        if i >= len(toolbar_order_list) - 1:
             return
-        toolbar_order_list[i+1], toolbar_order_list[i] = toolbar_order_list[i], toolbar_order_list[i+1]
-        _refresh_order_listbox(i+1)
+        toolbar_order_list[i + 1], toolbar_order_list[i] = (
+            toolbar_order_list[i],
+            toolbar_order_list[i + 1],
+        )
+        _refresh_order_listbox(i + 1)
 
     def _reset_order():
         nonlocal toolbar_order_list
         toolbar_order_list = DEFAULT_TOOLBAR_ORDER.copy()
         _refresh_order_listbox(0)
 
-    TkButton(btn_col, text=_tr("theme_toolbar_move_up"), command=_move_up,
-             bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 9), cursor="hand2", padx=8, pady=4
-             ).pack(fill="x", pady=(0, 4))
-    TkButton(btn_col, text=_tr("theme_toolbar_move_down"), command=_move_down,
-             bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 9), cursor="hand2", padx=8, pady=4
-             ).pack(fill="x", pady=(0, 8))
-    TkButton(btn_col, text=_tr("theme_toolbar_reset_order"), command=_reset_order,
-             bg=_c("BG_INPUT"), fg=_c("TEXT_DIM"), relief="flat",
-             font=("Segoe UI", 8), cursor="hand2", padx=8, pady=2
-             ).pack(fill="x")
+    TkButton(
+        btn_col,
+        text=_tr("theme_toolbar_move_up"),
+        command=_move_up,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 9),
+        cursor="hand2",
+        padx=8,
+        pady=4,
+    ).pack(fill="x", pady=(0, 4))
+    TkButton(
+        btn_col,
+        text=_tr("theme_toolbar_move_down"),
+        command=_move_down,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 9),
+        cursor="hand2",
+        padx=8,
+        pady=4,
+    ).pack(fill="x", pady=(0, 8))
+    TkButton(
+        btn_col,
+        text=_tr("theme_toolbar_reset_order"),
+        command=_reset_order,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_DIM"),
+        relief="flat",
+        font=("Segoe UI", 8),
+        cursor="hand2",
+        padx=8,
+        pady=2,
+    ).pack(fill="x")
 
-    TkLabel(lay_group,
-            text=_tr("theme_toolbar_order_hint"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 9),
-            justify="left", anchor="w").pack(fill="x", pady=(4, 0))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_toolbar_order_hint"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 9),
+        justify="left",
+        anchor="w",
+    ).pack(fill="x", pady=(4, 0))
 
     # --- Неоновые эффекты: одна кнопка ⚙, флажки вкл/выкл внутри панели у каждой цели ---
-    TkLabel(lay_group, text=_tr("theme_header_effects_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x", pady=(16, 6))
+    TkLabel(
+        lay_group,
+        text=_tr("theme_header_effects_label"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 12, "bold"),
+        anchor="w",
+    ).pack(fill="x", pady=(16, 6))
 
     try:
         _rb_title_style = get_header_rainbow_style()
@@ -959,18 +1142,28 @@ def open_theme_customizer(parent, on_layout_changed=None):
     def _mk_check(parent, text, var):
         try:
             import customtkinter as ctk
+
             cb = ctk.CTkCheckBox(
-                parent, text=text, variable=var,
-                fg_color=Colors.ACCENT, text_color=Colors.TEXT_MAIN,
+                parent,
+                text=text,
+                variable=var,
+                fg_color=Colors.ACCENT,
+                text_color=Colors.TEXT_MAIN,
                 font=("Segoe UI", 11),
             )
             cb.pack(side="left", pady=(0, 2))
             return cb
         except Exception:
             cb = tk.Checkbutton(
-                parent, text=text, variable=var,
-                bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), selectcolor=_c("BG_INPUT"),
-                activebackground=_c("BG_CARD"), font=("Segoe UI", 11), anchor="w",
+                parent,
+                text=text,
+                variable=var,
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_MAIN"),
+                selectcolor=_c("BG_INPUT"),
+                activebackground=_c("BG_CARD"),
+                font=("Segoe UI", 11),
+                anchor="w",
             )
             cb.pack(side="left", fill="x")
             return cb
@@ -980,24 +1173,36 @@ def open_theme_customizer(parent, on_layout_changed=None):
     neon_open_row.pack(fill="x", pady=(0, 4))
     _rb_panel_open = {"v": False}
     rb_cfg_btn = TkButton(
-        neon_open_row, text=_tr("theme_header_rainbow_cfg_btn") + " " + _tr("theme_header_rainbow_panel_title"),
-        bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-        font=("Segoe UI", 11), cursor="hand2", padx=10, pady=4,
+        neon_open_row,
+        text=_tr("theme_header_rainbow_cfg_btn") + " " + _tr("theme_header_rainbow_panel_title"),
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 11),
+        cursor="hand2",
+        padx=10,
+        pady=4,
     )
     rb_cfg_btn.pack(side="left")
 
     TkLabel(
-        lay_group, text=_tr("theme_header_rainbow_desc"),
-        bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11),
-        justify="left", anchor="w",
+        lay_group,
+        text=_tr("theme_header_rainbow_desc"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 11),
+        justify="left",
+        anchor="w",
     ).pack(fill="x", pady=(0, 4))
 
     # ══════════════════════════════════════════════════════
     # Раскрывающаяся панель (карточки в стиле audio/volume popup)
     # ══════════════════════════════════════════════════════
     rb_panel_outer = TkFrame(
-        lay_group, bg=_c("BG_CARD"),
-        highlightthickness=1, highlightbackground=_c("BORDER"),
+        lay_group,
+        bg=_c("BG_CARD"),
+        highlightthickness=1,
+        highlightbackground=_c("BORDER"),
     )
     # по умолчанию скрыта — pack/forget
     rb_panel = TkFrame(rb_panel_outer, bg=_c("BG_INPUT"))
@@ -1007,14 +1212,23 @@ def open_theme_customizer(parent, on_layout_changed=None):
     rb_panel_hdr = TkFrame(rb_panel, bg=_c("BG_INPUT"))
     rb_panel_hdr.pack(fill="x", padx=10, pady=(10, 6))
     TkLabel(
-        rb_panel_hdr, text=_tr("theme_header_rainbow_panel_title"),
-        bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-        font=("Segoe UI", 11, "bold"), anchor="w",
+        rb_panel_hdr,
+        text=_tr("theme_header_rainbow_panel_title"),
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 11, "bold"),
+        anchor="w",
     ).pack(side="left")
     rb_collapse_btn = TkButton(
-        rb_panel_hdr, text="▾ " + _tr("theme_header_rainbow_collapse"),
-        bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), relief="flat",
-        font=("Segoe UI", 11), cursor="hand2", padx=8, pady=2,
+        rb_panel_hdr,
+        text="▾ " + _tr("theme_header_rainbow_collapse"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        relief="flat",
+        font=("Segoe UI", 11),
+        cursor="hand2",
+        padx=8,
+        pady=2,
     )
     rb_collapse_btn.pack(side="right")
 
@@ -1037,19 +1251,28 @@ def open_theme_customizer(parent, on_layout_changed=None):
     _chip_widgets = {}  # id -> (chip, lbl)
 
     def _target_chip(parent, value, label):
-        chip = TkFrame(parent, bg=_c("BG_CARD"),
-                       highlightthickness=1, highlightbackground=_c("BORDER"))
+        chip = TkFrame(
+            parent, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+        )
         chip.pack(side="left", padx=(0, 6), pady=2)
         lbl = TkLabel(
-            chip, text=label, bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 11), padx=8, pady=5, cursor="hand2",
+            chip,
+            text=label,
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 11),
+            padx=8,
+            pady=5,
+            cursor="hand2",
         )
         lbl.pack()
+
         def _sel(_e=None, v=value):
             if v != rainbow_target_var.get():
                 _on_target_change(v)
             else:
                 _refresh_target_chips()
+
         lbl.bind("<Button-1>", _sel)
         chip.bind("<Button-1>", _sel)
         _chip_widgets[value] = (chip, lbl)
@@ -1108,15 +1331,20 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
     # ── Внутренняя карточка настроек (audio-style card) ──
     def _audio_card(parent, title_text: str):
-        outer = TkFrame(parent, bg=_c("BG_CARD"),
-                        highlightthickness=1, highlightbackground=_c("BORDER"))
+        outer = TkFrame(
+            parent, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+        )
         outer.pack(fill="x", padx=10, pady=(0, 8))
         inner = TkFrame(outer, bg=_c("BG_CARD"))
         inner.pack(fill="both", expand=True, padx=12, pady=10)
         if title_text:
             TkLabel(
-                inner, text=title_text, bg=_c("BG_CARD"), fg=_c("ACCENT"),
-                font=("Segoe UI", 11, "bold"), anchor="w",
+                inner,
+                text=title_text,
+                bg=_c("BG_CARD"),
+                fg=_c("ACCENT"),
+                font=("Segoe UI", 11, "bold"),
+                anchor="w",
             ).pack(fill="x", pady=(0, 6))
         return inner
 
@@ -1132,7 +1360,9 @@ def open_theme_customizer(parent, on_layout_changed=None):
         return "normal"
 
     # Working vars (UI-bound)
-    rainbow_speed_var = tk.StringVar(value=_speed_choice_from_ms(_rb_title_style.get("speed_ms", 40)))
+    rainbow_speed_var = tk.StringVar(
+        value=_speed_choice_from_ms(_rb_title_style.get("speed_ms", 40))
+    )
     rainbow_sat_var = tk.DoubleVar(value=float(_rb_title_style.get("saturation", 0.85)))
     rainbow_bri_var = tk.DoubleVar(value=float(_rb_title_style.get("brightness", 1.0)))
     rainbow_hue_var = tk.DoubleVar(value=float(_rb_title_style.get("hue_offset", 0.0)))
@@ -1159,17 +1389,26 @@ def open_theme_customizer(parent, on_layout_changed=None):
     _speed_chip_widgets = {}
 
     def _mk_speed_chip(value, label_key):
-        chip = TkFrame(speed_chips, bg=_c("BG_INPUT"),
-                       highlightthickness=1, highlightbackground=_c("BORDER"))
+        chip = TkFrame(
+            speed_chips, bg=_c("BG_INPUT"), highlightthickness=1, highlightbackground=_c("BORDER")
+        )
         chip.pack(side="left", padx=(0, 6))
         lbl = TkLabel(
-            chip, text=_tr(label_key), bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 11), padx=12, pady=6, cursor="hand2",
+            chip,
+            text=_tr(label_key),
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 11),
+            padx=12,
+            pady=6,
+            cursor="hand2",
         )
         lbl.pack()
+
         def _sel(_e=None, v=value):
             rainbow_speed_var.set(v)
             _refresh_speed_chips()
+
         lbl.bind("<Button-1>", _sel)
         chip.bind("<Button-1>", _sel)
         _speed_chip_widgets[value] = (chip, lbl)
@@ -1193,7 +1432,7 @@ def open_theme_customizer(parent, on_layout_changed=None):
     _refresh_speed_chips()
 
     # ── Card: sliders — тот же стиль, что слайдер «Размер шрифта» в пресетах/типографике ──
-    UI_F = ("Segoe UI", 11)       # единый размер текста панели перелива
+    UI_F = ("Segoe UI", 11)  # единый размер текста панели перелива
     UI_F_DIM = ("Segoe UI", 11)
     sliders_card = _audio_card(rb_panel, "")
 
@@ -1202,12 +1441,22 @@ def open_theme_customizer(parent, on_layout_changed=None):
         row = TkFrame(parent, bg=_c("BG_CARD"))
         row.pack(fill="x", pady=(0, 6))
         TkLabel(
-            row, text=_tr(label_key), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=UI_F, anchor="w", width=16,
+            row,
+            text=_tr(label_key),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=UI_F,
+            anchor="w",
+            width=16,
         ).pack(side="left")
         val_lbl = TkLabel(
-            row, text=f"{float(var.get()):.2f}", bg=_c("BG_CARD"),
-            fg=_c("ACCENT"), font=("Segoe UI", 11, "bold"), width=5, anchor="e",
+            row,
+            text=f"{float(var.get()):.2f}",
+            bg=_c("BG_CARD"),
+            fg=_c("ACCENT"),
+            font=("Segoe UI", 11, "bold"),
+            width=5,
+            anchor="e",
         )
         val_lbl.pack(side="right", padx=(6, 0))
 
@@ -1219,23 +1468,41 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
         # trace — чтобы программный set тоже обновлял подпись
         try:
-            var.trace_add("write", lambda *_a, lbl=val_lbl, vv=var: lbl.config(text=f"{float(vv.get()):.2f}"))
+            var.trace_add(
+                "write", lambda *_a, lbl=val_lbl, vv=var: lbl.config(text=f"{float(vv.get()):.2f}")
+            )
         except Exception:
             pass
 
         scale = tk.Scale(
-            row, from_=from_, to=to_, resolution=resolution, orient="horizontal",
-            variable=var, showvalue=0, command=_on_slide,
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), highlightthickness=0,
+            row,
+            from_=from_,
+            to=to_,
+            resolution=resolution,
+            orient="horizontal",
+            variable=var,
+            showvalue=0,
+            command=_on_slide,
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            highlightthickness=0,
             troughcolor=_c("BG_INPUT"),
         )
         scale.pack(side="left", fill="x", expand=True, padx=(4, 0))
         return scale, val_lbl
 
-    _sat_scale, _sat_lbl = _preset_style_slider(sliders_card, "theme_header_rainbow_saturation", rainbow_sat_var, 0.0, 1.0, 0.05)
-    _bri_scale, _bri_lbl = _preset_style_slider(sliders_card, "theme_header_rainbow_brightness", rainbow_bri_var, 0.15, 1.0, 0.05)
-    _hue_scale, _hue_lbl = _preset_style_slider(sliders_card, "theme_header_rainbow_hue", rainbow_hue_var, 0.0, 1.0, 0.01)
-    _spr_scale, _spr_lbl = _preset_style_slider(sliders_card, "theme_header_rainbow_spread", rainbow_spread_var, 0.2, 2.0, 0.05)
+    _sat_scale, _sat_lbl = _preset_style_slider(
+        sliders_card, "theme_header_rainbow_saturation", rainbow_sat_var, 0.0, 1.0, 0.05
+    )
+    _bri_scale, _bri_lbl = _preset_style_slider(
+        sliders_card, "theme_header_rainbow_brightness", rainbow_bri_var, 0.15, 1.0, 0.05
+    )
+    _hue_scale, _hue_lbl = _preset_style_slider(
+        sliders_card, "theme_header_rainbow_hue", rainbow_hue_var, 0.0, 1.0, 0.01
+    )
+    _spr_scale, _spr_lbl = _preset_style_slider(
+        sliders_card, "theme_header_rainbow_spread", rainbow_spread_var, 0.2, 2.0, 0.05
+    )
     _slider_val_labels = (_sat_lbl, _bri_lbl, _hue_lbl, _spr_lbl)
 
     # ── Card: color mode + custom palette ──
@@ -1245,18 +1512,27 @@ def open_theme_customizer(parent, on_layout_changed=None):
     _mode_chips = {}
 
     def _mk_mode_chip(value, label_key):
-        chip = TkFrame(mode_row, bg=_c("BG_INPUT"),
-                       highlightthickness=1, highlightbackground=_c("BORDER"))
+        chip = TkFrame(
+            mode_row, bg=_c("BG_INPUT"), highlightthickness=1, highlightbackground=_c("BORDER")
+        )
         chip.pack(side="left", padx=(0, 6))
         lbl = TkLabel(
-            chip, text=_tr(label_key), bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 11), padx=12, pady=6, cursor="hand2",
+            chip,
+            text=_tr(label_key),
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 11),
+            padx=12,
+            pady=6,
+            cursor="hand2",
         )
         lbl.pack()
+
         def _sel(_e=None, v=value):
             rainbow_mode_var.set(v)
             _refresh_mode_chips()
             _sync_palette_visibility()
+
         lbl.bind("<Button-1>", _sel)
         chip.bind("<Button-1>", _sel)
         _mode_chips[value] = (chip, lbl)
@@ -1303,7 +1579,10 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
         if not colors:
             tk.Label(
-                palette_swatches, text="—", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"),
+                palette_swatches,
+                text="—",
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_DIM"),
                 font=("Segoe UI", 11),
             ).pack(side="left")
             try:
@@ -1318,8 +1597,12 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
             # цветной квадрат 28x28
             sw = tk.Frame(
-                cell, bg=hx, width=28, height=28,
-                highlightthickness=1, highlightbackground=_c("BORDER"),
+                cell,
+                bg=hx,
+                width=28,
+                height=28,
+                highlightthickness=1,
+                highlightbackground=_c("BORDER"),
                 cursor="hand2",
             )
             sw.pack(side="left")
@@ -1327,6 +1610,7 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
             def _recolor(_e=None, i=idx):
                 from tkinter import colorchooser
+
                 cols = _rb_colors[_current_target()]
                 init = cols[i] if i < len(cols) else "#ff006e"
                 picked = colorchooser.askcolor(initialcolor=init, parent=win)
@@ -1341,9 +1625,17 @@ def open_theme_customizer(parent, on_layout_changed=None):
                 w.bind("<Button-1>", _recolor)
 
             rm = tk.Button(
-                cell, text="×", command=lambda i=idx: _remove_color_at(i),
-                bg=_c("BG_INPUT"), fg=_c("TEXT_DIM"), relief="flat",
-                font=("Segoe UI", 11), cursor="hand2", bd=0, padx=4, pady=0,
+                cell,
+                text="×",
+                command=lambda i=idx: _remove_color_at(i),
+                bg=_c("BG_INPUT"),
+                fg=_c("TEXT_DIM"),
+                relief="flat",
+                font=("Segoe UI", 11),
+                cursor="hand2",
+                bd=0,
+                padx=4,
+                pady=0,
             )
             rm.pack(side="left", padx=(3, 0))
 
@@ -1363,6 +1655,7 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
     def _add_color():
         from tkinter import colorchooser
+
         picked = colorchooser.askcolor(initialcolor="#ff006e", parent=win)
         if not picked or not picked[1]:
             return
@@ -1391,19 +1684,37 @@ def open_theme_customizer(parent, on_layout_changed=None):
         _refresh_swatches()
 
     TkButton(
-        palette_btns, text=_tr("theme_header_rainbow_add_color"),
-        command=_add_color, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-        font=("Segoe UI", 11), cursor="hand2", padx=10, pady=4,
+        palette_btns,
+        text=_tr("theme_header_rainbow_add_color"),
+        command=_add_color,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 11),
+        cursor="hand2",
+        padx=10,
+        pady=4,
     ).pack(side="left", padx=(0, 6))
     TkButton(
-        palette_btns, text=_tr("theme_header_rainbow_clear_colors"),
-        command=_clear_colors, bg=_c("BG_INPUT"), fg=_c("TEXT_DIM"), relief="flat",
-        font=("Segoe UI", 11), cursor="hand2", padx=10, pady=4,
+        palette_btns,
+        text=_tr("theme_header_rainbow_clear_colors"),
+        command=_clear_colors,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_DIM"),
+        relief="flat",
+        font=("Segoe UI", 11),
+        cursor="hand2",
+        padx=10,
+        pady=4,
     ).pack(side="left")
     TkLabel(
-        palette_card, text=_tr("theme_header_rainbow_colors_hint"),
-        bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11),
-        justify="left", anchor="w",
+        palette_card,
+        text=_tr("theme_header_rainbow_colors_hint"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 11),
+        justify="left",
+        anchor="w",
     ).pack(fill="x", pady=(6, 0))
 
     def _sync_palette_visibility():
@@ -1423,7 +1734,9 @@ def open_theme_customizer(parent, on_layout_changed=None):
             "brightness": float(rainbow_bri_var.get()),
             "hue_offset": float(rainbow_hue_var.get()),
             "spread": float(rainbow_spread_var.get()),
-            "mode": rainbow_mode_var.get() if rainbow_mode_var.get() in ("hsv", "custom") else "hsv",
+            "mode": (
+                rainbow_mode_var.get() if rainbow_mode_var.get() in ("hsv", "custom") else "hsv"
+            ),
             "colors": list(_rb_colors.get(t, [])),
         }
 
@@ -1469,8 +1782,6 @@ def open_theme_customizer(parent, on_layout_changed=None):
         _load_target_into_fields()
         _sync_enable_proxy_from_target()
 
-
-
     def _reset_rainbow_style_fields():
         t = _current_target()
         if t == "author":
@@ -1482,15 +1793,25 @@ def open_theme_customizer(parent, on_layout_changed=None):
         _load_target_into_fields()
 
     TkButton(
-        footer, text=_tr("theme_header_rainbow_reset_style"),
+        footer,
+        text=_tr("theme_header_rainbow_reset_style"),
         command=_reset_rainbow_style_fields,
-        bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), relief="flat",
-        font=("Segoe UI", 11), cursor="hand2", padx=10, pady=4,
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        relief="flat",
+        font=("Segoe UI", 11),
+        cursor="hand2",
+        padx=10,
+        pady=4,
     ).pack(side="left")
     TkLabel(
-        footer, text=_tr("theme_header_rainbow_style_hint"),
-        bg=_c("BG_INPUT"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11),
-        justify="left", anchor="w",
+        footer,
+        text=_tr("theme_header_rainbow_style_hint"),
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 11),
+        justify="left",
+        anchor="w",
     ).pack(side="left", padx=(12, 0))
 
     def _toggle_rb_panel():
@@ -1556,7 +1877,6 @@ def open_theme_customizer(parent, on_layout_changed=None):
         st["colors"] = list(_rb_colors.get(target, st.get("colors") or []))
         return st
 
-
     # ── Секция Пресетов (НОВОЕ) ──────────────────────────────────────────
     # Пресет — это именованный "снимок" ВСЕХ трёх настроек этого окна разом
     # (цвета текущей темы + базовый размер шрифта + раскладка). Хранится в
@@ -1565,18 +1885,29 @@ def open_theme_customizer(parent, on_layout_changed=None):
     # См. пояснение про padx/pady у TkFrame выше (секция "Цветов") — именно
     # из-за этого бага поле ввода имени пресета выглядело "почти невидимым"
     # (было прижато вплотную к краю рамки без реального отступа).
-    presets_group_outer = TkFrame(scroll_frame, bg=_c("BG_CARD"),
-                                  highlightthickness=1, highlightbackground=_c("BORDER"))
+    presets_group_outer = TkFrame(
+        scroll_frame, bg=_c("BG_CARD"), highlightthickness=1, highlightbackground=_c("BORDER")
+    )
     presets_group_outer.pack(fill="x", pady=(0, 12))
     presets_group = TkFrame(presets_group_outer, bg=_c("BG_CARD"))
     presets_group.pack(fill="both", expand=True, padx=14, pady=12)
 
-    TkLabel(presets_group, text=_tr("theme_presets_section_title"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 4))
-    TkLabel(presets_group,
-            text=_tr("theme_presets_section_desc"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 9),
-            justify="left", anchor="w").pack(anchor="w", pady=(0, 10))
+    TkLabel(
+        presets_group,
+        text=_tr("theme_presets_section_title"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 14, "bold"),
+    ).pack(anchor="w", pady=(0, 4))
+    TkLabel(
+        presets_group,
+        text=_tr("theme_presets_section_desc"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 9),
+        justify="left",
+        anchor="w",
+    ).pack(anchor="w", pady=(0, 10))
 
     # -- Список существующих пресетов --
     preset_list_row = TkFrame(presets_group, bg=_c("BG_CARD"))
@@ -1593,18 +1924,23 @@ def open_theme_customizer(parent, on_layout_changed=None):
         else:
             preset_names_var.set("")
 
-    preset_combo = ttk.Combobox(preset_list_row, textvariable=preset_names_var,
-                                state="readonly", font=("Segoe UI", 10))
+    preset_combo = ttk.Combobox(
+        preset_list_row, textvariable=preset_names_var, state="readonly", font=("Segoe UI", 10)
+    )
     preset_combo.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
     def _apply_selected_preset():
         name = preset_names_var.get()
         if not name:
-            messagebox.showwarning(_tr("theme_presets_dlg_title"), _tr("theme_presets_select_first"), parent=win)
+            messagebox.showwarning(
+                _tr("theme_presets_dlg_title"), _tr("theme_presets_select_first"), parent=win
+            )
             return
         snapshot = apply_named_preset(name)
         if snapshot is None:
-            messagebox.showerror(_tr("theme_presets_dlg_title"), _tr("theme_presets_not_found", name), parent=win)
+            messagebox.showerror(
+                _tr("theme_presets_dlg_title"), _tr("theme_presets_not_found", name), parent=win
+            )
             _refresh_preset_list()
             return
         # Живое применение цветов/шрифта прямо в открытом окне конструктора —
@@ -1613,11 +1949,13 @@ def open_theme_customizer(parent, on_layout_changed=None):
         # сохранения — см. apply_and_save() ниже).
         preset_theme_name = snapshot.get("theme_name", _active_theme_name)
         if preset_theme_name != _active_theme_name:
-            theme_label = _tr("theme_name_dark" if preset_theme_name == "dark" else "theme_name_light")
+            theme_label = _tr(
+                "theme_name_dark" if preset_theme_name == "dark" else "theme_name_light"
+            )
             messagebox.showinfo(
                 _tr("theme_presets_dlg_title"),
                 _tr("theme_presets_applied_other_theme", name, theme_label),
-                parent=win
+                parent=win,
             )
         else:
             try:
@@ -1628,29 +1966,55 @@ def open_theme_customizer(parent, on_layout_changed=None):
             rt_set_font_base_size(snapshot.get("font_base_size", 10))
         except Exception:
             pass
-        messagebox.showinfo(_tr("theme_presets_dlg_title"), _tr("theme_presets_applied", name), parent=win)
+        messagebox.showinfo(
+            _tr("theme_presets_dlg_title"), _tr("theme_presets_applied", name), parent=win
+        )
         _close_theme_window()
 
     def _delete_selected_preset():
         name = preset_names_var.get()
         if not name:
             return
-        if messagebox.askyesno(_tr("theme_presets_dlg_title"), _tr("theme_presets_delete_confirm", name), parent=win):
+        if messagebox.askyesno(
+            _tr("theme_presets_dlg_title"), _tr("theme_presets_delete_confirm", name), parent=win
+        ):
             delete_named_preset(name)
             _refresh_preset_list()
 
-    TkButton(preset_list_row, text=_tr("theme_presets_apply_btn"), command=_apply_selected_preset,
-             bg=_c("BG_ACTIVE"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 10), cursor="hand2", padx=8, pady=4
-             ).pack(side="left", padx=(0, 4))
-    TkButton(preset_list_row, text=_tr("theme_presets_delete_btn"), command=_delete_selected_preset,
-             bg=_c("BG_DANGER"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 10), cursor="hand2", padx=8, pady=4
-             ).pack(side="left")
+    TkButton(
+        preset_list_row,
+        text=_tr("theme_presets_apply_btn"),
+        command=_apply_selected_preset,
+        bg=_c("BG_ACTIVE"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 10),
+        cursor="hand2",
+        padx=8,
+        pady=4,
+    ).pack(side="left", padx=(0, 4))
+    TkButton(
+        preset_list_row,
+        text=_tr("theme_presets_delete_btn"),
+        command=_delete_selected_preset,
+        bg=_c("BG_DANGER"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 10),
+        cursor="hand2",
+        padx=8,
+        pady=4,
+    ).pack(side="left")
 
     # -- Сохранение текущих настроек как нового пресета --
-    TkLabel(presets_group, text=_tr("theme_presets_new_name_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-            font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(8, 4))
+    TkLabel(
+        presets_group,
+        text=_tr("theme_presets_new_name_label"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
+        font=("Segoe UI", 10),
+        anchor="w",
+    ).pack(fill="x", pady=(8, 4))
 
     save_preset_row = TkFrame(presets_group, bg=_c("BG_CARD"))
     save_preset_row.pack(fill="x")
@@ -1661,22 +2025,34 @@ def open_theme_customizer(parent, on_layout_changed=None):
     # секции, плюс padx/pady у родительского TkFrame не применялись
     # (см. комментарий у presets_group_outer выше), из-за чего поле
     # визуально сливалось с фоном и выглядело "почти невидимым".
-    preset_name_entry = tk.Entry(save_preset_row, textvariable=new_preset_name_var,
-                                 bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-                                 insertbackground=_c("TEXT_MAIN"), relief="flat",
-                                 highlightthickness=1, highlightbackground=_c("BORDER"),
-                                 highlightcolor=_c("ACCENT"),
-                                 font=("Segoe UI", 10))
+    preset_name_entry = tk.Entry(
+        save_preset_row,
+        textvariable=new_preset_name_var,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        insertbackground=_c("TEXT_MAIN"),
+        relief="flat",
+        highlightthickness=1,
+        highlightbackground=_c("BORDER"),
+        highlightcolor=_c("ACCENT"),
+        font=("Segoe UI", 10),
+    )
     preset_name_entry.pack(side="left", fill="x", expand=True, padx=(0, 8), ipady=6)
 
     def _save_current_as_preset():
         name = new_preset_name_var.get().strip()
         if not name:
-            messagebox.showwarning(_tr("theme_presets_dlg_title"), _tr("theme_presets_enter_name"), parent=win)
+            messagebox.showwarning(
+                _tr("theme_presets_dlg_title"), _tr("theme_presets_enter_name"), parent=win
+            )
             return
         existing = get_saved_presets()
         if name in existing:
-            if not messagebox.askyesno(_tr("theme_presets_dlg_title"), _tr("theme_presets_overwrite_confirm", name), parent=win):
+            if not messagebox.askyesno(
+                _tr("theme_presets_dlg_title"),
+                _tr("theme_presets_overwrite_confirm", name),
+                parent=win,
+            ):
                 return
         # Снимок ТЕКУЩЕГО состояния полей формы (ещё не сохранённого через
         # apply_and_save) — так пользователь может подготовить пресет и
@@ -1701,8 +2077,10 @@ def open_theme_customizer(parent, on_layout_changed=None):
             "theme_name": _active_theme_name,
             "font_base_size": font_base_size_var.get(),
             "layout_preset": lay_var.get(),
-            "sidebar_side": sidebar_side_var.get() if 'sidebar_side_var' in locals() else "left",
-            "toolbar_order": toolbar_order_list if 'toolbar_order_list' in locals() else DEFAULT_TOOLBAR_ORDER,
+            "sidebar_side": sidebar_side_var.get() if "sidebar_side_var" in locals() else "left",
+            "toolbar_order": (
+                toolbar_order_list if "toolbar_order_list" in locals() else DEFAULT_TOOLBAR_ORDER
+            ),
             "header_rainbow": _snap_rb,
             "header_rainbow_style": _snap_rb_style,
             "header_author_rainbow": _snap_rb_author,
@@ -1719,21 +2097,29 @@ def open_theme_customizer(parent, on_layout_changed=None):
         new_preset_name_var.set("")
         _refresh_preset_list()
         preset_names_var.set(name)
-        messagebox.showinfo(_tr("theme_presets_dlg_title"), _tr("theme_presets_saved", name), parent=win)
+        messagebox.showinfo(
+            _tr("theme_presets_dlg_title"), _tr("theme_presets_saved", name), parent=win
+        )
 
-    TkButton(save_preset_row, text=_tr("theme_presets_save_btn"), command=_save_current_as_preset,
-             bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 10), cursor="hand2", padx=8, pady=4
-             ).pack(side="left")
+    TkButton(
+        save_preset_row,
+        text=_tr("theme_presets_save_btn"),
+        command=_save_current_as_preset,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 10),
+        cursor="hand2",
+        padx=8,
+        pady=4,
+    ).pack(side="left")
 
     _refresh_preset_list()
 
     # -- Полный сброс всех настроек темы (цвета + шрифт + раскладка) --
     def _reset_everything_to_factory():
         if not messagebox.askyesno(
-            _tr("theme_reset_all_dlg_title"),
-            _tr("theme_reset_all_confirm"),
-            parent=win
+            _tr("theme_reset_all_dlg_title"), _tr("theme_reset_all_confirm"), parent=win
         ):
             return
         _reset_colors_to_default()
@@ -1764,16 +2150,21 @@ def open_theme_customizer(parent, on_layout_changed=None):
         except Exception:
             pass
         messagebox.showinfo(
-            _tr("theme_reset_all_dlg_title"),
-            _tr("theme_reset_all_done"),
-            parent=win
+            _tr("theme_reset_all_dlg_title"), _tr("theme_reset_all_done"), parent=win
         )
 
-    TkButton(presets_group, text=_tr("theme_presets_reset_all_btn"),
-             command=_reset_everything_to_factory,
-             bg=_c("BG_DANGER"), fg=_c("TEXT_MAIN"), relief="flat",
-             font=("Segoe UI", 10), cursor="hand2", padx=10, pady=6
-             ).pack(anchor="w", pady=(10, 0))
+    TkButton(
+        presets_group,
+        text=_tr("theme_presets_reset_all_btn"),
+        command=_reset_everything_to_factory,
+        bg=_c("BG_DANGER"),
+        fg=_c("TEXT_MAIN"),
+        relief="flat",
+        font=("Segoe UI", 10),
+        cursor="hand2",
+        padx=10,
+        pady=6,
+    ).pack(anchor="w", pady=(10, 0))
 
     # ── Нижние кнопки ────────────────────────────────────────────────────────
     btn_row = TkFrame(main, bg=_c("BG_DARK"))
@@ -1907,6 +2298,7 @@ def open_theme_customizer(parent, on_layout_changed=None):
         # Live: заголовки + neon-кнопки тулбара
         try:
             from engine.gui import header_panel as _hp
+
             if hasattr(_hp, "apply_layout"):
                 _hp.apply_layout({})
         except Exception:
@@ -1914,6 +2306,7 @@ def open_theme_customizer(parent, on_layout_changed=None):
         try:
             from engine.gui import toolbar as _tb
             from engine.gui.neon_widgets import refresh_neon_button
+
             for _bname in ("chat_btn", "ai_btn", "styles_btn", "studio_btn", "gen_btn"):
                 refresh_neon_button(getattr(_tb, _bname, None))
         except Exception:
@@ -1930,19 +2323,19 @@ def open_theme_customizer(parent, on_layout_changed=None):
 
         if live_applied:
             messagebox.showinfo(
-                _tr("theme_saved_dlg_title"),
-                _tr("theme_saved_live_applied"),
-                parent=win
+                _tr("theme_saved_dlg_title"), _tr("theme_saved_live_applied"), parent=win
             )
         else:
             messagebox.showinfo(
-                _tr("theme_saved_dlg_title"),
-                _tr("theme_saved_needs_restart"),
-                parent=win
+                _tr("theme_saved_dlg_title"), _tr("theme_saved_needs_restart"), parent=win
             )
         _close_theme_window()
 
-    _make_button(btn_row, _tr("theme_reset_btn"), _close_theme_window, bg=_c("BG_INPUT"), font_size=11).pack(side="right", padx=(8, 0))
-    _make_button(btn_row, _tr("theme_save_btn"), apply_and_save, bg=_c("BG_ACTIVE"), font_size=11).pack(side="right")
+    _make_button(
+        btn_row, _tr("theme_reset_btn"), _close_theme_window, bg=_c("BG_INPUT"), font_size=11
+    ).pack(side="right", padx=(8, 0))
+    _make_button(
+        btn_row, _tr("theme_save_btn"), apply_and_save, bg=_c("BG_ACTIVE"), font_size=11
+    ).pack(side="right")
 
     scrollbar.config(command=canvas.yview)

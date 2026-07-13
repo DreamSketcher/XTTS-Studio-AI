@@ -6,10 +6,9 @@ error_report.py
 с уже готовым issue, юзер сам решает, отправлять или нет.
 """
 
-import os
-import re
 import getpass
 import platform
+import re
 import traceback
 import webbrowser
 from urllib.parse import quote
@@ -17,7 +16,7 @@ from urllib.parse import quote
 # ==== НАСТРОЙ ПОД СЕБЯ ====
 GITHUB_OWNER = "DreamSketcher"
 GITHUB_REPO = "XTTS-Studio-portable-"
-ISSUE_LABELS = "bug,auto-report"        # необязательно, можно убрать
+ISSUE_LABELS = "bug,auto-report"  # необязательно, можно убрать
 # ===========================
 
 MAX_BODY_LEN = 7000  # GitHub режет длинные query-параметры, оставляем запас
@@ -31,9 +30,7 @@ def _sanitize(text: str) -> str:
     username = getpass.getuser()
     if username:
         # Windows-пути вида C:\Users\Vinnipoh\... -> C:\Users\<user>\...
-        text = re.sub(
-            re.escape(username), "<user>", text, flags=re.IGNORECASE
-        )
+        text = re.sub(re.escape(username), "<user>", text, flags=re.IGNORECASE)
 
     # Общий паттерн на случай если getpass не сработал (иногда бывает под GUI)
     text = re.sub(r"([Uu]sers)\\[^\\]+\\", r"\1\\<user>\\", text)
@@ -50,7 +47,7 @@ def _truncate(text: str, limit: int = MAX_BODY_LEN) -> str:
     if len(text) <= limit:
         return text
     head = text[: limit // 2]
-    tail = text[-limit // 2:]
+    tail = text[-limit // 2 :]
     return f"{head}\n\n... [лог обрезан, слишком длинный] ...\n\n{tail}"
 
 
@@ -118,9 +115,7 @@ def send_error_report(
 
 def report_exception(exc: BaseException, app_version: str = "unknown") -> bool:
     """Удобная обёртка: собрать traceback из исключения и отправить."""
-    tb_text = "".join(
-        traceback.format_exception(type(exc), exc, exc.__traceback__)
-    )
+    tb_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     title = f"Ошибка: {type(exc).__name__}: {str(exc)[:80]}"
     return send_error_report(tb_text, title=title, app_version=app_version)
 
@@ -131,4 +126,4 @@ if __name__ == "__main__":
         1 / 0
     except Exception as e:
         ok = report_exception(e, app_version="1.0.0-test")
-        print("Открыт браузер:" , ok)
+        print("Открыт браузер:", ok)

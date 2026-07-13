@@ -13,8 +13,6 @@ test_local_llm_client_download.py — тесты для engine/local_llm_client.
 Запуск:
     pytest test_local_llm_client_download.py -v
 """
-import io
-import json
 import os
 import ssl
 import urllib.error
@@ -26,6 +24,7 @@ from engine import local_llm_client
 
 class FakeResponse:
     """Полноценный ответ без обрывов."""
+
     def __init__(self, data: bytes, status: int = 200):
         self._data = data
         self._pos = 0
@@ -33,7 +32,7 @@ class FakeResponse:
         self.headers = {"Content-Length": str(len(data))}
 
     def read(self, n):
-        chunk = self._data[self._pos:self._pos + n]
+        chunk = self._data[self._pos : self._pos + n]
         self._pos += len(chunk)
         return chunk
 
@@ -48,6 +47,7 @@ class DroppingResponse(FakeResponse):
     """Отдаёт данные до cutoff байт, потом бросает SSLError — имитация
     обрыва соединения посреди скачивания (как реальный
     UNEXPECTED_EOF_WHILE_READING)."""
+
     def __init__(self, data: bytes, cutoff: int, status: int = 200):
         super().__init__(data, status)
         self._cutoff = cutoff
@@ -55,7 +55,7 @@ class DroppingResponse(FakeResponse):
     def read(self, n):
         if self._pos >= self._cutoff:
             raise ssl.SSLError("UNEXPECTED_EOF_WHILE_READING")
-        chunk = self._data[self._pos:min(self._pos + n, self._cutoff)]
+        chunk = self._data[self._pos : min(self._pos + n, self._cutoff)]
         self._pos += len(chunk)
         return chunk
 
@@ -78,6 +78,7 @@ def _last_range_offset(req) -> int:
 
 
 # ───────────────────────── восстановление после обрыва ─────────────────────────
+
 
 def test_download_recovers_after_transient_drop(isolated_models_dir, monkeypatch):
     """Первая попытка обрывается на середине, вторая — докачивает остаток.
@@ -156,7 +157,9 @@ def test_cancellation_during_retry_backoff_raises_interrupted(isolated_models_di
 
     with pytest.raises(InterruptedError):
         local_llm_client.download_model(
-            "http://fake/model.gguf", "model.gguf", cancelled_flag=cancelled_flag,
+            "http://fake/model.gguf",
+            "model.gguf",
+            cancelled_flag=cancelled_flag,
         )
 
 
@@ -203,5 +206,6 @@ def test_checkpoint_saved_after_drop_matches_downloaded_bytes(isolated_models_di
 
     local_llm_client.download_model("http://fake/model.gguf", "model.gguf")
 
-    assert cutoff in seen_checkpoints, \
-        "после обрыва должен был сохраниться чекпоинт ровно на том объёме, что успел скачаться"
+    assert (
+        cutoff in seen_checkpoints
+    ), "после обрыва должен был сохраниться чекпоинт ровно на том объёме, что успел скачаться"

@@ -5,6 +5,7 @@ import os
 
 from i18n import t
 from engine.paths import BASE_DIR
+
 try:
     from engine.paths import ICON_PATH
 except ImportError:
@@ -23,8 +24,10 @@ styles_btn = None
 PRESET_HINT = t("tip_quality_default")
 STYLES_HINT = t("tip_styles")
 
+
 def init(**deps):
     globals().update(deps)
+
 
 def open_styles_menu(event=None):
     # outer with rounded corners via CompatCTkFrame
@@ -34,8 +37,9 @@ def open_styles_menu(event=None):
     menu.attributes("-topmost", True)
 
     # rounded card container
-    card = CompatCTkFrame(menu, fg_color=Colors.BG_CARD, corner_radius=18,
-                          border_width=1, border_color=Colors.BORDER)
+    card = CompatCTkFrame(
+        menu, fg_color=Colors.BG_CARD, corner_radius=18, border_width=1, border_color=Colors.BORDER
+    )
     card.pack(fill="both", expand=True, padx=2, pady=2)
 
     inner = tk.Frame(card, bg=Colors.BG_CARD)
@@ -69,15 +73,19 @@ def open_styles_menu(event=None):
         open_quality_settings(name)
 
     for label, value in presets:
-        is_active = (quality_var.get() == value)
-        item = CompatCTkFrame(inner, fg_color=Colors.MENU_ACTIVE if is_active else Colors.BG_CARD,
-                              corner_radius=12, border_width=0)
+        is_active = quality_var.get() == value
+        item = CompatCTkFrame(
+            inner,
+            fg_color=Colors.MENU_ACTIVE if is_active else Colors.BG_CARD,
+            corner_radius=12,
+            border_width=0,
+        )
         item.pack(fill="x", pady=3)
 
-        row = tk.Frame(item, bg=item.cget("fg_color") if hasattr(item, 'cget') else Colors.BG_CARD)
+        row = tk.Frame(item, bg=item.cget("fg_color") if hasattr(item, "cget") else Colors.BG_CARD)
         # fallback bg
         try:
-            bg = item._fg_color if hasattr(item, '_fg_color') else Colors.BG_CARD
+            bg = item._fg_color if hasattr(item, "_fg_color") else Colors.BG_CARD
         except:
             bg = Colors.BG_CARD
 
@@ -87,9 +95,10 @@ def open_styles_menu(event=None):
             bg=bg,
             fg=Colors.TEXT_MAIN,
             font=("Segoe UI", scaled_font_size(13), "bold" if is_active else "normal"),
-            padx=12, pady=10,
+            padx=12,
+            pady=10,
             anchor="w",
-            cursor="hand2"
+            cursor="hand2",
         )
         lbl.pack(fill="x")
 
@@ -121,9 +130,8 @@ def open_styles_menu(event=None):
     sep = tk.Frame(inner, bg=Colors.BORDER, height=1)
     sep.pack(fill="x", padx=8, pady=8)
 
-    desc_card = CompatCTkFrame(inner, fg_color=Colors.BG_DARK, corner_radius=12,
-                               border_width=0)
-    desc_card.pack(fill="x", pady=(0,4))
+    desc_card = CompatCTkFrame(inner, fg_color=Colors.BG_DARK, corner_radius=12, border_width=0)
+    desc_card.pack(fill="x", pady=(0, 4))
 
     desc_label = tk.Label(
         desc_card,
@@ -134,7 +142,8 @@ def open_styles_menu(event=None):
         justify="left",
         anchor="w",
         wraplength=240,
-        padx=12, pady=8
+        padx=12,
+        pady=8,
     )
     desc_label.pack(fill="x")
 

@@ -24,6 +24,7 @@ from engine import updater
 
 class FakeResponse(io.BytesIO):
     """Имитирует объект, который возвращает urllib.request.urlopen()."""
+
     def __enter__(self):
         return self
 
@@ -59,6 +60,7 @@ def _mock_urlopen(contents_by_relpath: dict, remote_version_info: dict, monkeypa
     contents_by_relpath: {"a.txt": b"..."} — что отдавать для download-запросов.
     remote_version_info: dict — что отдавать на запрос VERSION_URL.
     """
+
     def fake(url, timeout=15, max_retries=updater.MAX_RETRIES):
         if url == updater.VERSION_URL:
             return FakeResponse(json.dumps(remote_version_info, ensure_ascii=False).encode("utf-8"))
@@ -66,10 +68,12 @@ def _mock_urlopen(contents_by_relpath: dict, remote_version_info: dict, monkeypa
             if url.endswith(relpath.replace(" ", "%20")) or url.endswith(relpath):
                 return FakeResponse(content)
         raise RuntimeError(f"Неожиданный URL в тесте: {url}")
+
     monkeypatch.setattr(updater, "_urlopen_with_retry", fake)
 
 
 # ───────────────────────── check_update / min_app_version ─────────────────────────
+
 
 def test_check_update_detects_available_version(isolated_project, monkeypatch):
     remote_info = {"version": "1.0.1", "files": ["a.txt"], "sha256": {}, "changelog": "fix"}
@@ -94,6 +98,7 @@ def test_check_update_flags_manual_reinstall_when_too_old(isolated_project, monk
 
 # ───────────────────────── apply_update: успешный сценарий ─────────────────────────
 
+
 def test_apply_update_success_writes_files_and_marker(isolated_project, monkeypatch):
     content_a = b"hello world"
     files = ["a.txt"]
@@ -106,14 +111,19 @@ def test_apply_update_success_writes_files_and_marker(isolated_project, monkeypa
     assert ok is True
     assert (isolated_project / "a.txt").read_bytes() == content_a
     assert not os.path.isdir(updater.STAGING_DIR), "staging должен быть очищен после применения"
-    assert os.path.exists(updater.ROLLBACK_MARKER), "маркер должен появиться сразу после apply_update"
-    assert os.path.isdir(updater.BACKUP_DIR), "backup должен существовать до confirm_update_success()"
+    assert os.path.exists(
+        updater.ROLLBACK_MARKER
+    ), "маркер должен появиться сразу после apply_update"
+    assert os.path.isdir(
+        updater.BACKUP_DIR
+    ), "backup должен существовать до confirm_update_success()"
 
     local_version = json.loads((isolated_project / "version.json").read_text(encoding="utf-8"))
     assert local_version["version"] == "1.0.1"
 
 
 # ───────────────────────── apply_update: битый SHA256 ─────────────────────────
+
 
 def test_apply_update_aborts_on_bad_checksum_and_touches_nothing(isolated_project, monkeypatch):
     # исходный рабочий файл — должен остаться нетронутым
@@ -125,12 +135,21 @@ def test_apply_update_aborts_on_bad_checksum_and_touches_nothing(isolated_projec
     remote_info = {"version": "1.0.1", "files": files, "sha256": wrong_sha256_map}
     _mock_urlopen({"a.txt": content_a}, remote_info, monkeypatch)
 
-    ok = updater.apply_update(files, sha256_map=wrong_sha256_map)
+    ok = updater.apply_update(
+        files,
+        sha256_map=wrong_sha256_map,
+        sha_mismatch_retries=0,  # без повторов — тест не должен ждать backoff
+        sha_mismatch_delay=0,  # без реальных time.sleep между попытками
+    )
 
     assert ok is False
-    assert (isolated_project / "a.txt").read_bytes() == b"OLD CONTENT", "рабочий файл не должен был измениться"
+    assert (
+        isolated_project / "a.txt"
+    ).read_bytes() == b"OLD CONTENT", "рабочий файл не должен был измениться"
     assert not os.path.isdir(updater.STAGING_DIR)
-    assert not os.path.isdir(updater.BACKUP_DIR), "backup не должен создаваться при провале проверки"
+    assert not os.path.isdir(
+        updater.BACKUP_DIR
+    ), "backup не должен создаваться при провале проверки"
     assert not os.path.exists(updater.ROLLBACK_MARKER)
 
     local_version = json.loads((isolated_project / "version.json").read_text(encoding="utf-8"))
@@ -138,6 +157,7 @@ def test_apply_update_aborts_on_bad_checksum_and_touches_nothing(isolated_projec
 
 
 # ───────────────────────── rollback ─────────────────────────
+
 
 def test_rollback_restores_previous_file_content(isolated_project, monkeypatch):
     (isolated_project / "a.txt").write_bytes(b"OLD CONTENT")
@@ -182,6 +202,7 @@ def test_confirm_update_success_clears_marker_and_backup(isolated_project, monke
 
 # ───────────────────────── check_startup_health: сценарий двойного сбоя ─────────────────────────
 
+
 def test_startup_health_rolls_back_after_second_unconfirmed_launch(isolated_project, monkeypatch):
     (isolated_project / "a.txt").write_bytes(b"OLD CONTENT")
 
@@ -197,12 +218,16 @@ def test_startup_health_rolls_back_after_second_unconfirmed_launch(isolated_proj
     # Запуск №1 после обновления — приложение "падает" до confirm_update_success()
     status_1 = updater.check_startup_health()
     assert status_1 == "first_attempt"
-    assert (isolated_project / "a.txt").read_bytes() == b"NEW CONTENT", "файлы ещё не должны откатываться"
+    assert (
+        isolated_project / "a.txt"
+    ).read_bytes() == b"NEW CONTENT", "файлы ещё не должны откатываться"
 
     # Запуск №2 — снова не подтверждён (симулируем повторный сбой) → должен произойти откат
     status_2 = updater.check_startup_health()
     assert status_2 == "rolled_back"
-    assert (isolated_project / "a.txt").read_bytes() == b"OLD CONTENT", "после второго сбоя файлы должны откатиться"
+    assert (
+        isolated_project / "a.txt"
+    ).read_bytes() == b"OLD CONTENT", "после второго сбоя файлы должны откатиться"
     assert not os.path.exists(updater.ROLLBACK_MARKER)
 
 
@@ -211,6 +236,7 @@ def test_startup_health_ok_when_no_pending_update(isolated_project):
 
 
 # ───────────────────────── повторные неудачные загрузки ─────────────────────────
+
 
 def test_apply_update_fails_cleanly_when_file_missing_from_server(isolated_project, monkeypatch):
     files = ["a.txt", "missing.txt"]

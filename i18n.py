@@ -17,12 +17,12 @@ LANGUAGES = {
         "btn_update": "⚙ Настройки",
         "btn_ai_status": "🔌 AI статус",
         # ── Voice Reference Card ──
-         "card_voice_ref": "🎤 Голос-референс",
-         "btn_pick_ref": "📁 Выбрать",
-         "ref_info": "✅ Конвертиртация в WAV\n✅ Обрезка\n✅ Нормализация",
-         # ── Voice Library ──
-         "card_voice_lib": "📚 Библиотека голосов",
-         "tip_pick_from_lib": "Выбрать голос из библиотеки",
+        "card_voice_ref": "🎤 Голос-референс",
+        "btn_pick_ref": "📁 Выбрать",
+        "ref_info": "✅ Конвертиртация в WAV\n✅ Обрезка\n✅ Нормализация",
+        # ── Voice Library ──
+        "card_voice_lib": "📚 Библиотека голосов",
+        "tip_pick_from_lib": "Выбрать голос из библиотеки",
         "active_voice": "🎤 Активный голос: {}",
         # ── Queue ──
         "card_queue": "📋 Очередь задач",
@@ -431,7 +431,6 @@ LANGUAGES = {
         "local_catalog_discard_confirm_title": "Удалить кэш загрузки?",
         "local_catalog_discard_confirm_msg": "Удалить частично скачанные данные модели «{}»?\nВесь прогресс скачивания будет потерян.",
         "local_catalog_discard_done": "Кэш загрузки удалён",
-
         "local_catalog_stop_btn": "⏹ Стоп",
         "local_catalog_stopping_btn": "⏹ …",
         "local_catalog_stopping": "Останавливаю загрузку…",
@@ -611,7 +610,6 @@ LANGUAGES = {
         "theme_saved_dlg_title": "Тема",
         "theme_saved_live_applied": "Настройки сохранены. Цвета и размер шрифта применены сразу\nк этому окну и новым виджетам (остальные открытые окна и\nчисло рядов тулбара обновятся после их следующего открытия\nили перезапуска приложения).",
         "theme_saved_needs_restart": "Настройки сохранены! Цвета и размер шрифта применятся ко\nвсем окнам при следующем открытии, полностью — после\nперезапуска приложения.",
-
         # ── Fallback keys (legacy names from theme_settings THEME_UI_FALLBACKS_RU) ──
         "theme_font_label": "Шрифт интерфейса:",
         "theme_font_size": "Размер шрифта:",
@@ -635,7 +633,6 @@ LANGUAGES = {
         "theme_header_effects_label": "Неоновые эффекты:",
         "theme_header_rainbow": "Неоновый заголовок «XTTS Studio»",
         "theme_header_rainbow_desc": "Неоновое свечение и перелив цвета на тексте заголовка.\nКадры предгенерированы — нагрузка на CPU минимальна.",
-
         # ── Кастомизация радужного заголовка ──
         "theme_header_rainbow_speed": "Скорость анимации:",
         "theme_header_rainbow_speed_fast": "Быстро",
@@ -647,7 +644,6 @@ LANGUAGES = {
         "theme_header_rainbow_spread": "Длина неона:",
         "theme_header_rainbow_reset_style": "↺ Сбросить неоновые параметры",
         "theme_header_rainbow_style_hint": "Параметры применяются после «Сохранить»\n(неоновый заголовок пересоберётся с новыми настройками).",
-
         "theme_header_rainbow_cfg_btn": "⚙",
         "theme_header_rainbow_panel_title": "Настройки неона",
         "theme_header_rainbow_target_title": "Заголовок «XTTS Studio»",
@@ -661,7 +657,6 @@ LANGUAGES = {
         "theme_header_rainbow_clear_colors": "Очистить",
         "theme_header_rainbow_colors_hint": "Минимум 2 цвета. Неоновый градиент бежит по палитре.",
         "theme_header_rainbow_collapse": "Свернуть",
-
         "win_update_settings_title": "⚙ Системные настройки, CUDA и обновления",
         "section_updates": "📋 Обновления",
         "chk_auto_check": "Автоматически проверять обновления при запуске",
@@ -680,7 +675,6 @@ LANGUAGES = {
         "torch_install_failed_label": "❌ Ошибка при установке.",
         "torch_broken_error_title": "⚠️ PyTorch повреждён",
         "torch_broken_error_msg": "PyTorch повреждён или отсутствует.\n\nНажмите [Да], чтобы открыть настройки обновлений и переустановить.\nНажмите [Нет], чтобы продолжить запуск (частичная функциональность).\nНажмите [Отмена], чтобы закрыть приложение.",
-
         "btn_cancel_install": "⏹ Прервать установку",
         "btn_resume_install": "▶ Продолжить скачивание",
         "btn_clean_cache": "🧹 Очистить кэш и мусор",
@@ -695,11 +689,8 @@ LANGUAGES = {
         "msg_diagnostics_success": "✅ Все компоненты системы работают штатно!\n\nВсе проверенные библиотеки (PyTorch, NumPy, Coqui-TTS, Pygame, CustomTkinter, Llama-cpp и др.) успешно импортированы и функционируют без сбоев.\n\nВерсия PyTorch: {}\nCUDA (аппаратное ускорение): {}",
         "msg_diagnostics_failed": "❌ PyTorch не функционирует или повреждён.\n\nОшибка импорта:\n{}\n\nРекомендуется переустановить PyTorch, выбрав нужный вариант ниже.",
         "msg_torch_already_loaded_restart_confirm": "PyTorch уже загружен в память текущего процесса.\n\nДля безопасной переустановки необходимо перезапустить приложение в режиме обновления (без фоновой загрузки движка в память), чтобы освободить системные файлы Windows от блокировок.\n\nПерезапустить сейчас?",
-
         "msg_cuda_requires_nvidia": "Для GPU-ускорения (CUDA) требуется видеокарта NVIDIA.\n\nНа вашем устройстве обнаружена видеокарта другого производителя, которая не поддерживает технологию CUDA.\n\nПожалуйста, используйте режим «Только CPU».",
-
         "torch_device_preference": "Предпочитаемый режим устройства",
-
         "btn_error_recovery": "🛠️ Устранение ошибок",
         "lbl_scan_mode": "🔍 Режим сканирования:",
         "opt_scan_fast": "Быстрое сканирование",
@@ -710,7 +701,6 @@ LANGUAGES = {
         "msg_recovery_confirm": "Обнаружены удаленные файлы, которые могли принадлежать следующим пакетам: {}.\n\nЗапустить автоматическую переустановку и восстановление этих пакетов?",
         "msg_recovery_success": "Успешно восстановлены следующие компоненты:\n{}",
         "msg_recovery_no_files": "История удалений пуста. Все файлы на своих местах, ошибок удалений не зафиксировано.",
-        
         # ── RVC Integration & System Dependencies (НОВОЕ) ──
         "card_rvc": "🎙️ RVC Улучшение голоса",
         "chk_rvc_enable": "Использовать RVC пост-обработку",
@@ -916,8 +906,8 @@ LANGUAGES = {
         "conductor_rewrite_desc": "AI will rework the text to a given genre or mood\nbefore generation. Engine parameters are assigned to the new text.",
         "conductor_style_prompt": "Style prompt:",
         "conductor_negative_prompt": "Negative prompt (what to avoid):",
-        "conductor_style_placeholder": "Enable \"Style prompt\" above to set the style",
-        "conductor_negative_placeholder": "Enable \"Style prompt\" above to set restrictions",
+        "conductor_style_placeholder": 'Enable "Style prompt" above to set the style',
+        "conductor_negative_placeholder": 'Enable "Style prompt" above to set restrictions',
         "conductor_provider_label": "Provider: {}",
         "conductor_provider_none": "Provider: not configured",
         "btn_save": "✓  Save",
@@ -1164,7 +1154,6 @@ LANGUAGES = {
         "local_catalog_discard_confirm_title": "Discard download cache?",
         "local_catalog_discard_confirm_msg": "Discard the partially downloaded data for \u00ab{}\u00bb?\nAll download progress will be lost.",
         "local_catalog_discard_done": "Download cache discarded",
-
         "local_catalog_stop_btn": "⏹ Stop",
         "local_catalog_stopping_btn": "⏹ …",
         "local_catalog_stopping": "Stopping download…",
@@ -1288,8 +1277,8 @@ LANGUAGES = {
         "theme_color_bg_card": "Card Background",
         "theme_color_bg_input": "Input Field Background",
         "theme_color_bg_hover": "Hover Background",
-        "theme_color_bg_active": "\"Generate\" Button",
-        "theme_color_bg_danger": "\"Cancel/Stop\" Button",
+        "theme_color_bg_active": '"Generate" Button',
+        "theme_color_bg_danger": '"Cancel/Stop" Button',
         "theme_color_text_main": "Main Text",
         "theme_color_text_dim": "Dimmed Text",
         "theme_color_text_success": "Success Text",
@@ -1309,13 +1298,13 @@ LANGUAGES = {
         "theme_color_ai_accent_hover": "AI — Accent (hover)",
         "theme_color_ai_group_bg": "AI — Toolbar Background",
         "theme_color_group_bg": "Toolbar — Group Background",
-        "theme_color_group_file_bg": "\"File\" Group",
-        "theme_color_group_output_bg": "\"Output\" Group",
-        "theme_color_group_action_bg": "\"Action\" Group",
+        "theme_color_group_file_bg": '"File" Group',
+        "theme_color_group_output_bg": '"Output" Group',
+        "theme_color_group_action_bg": '"Action" Group',
         "theme_color_gradient_bottom": "Background Gradient (bottom)",
         # ── Typography section ──
         "theme_font_section_title": "Interface Font Size",
-        "theme_font_section_desc": "Changes the text size across the whole app (buttons, labels,\nconsole, windows). Does NOT affect the text input field — it\nhas its own font size (the \"Aa\" button next to the input field).",
+        "theme_font_section_desc": 'Changes the text size across the whole app (buttons, labels,\nconsole, windows). Does NOT affect the text input field — it\nhas its own font size (the "Aa" button next to the input field).',
         # ── Layout section ──
         "theme_layout_restart_note": "Most layout parameters apply immediately.\nThe number of toolbar rows (Compact ⇄ Classic/Wide) will take\neffect only after restarting the application.",
         # ── Presets section ──
@@ -1339,12 +1328,11 @@ LANGUAGES = {
         # ── Full reset ──
         "theme_reset_all_dlg_title": "Reset Settings",
         "theme_reset_all_confirm": "Reset ALL theme settings (colors, font size, layout)\nto factory defaults? Saved named presets will NOT\nbe deleted.",
-        "theme_reset_all_done": "Fields have been reset to factory defaults.\nClick \"Save\" to apply.",
+        "theme_reset_all_done": 'Fields have been reset to factory defaults.\nClick "Save" to apply.',
         # ── Save theme (bottom buttons) ──
         "theme_saved_dlg_title": "Theme",
         "theme_saved_live_applied": "Settings saved. Colors and font size have been applied\nimmediately to this window and new widgets (other open windows\nand the number of toolbar rows will update after they are\nnext opened or the application is restarted).",
         "theme_saved_needs_restart": "Settings saved! Colors and font size will apply to all\nwindows the next time they are opened, fully — after\nrestarting the application.",
-
         # ── Fallback keys (legacy names from theme_settings THEME_UI_FALLBACKS_RU) ──
         "theme_font_label": "Interface font:",
         "theme_font_size": "Font size:",
@@ -1368,7 +1356,6 @@ LANGUAGES = {
         "theme_header_effects_label": "Neon effects:",
         "theme_header_rainbow": "Neon title «XTTS Studio»",
         "theme_header_rainbow_desc": "Neon glow and color shimmer on the title text.\nFrames are pre-generated — CPU load is minimal.",
-
         # ── Rainbow title customization ──
         "theme_header_rainbow_speed": "Animation speed:",
         "theme_header_rainbow_speed_fast": "Fast",
@@ -1379,8 +1366,7 @@ LANGUAGES = {
         "theme_header_rainbow_hue": "Hue shift:",
         "theme_header_rainbow_spread": "Neon length:",
         "theme_header_rainbow_reset_style": "↺ Reset neon parameters",
-        "theme_header_rainbow_style_hint": "Parameters apply after \"Save\"\n(the neon title will rebuild with the new settings).",
-
+        "theme_header_rainbow_style_hint": 'Parameters apply after "Save"\n(the neon title will rebuild with the new settings).',
         "theme_header_rainbow_cfg_btn": "⚙",
         "theme_header_rainbow_panel_title": "Neon settings",
         "theme_header_rainbow_target_title": "Title «XTTS Studio»",
@@ -1394,7 +1380,6 @@ LANGUAGES = {
         "theme_header_rainbow_clear_colors": "Clear",
         "theme_header_rainbow_colors_hint": "At least 2 colors. The neon gradient cycles through the palette.",
         "theme_header_rainbow_collapse": "Collapse",
-
         "win_update_settings_title": "⚙ System Settings, CUDA & Updates",
         "section_updates": "📋 Updates",
         "chk_auto_check": "Automatically check for updates on startup",
@@ -1413,7 +1398,6 @@ LANGUAGES = {
         "torch_install_failed_label": "❌ Installation failed.",
         "torch_broken_error_title": "⚠️ PyTorch Damaged",
         "torch_broken_error_msg": "PyTorch is damaged or missing.\n\nClick [Yes] to open Update Settings and reinstall.\nClick [No] to continue launch (partial functionality).\nClick [Cancel] to exit the application.",
-
         "btn_cancel_install": "⏹ Stop installation",
         "btn_resume_install": "▶ Resume downloading",
         "btn_clean_cache": "🧹 Clean cache & temp files",
@@ -1428,11 +1412,8 @@ LANGUAGES = {
         "msg_diagnostics_success": "✅ All system components are working normally!\n\nAll tested libraries (PyTorch, NumPy, Coqui-TTS, Pygame, CustomTkinter, Llama-cpp, etc.) are successfully imported and operating without issues.\n\nPyTorch version: {}\nCUDA (hardware acceleration): {}",
         "msg_diagnostics_failed": "❌ PyTorch is not working or is damaged.\n\nImport error:\n{}\n\nIt is recommended to reinstall PyTorch by selecting a variant below.",
         "msg_torch_already_loaded_restart_confirm": "PyTorch is already loaded in the memory of the current process.\n\nTo reinstall safely, the application must be restarted in update mode (without background engine loading) to release Windows system files from locks.\n\nRestart now?",
-
         "msg_cuda_requires_nvidia": "GPU acceleration (CUDA) requires an NVIDIA graphics card.\n\nYour device has a graphics card from another manufacturer, which does not support CUDA technology.\n\nPlease use the 'CPU-only' mode.",
-
         "torch_device_preference": "Preferred device mode",
-
         "btn_error_recovery": "🛠️ Error Recovery",
         "lbl_scan_mode": "🔍 Scanning Mode:",
         "opt_scan_fast": "Fast Scan",
@@ -1443,7 +1424,6 @@ LANGUAGES = {
         "msg_recovery_confirm": "Deleted files were detected that may belong to the following packages: {}.\n\nLaunch automatic reinstallation and recovery for these packages?",
         "msg_recovery_success": "Successfully restored the following components:\n{}",
         "msg_recovery_no_files": "Deletion history is empty. All files are in place, no deletion errors registered.",
-        
         # ── RVC Integration & System Dependencies ──
         "card_rvc": "🎙️ RVC Voice Enhancement",
         "chk_rvc_enable": "Enable RVC Post-processing",
@@ -1478,6 +1458,7 @@ LANGUAGES = {
     },
 }
 
+
 def t(key: str, *args) -> str:
     text = LANGUAGES.get(_current_lang, LANGUAGES["ru"]).get(key)
     if text is None:
@@ -1489,16 +1470,16 @@ def t(key: str, *args) -> str:
             return text
     return text
 
+
 def set_language(lang: str) -> None:
     global _current_lang
     if lang in LANGUAGES:
         _current_lang = lang
 
+
 def _load_saved_language() -> None:
     try:
-        settings_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "settings.json"
-        )
+        settings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
         with open(settings_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         lang = data.get("ui_language")
@@ -1507,7 +1488,9 @@ def _load_saved_language() -> None:
     except Exception:
         pass
 
+
 _load_saved_language()
+
 
 def get_language() -> str:
     return _current_lang

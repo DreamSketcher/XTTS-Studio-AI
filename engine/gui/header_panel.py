@@ -35,7 +35,7 @@ ui_lang_btn = None
 # --- Rainbow header state ---
 _title_label = None
 _title_canvas = None
-_rainbow_frames = []   # list[PhotoImage] – держим ссылки, иначе GC съест
+_rainbow_frames = []  # list[PhotoImage] – держим ссылки, иначе GC съест
 _rainbow_timer = None
 _rainbow_index = 0
 _rainbow_enabled = False
@@ -98,11 +98,13 @@ def switch_ui_lang():
         pass
     try:
         from engine import gpt_client as _gpt
+
         _gpt.refresh_i18n_labels()
     except Exception:
         pass
     try:
         from engine.gui import chat_window as _chat_window
+
         _chat_window.reapply_language()
     except Exception:
         pass
@@ -116,6 +118,7 @@ _switch_ui_lang = switch_ui_lang
 def _is_rainbow_enabled() -> bool:
     try:
         from engine.gui import theme_manager as tm
+
         return bool(tm.get_header_rainbow())
     except Exception:
         return False
@@ -124,6 +127,7 @@ def _is_rainbow_enabled() -> bool:
 def _is_author_rainbow_enabled() -> bool:
     try:
         from engine.gui import theme_manager as tm
+
         return bool(tm.get_header_author_rainbow())
     except Exception:
         return False
@@ -132,12 +136,22 @@ def _is_author_rainbow_enabled() -> bool:
 def _default_style(kind: str = "title") -> dict:
     if kind == "author":
         return {
-            "speed_ms": 50, "saturation": 0.75, "brightness": 0.95,
-            "hue_offset": 0.15, "spread": 1.0, "mode": "hsv", "colors": [],
+            "speed_ms": 50,
+            "saturation": 0.75,
+            "brightness": 0.95,
+            "hue_offset": 0.15,
+            "spread": 1.0,
+            "mode": "hsv",
+            "colors": [],
         }
     return {
-        "speed_ms": 40, "saturation": 0.85, "brightness": 1.0,
-        "hue_offset": 0.0, "spread": 1.0, "mode": "hsv", "colors": [],
+        "speed_ms": 40,
+        "saturation": 0.85,
+        "brightness": 1.0,
+        "hue_offset": 0.0,
+        "spread": 1.0,
+        "mode": "hsv",
+        "colors": [],
     }
 
 
@@ -147,6 +161,7 @@ def _load_rainbow_style() -> dict:
     defaults = _default_style("title")
     try:
         from engine.gui import theme_manager as tm
+
         style = tm.get_header_rainbow_style()
         if isinstance(style, dict):
             defaults.update(style)
@@ -161,6 +176,7 @@ def _load_author_style() -> dict:
     defaults = _default_style("author")
     try:
         from engine.gui import theme_manager as tm
+
         style = tm.get_header_author_rainbow_style()
         if isinstance(style, dict):
             defaults.update(style)
@@ -182,6 +198,7 @@ def _style_signature(style: dict | None = None) -> tuple:
         str(s.get("mode", "hsv")),
         colors,
     )
+
 
 def _stop_rainbow():
     global _rainbow_timer
@@ -215,7 +232,7 @@ def _start_rainbow():
         if root is not None:
             # state normal?
             try:
-                if root.state() == 'iconic':
+                if root.state() == "iconic":
                     # окно свёрнуто — ждём
                     _rainbow_timer = root.after(500, _start_rainbow)
                     return
@@ -226,6 +243,7 @@ def _start_rainbow():
     except Exception:
         pass
     _rainbow_tick()
+
 
 def _rainbow_tick():
     global _rainbow_timer, _rainbow_index
@@ -310,6 +328,7 @@ def _start_underline():
 def _underline_tick():
     global _underline_timer, _underline_hue
     import colorsys
+
     try:
         if _title_underline is None and _author_underline is None:
             _underline_timer = None
@@ -333,7 +352,9 @@ def _underline_tick():
         _underline_timer = None
 
 
-def _build_rainbow_frames(text: str, font_size: int, style: dict | None = None, n_frames: int | None = None):
+def _build_rainbow_frames(
+    text: str, font_size: int, style: dict | None = None, n_frames: int | None = None
+):
     """Генерирует N кадров радужного текста заранее (Pillow).
     style: dict параметров (title или author). Возвращает list[PhotoImage].
     Не трогает глобальный кэш кадров — вызывающий сам сохраняет результат."""
@@ -356,6 +377,7 @@ def _build_rainbow_frames(text: str, font_size: int, style: dict | None = None, 
     for fp in font_names_try:
         try:
             import os
+
             if os.path.exists(fp):
                 font = ImageFont.truetype(fp, font_size)
                 break
@@ -404,6 +426,7 @@ def _build_rainbow_frames(text: str, font_size: int, style: dict | None = None, 
     # Неоновая «ореола» — одна размытая маска на все кадры (не per-frame)
     try:
         from PIL import ImageFilter
+
         br = max(3.0, glow_r * 0.7)
         glow_mask = text_mask.filter(ImageFilter.GaussianBlur(radius=br))
         glow_mask = Image.eval(glow_mask, lambda p: min(255, int(p * 1.25)))
@@ -530,6 +553,7 @@ def _build_rainbow_frames(text: str, font_size: int, style: dict | None = None, 
         out = []
     return out
 
+
 def _apply_rainbow_to_title(parent, text):
     """Заменяет обычный Label на Canvas с анимацией, если эффект включён"""
     global _title_label, _title_canvas, _title_canvas_img, _rainbow_frames, _rainbow_enabled, _rainbow_index, _rainbow_font_size, _rainbow_last_scale
@@ -560,7 +584,7 @@ def _apply_rainbow_to_title(parent, text):
             text=text,
             bg=Colors.BG_CARD,
             fg=Colors.TEXT_MAIN,
-            font=("Segoe UI", font_sz, "bold")
+            font=("Segoe UI", font_sz, "bold"),
         )
         _title_label.pack(side="left", padx=(4, 0))
         return _title_label
@@ -578,8 +602,13 @@ def _apply_rainbow_to_title(parent, text):
     if not frames:
         # fallback на обычный Label если генерация не удалась
         _rainbow_enabled = False
-        lbl = tk.Label(parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-                       font=("Segoe UI", font_sz, "bold"))
+        lbl = tk.Label(
+            parent,
+            text=text,
+            bg=Colors.BG_CARD,
+            fg=Colors.TEXT_MAIN,
+            font=("Segoe UI", font_sz, "bold"),
+        )
         lbl.pack(side="left", padx=(4, 0))
         _title_label = lbl
         return lbl
@@ -596,8 +625,7 @@ def _apply_rainbow_to_title(parent, text):
         bg = parent.cget("bg")
     except Exception:
         bg = Colors.BG_CARD
-    _title_canvas = tk.Canvas(parent, width=w, height=h, bg=bg,
-                              highlightthickness=0, bd=0)
+    _title_canvas = tk.Canvas(parent, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
     _title_canvas.pack(side="left", padx=(4, 0))
     _title_canvas_img = _title_canvas.create_image(0, 0, anchor="nw", image=frames[0])
     # сохраняем id картинки в глобальной переменной для _rainbow_tick
@@ -607,8 +635,10 @@ def _apply_rainbow_to_title(parent, text):
     # старт анимации, с паузой если окно не в фокусе
     def _on_map(e):
         _start_rainbow()
+
     def _on_unmap(e):
         _stop_rainbow()
+
     try:
         _title_canvas.bind("<Map>", _on_map, add="+")
         _title_canvas.bind("<Unmap>", _on_unmap, add="+")
@@ -646,7 +676,10 @@ def _apply_rainbow_to_author(parent, text):
 
     if not enabled:
         _author_label = tk.Label(
-            parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+            parent,
+            text=text,
+            bg=Colors.BG_CARD,
+            fg=Colors.TEXT_DIM,
             font=("Segoe UI", font_sz),
         )
         _author_label.pack(side="left")
@@ -656,7 +689,10 @@ def _apply_rainbow_to_author(parent, text):
     if not frames:
         _author_enabled = False
         _author_label = tk.Label(
-            parent, text=text, bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
+            parent,
+            text=text,
+            bg=Colors.BG_CARD,
+            fg=Colors.TEXT_DIM,
             font=("Segoe UI", font_sz),
         )
         _author_label.pack(side="left")
@@ -671,16 +707,17 @@ def _apply_rainbow_to_author(parent, text):
         bg = parent.cget("bg")
     except Exception:
         bg = Colors.BG_CARD
-    _author_canvas = tk.Canvas(parent, width=w, height=h, bg=bg,
-                               highlightthickness=0, bd=0)
+    _author_canvas = tk.Canvas(parent, width=w, height=h, bg=bg, highlightthickness=0, bd=0)
     _author_canvas.pack(side="left")
     _author_canvas_img = _author_canvas.create_image(0, 0, anchor="nw", image=frames[0])
     globals()["_author_canvas_img"] = _author_canvas_img
 
     def _on_map(e):
         _start_author_rainbow()
+
     def _on_unmap(e):
         _stop_author_rainbow()
+
     try:
         _author_canvas.bind("<Map>", _on_map, add="+")
         _author_canvas.bind("<Unmap>", _on_unmap, add="+")
@@ -722,8 +759,7 @@ def build_header(left_panel):
     _title_label.pack(side="left", padx=(0, 0))
 
     # ── Подчёркивание заголовка (переливающееся) ──
-    _title_underline = tk.Canvas(title_card, height=1, bg="#ffffff",
-                                  highlightthickness=0, bd=0)
+    _title_underline = tk.Canvas(title_card, height=1, bg="#ffffff", highlightthickness=0, bd=0)
     _title_underline.pack(fill="x", padx=20, pady=(2, 6))
 
     # ── Подпись с акцентной полоской ──
@@ -741,8 +777,7 @@ def build_header(left_panel):
     _author_label.pack(side="left")
 
     # ── Подчёркивание подписи (переливающееся) ──
-    _author_underline = tk.Canvas(title_card, height=1, bg="#ffffff",
-                                   highlightthickness=0, bd=0)
+    _author_underline = tk.Canvas(title_card, height=1, bg="#ffffff", highlightthickness=0, bd=0)
     _author_underline.pack(fill="x", padx=20, pady=(2, 10))
 
     def _deferred_neon_title():
@@ -794,15 +829,18 @@ def build_header(left_panel):
         pass
     header_btn_row = tk.Frame(header_frame, bg=Colors.BG_DARK)
     header_btn_row.pack(anchor="w", pady=(4, 0))
-    upd_btn = create_button(header_btn_row, t("btn_update"), check_and_update,
-                            bg=Colors.BG_INPUT, font_size=10)
+    upd_btn = create_button(
+        header_btn_row, t("btn_update"), check_and_update, bg=Colors.BG_INPUT, font_size=10
+    )
     upd_btn.pack(side="left")
-    ai_status_btn = create_button(header_btn_row, t("btn_ai_status"), open_ai_status_window,
-                                  bg=Colors.BG_INPUT, font_size=10)
+    ai_status_btn = create_button(
+        header_btn_row, t("btn_ai_status"), open_ai_status_window, bg=Colors.BG_INPUT, font_size=10
+    )
     ai_status_btn.pack(side="left", padx=(6, 0))
     # ── UI Language Switcher (функция switch_ui_lang — на уровне модуля) ──
-    ui_lang_btn = create_button(header_btn_row, "RU/EN", switch_ui_lang,
-                                bg=Colors.BG_INPUT, font_size=10, width=50)
+    ui_lang_btn = create_button(
+        header_btn_row, "RU/EN", switch_ui_lang, bg=Colors.BG_INPUT, font_size=10, width=50
+    )
     ui_lang_btn.pack(side="left", padx=(6, 0))
     ToolTip(ui_lang_btn, t("lang_switch_tip"))
     left_panel.update_idletasks()
@@ -815,10 +853,12 @@ def apply_layout(preset: dict) -> bool:
     try:
         from engine.gui.colors import scaled_font_size as _sc
         from i18n import t as _t
+
         new_sz = _sc(16)
         global _rainbow_last_scale, _rainbow_enabled, _author_enabled, _author_style_sig
         try:
             from engine.gui import theme_manager as _tm
+
             want_rainbow = bool(_tm.get_header_rainbow())
             want_author = bool(_tm.get_header_author_rainbow())
         except Exception:

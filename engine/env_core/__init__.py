@@ -7,8 +7,8 @@ engine/env_core/__init__.py — Единая точка доступа к мет
 from engine.env_core.cpu_gpu import (
     detect_cpu,
     detect_gpu,
-    PYTHON_EXE, # Экспортируем PYTHON_EXE в публичный интерфейс
-    PROJECT_ROOT, # Экспортируем PROJECT_ROOT для динамических путей в GUI
+    PYTHON_EXE,  # Экспортируем PYTHON_EXE в публичный интерфейс
+    PROJECT_ROOT,  # Экспортируем PROJECT_ROOT для динамических путей в GUI
 )
 
 from engine.env_core.torch_setup import (
@@ -26,7 +26,7 @@ from engine.env_core.torch_setup import (
     TORCH_VERSION,
     TORCHAUDIO_VERSION,
     TORCHVISION_VERSION,
-    SITE_PACKAGES, # Экспортируем SITE_PACKAGES в публичный интерфейс для пип-установок
+    SITE_PACKAGES,  # Экспортируем SITE_PACKAGES в публичный интерфейс для пип-установок
 )
 
 from engine.env_core.llama_setup import (
@@ -61,6 +61,7 @@ from engine.env_core.diagnostics import (
     CRITICAL_COMPONENTS,
     OPTIONAL_COMPONENTS,
 )
+
 
 # Функция обратной совместимости, возвращающая список sitepackages
 def get_site_packages() -> list:

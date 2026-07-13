@@ -39,7 +39,7 @@ class AdaptiveSilenceTrimmer:
     def _find_start(self, audio, silence_thresh):
         step = 10
         for i in range(0, len(audio), step):
-            chunk = audio[i:i + step]
+            chunk = audio[i : i + step]
             if chunk.dBFS > silence_thresh:
                 return i
         return 0
@@ -47,7 +47,7 @@ class AdaptiveSilenceTrimmer:
     def _find_end(self, audio, silence_thresh):
         step = 10
         for i in range(len(audio), 0, -step):
-            chunk = audio[max(0, i - step):i]
+            chunk = audio[max(0, i - step) : i]
             if chunk.dBFS > silence_thresh:
                 return len(audio) - i
         return 0
@@ -65,10 +65,10 @@ class SNRAnalyzer:
     """
 
     # пороги оценки качества
-    EXCELLENT_DB = 25.0   # отличный референс
-    GOOD_DB      = 15.0   # хороший
-    POOR_DB      = 8.0    # плохой — предупреждение
-    BAD_DB       = 3.0    # очень плохой — сильное предупреждение
+    EXCELLENT_DB = 25.0  # отличный референс
+    GOOD_DB = 15.0  # хороший
+    POOR_DB = 8.0  # плохой — предупреждение
+    BAD_DB = 3.0  # очень плохой — сильное предупреждение
 
     def analyze(self, audio: AudioSegment) -> dict:
         """
@@ -98,14 +98,14 @@ class SNRAnalyzer:
         if n_frames < 4:
             return {"snr_db": 0.0, "quality": "unknown", "warning": None}
 
-        frames = arr[:n_frames * frame_size].reshape(n_frames, frame_size)
-        rms_per_frame = np.sqrt(np.mean(frames ** 2, axis=1))
+        frames = arr[: n_frames * frame_size].reshape(n_frames, frame_size)
+        rms_per_frame = np.sqrt(np.mean(frames**2, axis=1))
 
         # речевые фреймы — верхние 30% по громкости
         # шумовые фреймы — нижние 20% по громкости
         sorted_rms = np.sort(rms_per_frame)
-        noise_rms   = np.mean(sorted_rms[:max(1, int(n_frames * 0.20))]) + 1e-9
-        speech_rms  = np.mean(sorted_rms[int(n_frames * 0.70):])         + 1e-9
+        noise_rms = np.mean(sorted_rms[: max(1, int(n_frames * 0.20))]) + 1e-9
+        speech_rms = np.mean(sorted_rms[int(n_frames * 0.70) :]) + 1e-9
 
         snr_db = 20 * np.log10(speech_rms / noise_rms)
 
@@ -136,7 +136,7 @@ class SNRAnalyzer:
             print(f"[SNR] ⚠ {warning}")
 
         return {
-            "snr_db":  round(snr_db, 1),
+            "snr_db": round(snr_db, 1),
             "quality": quality,
             "warning": warning,
         }
@@ -150,7 +150,7 @@ class ReferenceProcessor:
         self.backup_dir = Path(backup_dir).resolve()
         self.backup_dir.mkdir(exist_ok=True)
 
-        self.trimmer      = AdaptiveSilenceTrimmer()
+        self.trimmer = AdaptiveSilenceTrimmer()
         self.snr_analyzer = SNRAnalyzer()
 
         # опциональный колбэк для GUI: snr_callback(snr_result: dict)
@@ -190,11 +190,7 @@ class ReferenceProcessor:
     # CONVERT TO WAV
     # =========================
     def convert_to_wav(
-        self,
-        filepath: str,
-        voice_dir: Path,
-        target_sample_rate=24000,
-        mono=True
+        self, filepath: str, voice_dir: Path, target_sample_rate=24000, mono=True
     ) -> str:
 
         import gc
@@ -228,8 +224,7 @@ class ReferenceProcessor:
     # =========================
     # PROCESS AUDIO (CLEAN + NORMALIZE)
     # =========================
-    def process_audio(self, filepath: str, voice_dir: Path,
-                      target_dBFS=-16.0) -> str:
+    def process_audio(self, filepath: str, voice_dir: Path, target_dBFS=-16.0) -> str:
 
         import gc
         import time
@@ -245,13 +240,7 @@ class ReferenceProcessor:
         if duration_sec > 30:
             audio = audio[:30000]
 
-        audio = compress_dynamic_range(
-            audio,
-            threshold=-24.0,
-            ratio=3.0,
-            attack=5.0,
-            release=50.0
-        )
+        audio = compress_dynamic_range(audio, threshold=-24.0, ratio=3.0, attack=5.0, release=50.0)
 
         gain = target_dBFS - audio.dBFS
         audio = audio.apply_gain(gain)
@@ -294,7 +283,9 @@ class ReferenceProcessor:
         # не прогоняем повторно через compress_dynamic_range + gain,
         # иначе каждый повтор накопительно "сжимает" файл и завышает SNR.
         # =========================
-        if Path(filepath).name == "normalized.wav" and Path(filepath).is_relative_to(self.backup_dir):
+        if Path(filepath).name == "normalized.wav" and Path(filepath).is_relative_to(
+            self.backup_dir
+        ):
             try:
                 raw_audio = AudioSegment.from_file(filepath)
                 snr_result = self.snr_analyzer.analyze(raw_audio)

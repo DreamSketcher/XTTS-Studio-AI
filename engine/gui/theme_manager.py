@@ -12,10 +12,13 @@ import os
 # ВАЖНОЕ ПРАВИЛО ПРОЕКТА: любое обращение к путям — ТОЛЬКО через BASE_DIR из engine.paths
 try:
     from engine.paths import BASE_DIR
+
     THEME_FILE = os.path.join(str(BASE_DIR), "theme_settings.json")
 except Exception:
     # Fallback для обратной совместимости, если engine.paths ещё не подключен
-    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    _BASE_DIR = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
     THEME_FILE = os.path.join(_BASE_DIR, "theme_settings.json")
 
 DEFAULT_LAYOUT_PRESETS = {
@@ -33,7 +36,7 @@ DEFAULT_LAYOUT_PRESETS = {
         "console_height": 140,
         "statusbar_height": 24,
         "item_spacing": 8,
-        "padding_inner": 5
+        "padding_inner": 5,
     },
     "compact": {
         "left_panel_width": 220,
@@ -49,7 +52,7 @@ DEFAULT_LAYOUT_PRESETS = {
         "console_height": 100,
         "statusbar_height": 20,
         "item_spacing": 4,
-        "padding_inner": 3
+        "padding_inner": 3,
     },
     "wide": {
         "left_panel_width": 380,
@@ -65,8 +68,8 @@ DEFAULT_LAYOUT_PRESETS = {
         "console_height": 180,
         "statusbar_height": 28,
         "item_spacing": 10,
-        "padding_inner": 8
-    }
+        "padding_inner": 8,
+    },
 }
 
 DEFAULT_THEME = {
@@ -119,8 +122,8 @@ DEFAULT_THEME = {
         "brightness": 1.0,
         "hue_offset": 0.0,
         "spread": 1.0,
-        "mode": "hsv",          # "hsv" | "custom"
-        "colors": [],           # hex-цвета для mode=custom (цикл градиента)
+        "mode": "hsv",  # "hsv" | "custom"
+        "colors": [],  # hex-цвета для mode=custom (цикл градиента)
     },
     "header_author_rainbow_style": {
         "speed_ms": 50,
@@ -339,11 +342,13 @@ def set_font_base_size(base_size: int) -> bool:
 TOOLBAR_PANELS = ["file", "output", "ai", "action"]
 DEFAULT_TOOLBAR_ORDER = ["file", "output", "ai", "action"]
 
+
 def get_sidebar_side() -> str:
     """Возвращает 'left' или 'right'. По умолчанию 'left'."""
     data = load_theme()
     side = data.get("sidebar_side", "left")
     return side if side in ("left", "right") else "left"
+
 
 def set_sidebar_side(side: str) -> bool:
     side = (side or "left").lower()
@@ -358,6 +363,7 @@ def set_sidebar_side(side: str) -> bool:
     except Exception as e:
         print(f"[ThemeManager] set_sidebar_side error: {e}")
         return False
+
 
 def get_toolbar_order() -> list:
     """Возвращает порядок панелей тулбара. Гарантирует валидность."""
@@ -378,7 +384,8 @@ def get_toolbar_order() -> list:
             clean.append(x)
             seen.add(x)
     # Обрезаем лишнее
-    return clean[:len(TOOLBAR_PANELS)]
+    return clean[: len(TOOLBAR_PANELS)]
+
 
 def set_toolbar_order(order: list) -> bool:
     """Сохраняет порядок панелей тулбара. Принимает list[str]."""
@@ -411,8 +418,8 @@ DEFAULT_HEADER_RAINBOW_STYLE = {
     "brightness": 1.0,
     "hue_offset": 0.0,
     "spread": 1.0,
-    "mode": "hsv",       # "hsv" (классическая радуга) | "custom" (палитра colors)
-    "colors": [],        # ["#ff006e", "#8338ec", ...] — для mode=custom
+    "mode": "hsv",  # "hsv" (классическая радуга) | "custom" (палитра colors)
+    "colors": [],  # ["#ff006e", "#8338ec", ...] — для mode=custom
 }
 
 DEFAULT_HEADER_AUTHOR_RAINBOW_STYLE = {
@@ -455,9 +462,15 @@ def _normalize_rainbow_style(raw, defaults: dict | None = None) -> dict:
     if not isinstance(raw, dict):
         return base
     base["speed_ms"] = int(_clamp(raw.get("speed_ms", base["speed_ms"]), 16, 200, base["speed_ms"]))
-    base["saturation"] = round(_clamp(raw.get("saturation", base["saturation"]), 0.0, 1.0, base["saturation"]), 3)
-    base["brightness"] = round(_clamp(raw.get("brightness", base["brightness"]), 0.15, 1.0, base["brightness"]), 3)
-    base["hue_offset"] = round(_clamp(raw.get("hue_offset", base["hue_offset"]), 0.0, 1.0, base["hue_offset"]), 3)
+    base["saturation"] = round(
+        _clamp(raw.get("saturation", base["saturation"]), 0.0, 1.0, base["saturation"]), 3
+    )
+    base["brightness"] = round(
+        _clamp(raw.get("brightness", base["brightness"]), 0.15, 1.0, base["brightness"]), 3
+    )
+    base["hue_offset"] = round(
+        _clamp(raw.get("hue_offset", base["hue_offset"]), 0.0, 1.0, base["hue_offset"]), 3
+    )
     base["spread"] = round(_clamp(raw.get("spread", base["spread"]), 0.2, 2.0, base["spread"]), 3)
     mode = str(raw.get("mode", base.get("mode", "hsv"))).lower().strip()
     base["mode"] = mode if mode in ("hsv", "custom") else "hsv"

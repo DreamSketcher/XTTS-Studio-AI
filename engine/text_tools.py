@@ -2,6 +2,7 @@
 """engine/text_tools.py — нормализация текста (перенесено из gui.py: normalize_text)."""
 import re
 
+
 def normalize_text(text: str) -> str:
     if not text:
         return ""

@@ -55,6 +55,7 @@ _FALLBACK_MAP = {
     "MODELS_DIR": MODEL_DIR,
 }
 
+
 def __getattr__(name: str):
     """PEP 562: динамический атрибут модуля.
     Позволяет импортировать любое имя из engine.paths без ImportError.
@@ -81,9 +82,23 @@ def __getattr__(name: str):
     # 4. общий случай — вложенная папка по имени в нижнем регистре
     return os.path.join(BASE_DIR, name.lower())
 
+
 def __dir__():
-    return sorted(list(globals().keys()) + list(_FALLBACK_MAP.keys()) + [
-        "LOG_DIR", "REF_DIR", "MODEL_DIR", "LIBRARY_DIR", "CACHE_DIR",
-        "SETTINGS_PATH", "THEME_SETTINGS_PATH", "VOICE_DIR", "VOICES_DIR",
-        "AUDIO_OUTPUT_DIR", "TEMP_DIR", "TMP_DIR"
-    ])
+    return sorted(
+        list(globals().keys())
+        + list(_FALLBACK_MAP.keys())
+        + [
+            "LOG_DIR",
+            "REF_DIR",
+            "MODEL_DIR",
+            "LIBRARY_DIR",
+            "CACHE_DIR",
+            "SETTINGS_PATH",
+            "THEME_SETTINGS_PATH",
+            "VOICE_DIR",
+            "VOICES_DIR",
+            "AUDIO_OUTPUT_DIR",
+            "TEMP_DIR",
+            "TMP_DIR",
+        ]
+    )

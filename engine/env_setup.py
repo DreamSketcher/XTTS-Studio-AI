@@ -14,10 +14,9 @@ env_setup._read_pip_output) нужно переэкспортировать ЯВ
 AttributeError: module 'engine.env_setup' has no attribute '_read_pip_output'.
 """
 from engine.env_core.diagnostics import *
-from engine.env_core.torch_setup import *
-from engine.env_core.rvc_setup import *
-from engine.env_core.llama_setup import *
 
 # Явная переэкспортируем внутренние помощники с подчёркиванием,
 # которые используются установщиками напрямую через env_setup.<имя>.
-from engine.env_core.diagnostics import _read_pip_output
+from engine.env_core.llama_setup import *
+from engine.env_core.rvc_setup import *
+from engine.env_core.torch_setup import *

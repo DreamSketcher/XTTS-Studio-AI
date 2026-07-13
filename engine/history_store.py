@@ -7,6 +7,8 @@ from datetime import datetime
 from engine.paths import BASE_DIR
 
 HISTORY_PATH = os.path.join(BASE_DIR, "history.json")
+
+
 def _save_history(task):
     try:
         try:
@@ -29,6 +31,7 @@ def _save_history(task):
             json.dump(history, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[History] Save error: {e}")
+
 
 # Публичный псевдоним
 save_history = _save_history

@@ -16,7 +16,6 @@ engine/ai_conductor.py — AI Conductor для XTTS Studio
 import json
 from typing import Optional
 
-
 # =========================
 # SYSTEM PROMPT
 # =========================
@@ -159,8 +158,10 @@ pause_after_ms (int, 0–1200)
 # WORD COUNT HELPER
 # =========================
 
+
 def _word_count(text: str) -> int:
     import re
+
     return len(re.findall(r"[A-Za-zА-Яа-яЁё0-9]+", text))
 
 
@@ -168,26 +169,30 @@ def _word_count(text: str) -> int:
 # FALLBACK PARAMS
 # =========================
 
+
 def _fallback_params(chunks: list) -> list:
     """Дефолтные параметры если AI недоступен."""
     result = []
     for i, chunk in enumerate(chunks):
         wc = _word_count(chunk)
-        is_last = (i == len(chunks) - 1)
-        result.append({
-            "temperature":       0.70,
-            "top_p":             0.82,
-            "repetition_penalty": 9.0,
-            "length_penalty":    1.0,
-            "speed":             1.0,
-            "pause_after_ms":    0 if is_last else (250 if wc < 6 else 450),
-        })
+        is_last = i == len(chunks) - 1
+        result.append(
+            {
+                "temperature": 0.70,
+                "top_p": 0.82,
+                "repetition_penalty": 9.0,
+                "length_penalty": 1.0,
+                "speed": 1.0,
+                "pause_after_ms": 0 if is_last else (250 if wc < 6 else 450),
+            }
+        )
     return result
 
 
 # =========================
 # JSON VALIDATOR
 # =========================
+
 
 def _validate_map(data, expected_len: int) -> Optional[list]:
     """
@@ -202,21 +207,25 @@ def _validate_map(data, expected_len: int) -> Optional[list]:
         if len(data) > expected_len:
             data = data[:expected_len]
         else:
-            data = data + fallback[len(data):]
+            data = data + fallback[len(data) :]
 
     result = []
     for i, item in enumerate(data):
         if not isinstance(item, dict):
             return None
-        is_last = (i == expected_len - 1)
+        is_last = i == expected_len - 1
         try:
             entry = {
-                "temperature":        max(0.50, min(0.90, float(item.get("temperature",       0.70)))),
-                "top_p":              max(0.70, min(0.95, float(item.get("top_p",              0.82)))),
-                "repetition_penalty": max(5.0,  min(12.0, float(item.get("repetition_penalty", 9.0)))),
-                "length_penalty":     max(0.5,  min(2.0,  float(item.get("length_penalty",     1.0)))),
-                "speed":              max(0.75, min(1.25, float(item.get("speed",              1.0)))),
-                "pause_after_ms":     0 if is_last else max(0, min(1200, int(item.get("pause_after_ms", 450)))),
+                "temperature": max(0.50, min(0.90, float(item.get("temperature", 0.70)))),
+                "top_p": max(0.70, min(0.95, float(item.get("top_p", 0.82)))),
+                "repetition_penalty": max(
+                    5.0, min(12.0, float(item.get("repetition_penalty", 9.0)))
+                ),
+                "length_penalty": max(0.5, min(2.0, float(item.get("length_penalty", 1.0)))),
+                "speed": max(0.75, min(1.25, float(item.get("speed", 1.0)))),
+                "pause_after_ms": (
+                    0 if is_last else max(0, min(1200, int(item.get("pause_after_ms", 450))))
+                ),
             }
             # ← ДОБАВЛЕНО: пробрасываем corrections если есть и это словарь
             if "corrections" in item and isinstance(item["corrections"], dict):
@@ -233,6 +242,7 @@ def _validate_map(data, expected_len: int) -> Optional[list]:
 # =========================
 # MAIN FUNCTION
 # =========================
+
 
 def conduct(
     text: str,
@@ -265,12 +275,13 @@ def conduct(
     # Строим user-сообщение — теперь каждый чанк показан в двух вариантах
     # ← ИЗМЕНЕНО: было просто f"[{i}] {chunk}", теперь original + processed
     chunks_block = "\n".join(
-        f"[{i}] original: {chunk!r} | processed: {chunks_wr[i]!r}"
-        for i, chunk in enumerate(chunks)
+        f"[{i}] original: {chunk!r} | processed: {chunks_wr[i]!r}" for i, chunk in enumerate(chunks)
     )
 
     if rewrite_enabled and rewrite_context.strip():
-        negative_line = f"\nИЗБЕГАТЬ:\n{rewrite_negative.strip()}\n" if rewrite_negative.strip() else ""
+        negative_line = (
+            f"\nИЗБЕГАТЬ:\n{rewrite_negative.strip()}\n" if rewrite_negative.strip() else ""
+        )
         rewrite_block = f"\nЗАДАНИЕ НА СТИЛЬ:\n{rewrite_context.strip()}\n{negative_line}"
         task_line = (
             f"Переработай текст согласно заданию на стиль, затем верни JSON-объект "
@@ -289,15 +300,19 @@ def conduct(
 
     messages = [
         {"role": "system", "content": _CONDUCTOR_SYSTEM},
-        {"role": "user",   "content": user_msg},
+        {"role": "user", "content": user_msg},
     ]
 
     try:
-        from .gpt_client import _call_with_chain, AIUnavailable
+        from .gpt_client import AIUnavailable, _call_with_chain
     except ImportError:
-        from engine.gpt_client import _call_with_chain, AIUnavailable
+        from engine.gpt_client import AIUnavailable, _call_with_chain
 
-    max_tokens = min(8192, max(512, len(chunks) * 70)) if not rewrite_enabled else min(8192, max(2048, len(text) * 3 + len(chunks) * 70))
+    max_tokens = (
+        min(8192, max(512, len(chunks) * 70))
+        if not rewrite_enabled
+        else min(8192, max(2048, len(text) * 3 + len(chunks) * 70))
+    )
 
     import re
 

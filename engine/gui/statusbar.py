@@ -28,15 +28,24 @@ def init(**deps):
 
 def set_status(text):
     root.after(0, lambda: status_var.set(text))
+
+
 def set_stage(text):
     root.after(0, lambda: stage_var.set(text))
+
+
 def set_progress(value):
     try:
         value = max(0, min(100, int(value)))
     except Exception:
         return
-    root.after(0, lambda: (progress_value.set(value),
-                           globals().get("progress_bar") and progress_bar.set(value / 100)))
+    root.after(
+        0,
+        lambda: (
+            progress_value.set(value),
+            globals().get("progress_bar") and progress_bar.set(value / 100),
+        ),
+    )
 
 
 def show_cancel_button(on_cancel):
@@ -52,6 +61,7 @@ def show_cancel_button(on_cancel):
             return
         cancel_button.configure(state="normal", text=t("update_cancel_btn"))
         cancel_button.pack(side="right", padx=(8, 0))
+
     root.after(0, _show)
 
 
@@ -64,6 +74,7 @@ def hide_cancel_button():
         if cancel_button is None:
             return
         cancel_button.pack_forget()
+
     root.after(0, _hide)
 
 
@@ -74,10 +85,12 @@ def set_cancel_button_cancelling():
     поэтому кнопка сразу блокируется и меняет подпись, чтобы не было
     впечатления, что нажатие не сработало.
     """
+
     def _set():
         if cancel_button is None:
             return
         cancel_button.configure(state="disabled", text=t("update_cancelling_btn"))
+
     root.after(0, _set)
 
 
@@ -97,7 +110,7 @@ def build_statusbar(right_panel):
         height=14,  # чуть выше — полоса больше не выглядит плоской
         fg_color=Colors.PROGRESS_BG,
         progress_color=Colors.PROGRESS_FG,
-        corner_radius=7
+        corner_radius=7,
     )
     progress_bar.pack(fill="x", padx=10, pady=(10, 5))
     progress_bar.set(0)
@@ -105,8 +118,14 @@ def build_statusbar(right_panel):
     bottom_row = tk.Frame(status_frame, bg=Colors.BG_CARD)
     bottom_row.pack(fill="x", padx=10, pady=(0, 10))
 
-    tk.Label(bottom_row, textvariable=status_var, anchor="w", bg=Colors.BG_CARD,
-             fg=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(11))).pack(side="left", fill="x", expand=True)
+    tk.Label(
+        bottom_row,
+        textvariable=status_var,
+        anchor="w",
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_MAIN,
+        font=("Segoe UI", scaled_font_size(11)),
+    ).pack(side="left", fill="x", expand=True)
 
     # Кнопка "Отмена" — правый нижний угол статус-бара. Скрыта по умолчанию,
     # показывается только на время активного обновления (show_cancel_button /

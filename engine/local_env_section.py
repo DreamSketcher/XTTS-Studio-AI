@@ -3,18 +3,19 @@ engine/local_llm_client.py — локальные GGUF-модели через l
 (инференс прямо в процессе приложения, без внешних серверов вроде Ollama).
 """
 
-import os
-import sys
 import json
+import os
 import shutil
+import sys
 import threading
-import urllib.request
 import urllib.error
+import urllib.request
 
 # Убеждаемся, что папка, куда ставится llama-cpp-python, есть в sys.path
 # (актуально для bundled/python и portable-окружений)
 try:
     from engine import env_setup
+
     if env_setup.SITE_PACKAGES not in sys.path:
         sys.path.insert(0, env_setup.SITE_PACKAGES)
 except Exception:
@@ -100,6 +101,7 @@ def _write_settings(patch: dict):
 
 # ── Установленные модели (persisted список, не статика) ────────────────────────
 
+
 def get_last_model_dir() -> str:
     """Последняя папка, из которой выбирали файл модели."""
     return _read_settings().get("last_model_dir", "")
@@ -113,10 +115,12 @@ def set_last_model_dir(path: str):
 
 # ── Оценка совместимости и скачивание моделей ─────────────────────────────────
 
+
 def _get_system_ram_gb() -> float:
     try:
         import psutil
-        return psutil.virtual_memory().available / (1024 ** 3)
+
+        return psutil.virtual_memory().available / (1024**3)
     except Exception:
         return 8.0  # безопасный дефолт
 
@@ -188,7 +192,9 @@ def get_compatible_models(ram_gb: float = None, vram_gb: float = None) -> list:
     return result
 
 
-def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=None, resume: bool = False) -> str:
+def download_model(
+    url: str, filename: str, progress_cb=None, cancelled_flag=None, resume: bool = False
+) -> str:
     """
     Скачивает .gguf по url в MODELS_DIR с поддержкой resume и отмены.
     progress_cb(line: str) — вызывается на каждом блоке.
@@ -254,8 +260,8 @@ def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=Non
                     _save_download_checkpoint(filename, downloaded, total, url)
                     if total:
                         pct = downloaded / total * 100
-                        mb = downloaded / (1024 ** 2)
-                        total_mb = total / (1024 ** 2)
+                        mb = downloaded / (1024**2)
+                        total_mb = total / (1024**2)
                         emit(f"\rСкачано: {mb:.1f} / {total_mb:.1f} MB ({pct:.1f}%)")
                     else:
                         emit(f"\rСкачано: {downloaded / (1024 ** 2):.1f} MB")
@@ -281,7 +287,9 @@ def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=Non
         pass
 
 
-def install_catalog_model(model_id: str, progress_cb=None, cancelled_flag=None, resume: bool = False) -> dict:
+def install_catalog_model(
+    model_id: str, progress_cb=None, cancelled_flag=None, resume: bool = False
+) -> dict:
     """
     Скачивает модель из каталога и регистрирует как установленную.
     Возвращает entry установленной модели.
@@ -292,7 +300,9 @@ def install_catalog_model(model_id: str, progress_cb=None, cancelled_flag=None, 
 
     filename = model.get("filename")
     url = model.get("download_link")
-    path = download_model(url, filename, progress_cb=progress_cb, cancelled_flag=cancelled_flag, resume=resume)
+    path = download_model(
+        url, filename, progress_cb=progress_cb, cancelled_flag=cancelled_flag, resume=resume
+    )
     _clear_download_checkpoint(filename)
     return register_model(path, label=model.get("label"), n_gpu_layers=_default_n_gpu_layers())
 
@@ -342,6 +352,7 @@ def _default_n_gpu_layers() -> int:
     """
     try:
         from engine import env_setup
+
         backend = env_setup.get_installed_backend()
         if backend in ("cuda", "vulkan"):
             return -1
@@ -353,6 +364,7 @@ def _default_n_gpu_layers() -> int:
 def register_model(path: str, label: str = None, n_gpu_layers: int = None) -> dict:
     """Регистрирует уже лежащий по path .gguf как установленную модель."""
     import uuid as _uuid
+
     filename = os.path.basename(path)
     entry = {
         "id": str(_uuid.uuid4()),
@@ -421,6 +433,7 @@ def _get_llm(path: str):
         # Убеждаемся, что нужная папка site-packages в путях
         try:
             from engine import env_setup
+
             if env_setup.SITE_PACKAGES not in sys.path:
                 sys.path.insert(0, env_setup.SITE_PACKAGES)
         except Exception:
@@ -465,6 +478,7 @@ def _get_llm(path: str):
         # независимо от того, что записано в settings.
         try:
             from engine import env_setup
+
             installed_backend = env_setup.get_installed_backend()
             if installed_backend not in ("cuda", "vulkan") and n_gpu_layers != 0:
                 n_gpu_layers = 0
@@ -506,11 +520,11 @@ def call_local_llm(messages: list, model: str = None, max_tokens: int = 2048) ->
     # Стоп-токены нескольких популярных семейств моделей разом — лишние
     # варианты безвредны, если модель их не использует.
     stop_tokens = [
-        "</s>",           # Llama-2 / TinyLlama / Mistral (классика)
-        "<|im_end|>",     # ChatML — Qwen, многие современные finetune
-        "<|eot_id|>",     # Llama-3 / Llama-3.1
+        "</s>",  # Llama-2 / TinyLlama / Mistral (классика)
+        "<|im_end|>",  # ChatML — Qwen, многие современные finetune
+        "<|eot_id|>",  # Llama-3 / Llama-3.1
         "<end_of_turn>",  # Gemma
-        "<|end|>",        # Phi-3
+        "<|end|>",  # Phi-3
     ]
 
     try:

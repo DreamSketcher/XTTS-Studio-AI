@@ -84,8 +84,16 @@ def _ensure_global_binds(widget):
 
 
 class RVCModelDropdown:
-    def __init__(self, parent, variable, t,
-                 on_status=None, on_progress=None, on_show_cancel=None, on_hide_cancel=None):
+    def __init__(
+        self,
+        parent,
+        variable,
+        t,
+        on_status=None,
+        on_progress=None,
+        on_show_cancel=None,
+        on_hide_cancel=None,
+    ):
         """
         parent   — родитель для кнопки-триггера (сам список place()'ится на toplevel)
         variable — tk.StringVar (params["rvc_model"])
@@ -116,17 +124,23 @@ class RVCModelDropdown:
 
         # Поиск
         self._search_query = ""
-        self._search_results = None   # None = режим seed/каталог; list = результаты поиска
-        self._search_token = 0        # инвалидация устаревших async-ответов
+        self._search_results = None  # None = режим seed/каталог; list = результаты поиска
+        self._search_token = 0  # инвалидация устаревших async-ответов
         self._search_pending = False
         self._search_after_id = None  # debounce after() id
         self._search_debounce_ms = 450
 
         self.trigger_btn = CompatCTkButton(
-            parent, text=self._trigger_text(), command=self._toggle_popup,
-            width=scaled_size(210, min_size=180), height=scaled_size(30, min_size=28),
-            corner_radius=8, fg_color=Colors.BG_INPUT, text_color=Colors.TEXT_MAIN,
-            hover_color=Colors.BG_HOVER, font=("Segoe UI", scaled_font_size(10)),
+            parent,
+            text=self._trigger_text(),
+            command=self._toggle_popup,
+            width=scaled_size(210, min_size=180),
+            height=scaled_size(30, min_size=28),
+            corner_radius=8,
+            fg_color=Colors.BG_INPUT,
+            text_color=Colors.TEXT_MAIN,
+            hover_color=Colors.BG_HOVER,
+            font=("Segoe UI", scaled_font_size(10)),
             anchor="w",
         )
         ToolTip(self.trigger_btn, t("tip_rvc_model"))
@@ -322,7 +336,10 @@ class RVCModelDropdown:
             vsb.pack(side="right", fill="y")
 
             canvas = tk.Canvas(
-                list_host, bg=Colors.BG_INPUT, highlightthickness=0, bd=0,
+                list_host,
+                bg=Colors.BG_INPUT,
+                highlightthickness=0,
+                bd=0,
                 height=scaled_size(240, min_size=200),
             )
             canvas.pack(side="left", fill="both", expand=True)
@@ -480,9 +497,7 @@ class RVCModelDropdown:
             except Exception:
                 results = []
             try:
-                self.trigger_btn.after(
-                    0, lambda: self._on_search_done(token, query, results)
-                )
+                self.trigger_btn.after(0, lambda: self._on_search_done(token, query, results))
             except Exception:
                 pass
 
@@ -629,9 +644,7 @@ class RVCModelDropdown:
                 canvas.configure(scrollregion=bbox)
             # ширина inner = ширина canvas
             try:
-                canvas.itemconfigure(
-                    self._list_inner_id, width=max(int(canvas.winfo_width()), 1)
-                )
+                canvas.itemconfigure(self._list_inner_id, width=max(int(canvas.winfo_width()), 1))
             except Exception:
                 pass
             # Авто-скрытие скроллбара, если всё влезает
@@ -692,18 +705,13 @@ class RVCModelDropdown:
 
         rvc_dir = os.path.join(rvc_catalog.BASE_DIR, "models", "rvc")
         try:
-            local_names = sorted(
-                f[:-4] for f in os.listdir(rvc_dir) if f.endswith(".pth")
-            )
+            local_names = sorted(f[:-4] for f in os.listdir(rvc_dir) if f.endswith(".pth"))
         except Exception:
             local_names = []
 
         # Remote: либо результаты поиска, либо seed/каталог
         if self._search_results is not None:
-            catalog_entries = [
-                e for e in self._search_results
-                if not rvc_catalog.is_downloaded(e)
-            ]
+            catalog_entries = [e for e in self._search_results if not rvc_catalog.is_downloaded(e)]
             section_title = self._tr(
                 "rvc_search_section",
                 default="Результаты поиска (voice-models.com)",
@@ -711,8 +719,7 @@ class RVCModelDropdown:
         else:
             try:
                 catalog_entries = [
-                    e for e in rvc_catalog.get_catalog()
-                    if not rvc_catalog.is_downloaded(e)
+                    e for e in rvc_catalog.get_catalog() if not rvc_catalog.is_downloaded(e)
                 ]
             except Exception:
                 catalog_entries = []
@@ -721,9 +728,7 @@ class RVCModelDropdown:
                 default="Доступно для скачивания",
             )
 
-        self._row_frame(
-            NONE_LABEL, key=("none", None), select_cb=self._select_none
-        ).pack(fill="x")
+        self._row_frame(NONE_LABEL, key=("none", None), select_cb=self._select_none).pack(fill="x")
 
         # Локальные всегда показываем (фильтр по поиску — по имени)
         q = (self._search_query or "").lower()
@@ -779,12 +784,16 @@ class RVCModelDropdown:
             pass
 
     def _row_frame(self, text, key, select_cb, action_btn=None):
-        active = (self._active_row_key == key)
+        active = self._active_row_key == key
         row_bg = Colors.BG_HOVER if active else Colors.BG_INPUT
         row = tk.Frame(self._rows_container, bg=row_bg)
 
         lbl = tk.Label(
-            row, text=text, anchor="w", bg=row_bg, fg=Colors.TEXT_MAIN,
+            row,
+            text=text,
+            anchor="w",
+            bg=row_bg,
+            fg=Colors.TEXT_MAIN,
             font=("Segoe UI", scaled_font_size(9)),
         )
         lbl.pack(side="left", fill="x", expand=True, padx=(8, 4), pady=4)
@@ -806,12 +815,18 @@ class RVCModelDropdown:
             self._render_rows()
 
         def _btn(row):
-            active = (self._active_row_key == key)
+            active = self._active_row_key == key
             return CompatCTkButton(
-                row, text="🗑", command=lambda: self._delete_local(name),
-                width=scaled_size(26, min_size=24), height=scaled_size(20, min_size=18),
-                corner_radius=6, fg_color=Colors.BG_CARD, hover_color="#a3342e",
-                text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(9)),
+                row,
+                text="🗑",
+                command=lambda: self._delete_local(name),
+                width=scaled_size(26, min_size=24),
+                height=scaled_size(20, min_size=18),
+                corner_radius=6,
+                fg_color=Colors.BG_CARD,
+                hover_color="#a3342e",
+                text_color=Colors.TEXT_MAIN,
+                font=("Segoe UI", scaled_font_size(9)),
                 state="normal" if active else "disabled",
             )
 
@@ -833,33 +848,55 @@ class RVCModelDropdown:
             self._render_rows()
 
         if self._downloading_key == key:
+
             def _btn(row):
                 return CompatCTkButton(
-                    row, text="✕", command=self._cancel_download,
-                    width=scaled_size(26, min_size=24), height=scaled_size(20, min_size=18),
-                    corner_radius=6, fg_color=Colors.BG_CARD, hover_color="#a3342e",
-                    text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(9)),
+                    row,
+                    text="✕",
+                    command=self._cancel_download,
+                    width=scaled_size(26, min_size=24),
+                    height=scaled_size(20, min_size=18),
+                    corner_radius=6,
+                    fg_color=Colors.BG_CARD,
+                    hover_color="#a3342e",
+                    text_color=Colors.TEXT_MAIN,
+                    font=("Segoe UI", scaled_font_size(9)),
                     state="normal",
                 )
+
         elif downloadable:
+
             def _btn(row):
-                active = (self._active_row_key == key)
+                active = self._active_row_key == key
                 return CompatCTkButton(
-                    row, text="⬇", command=lambda: self._start_download(entry),
-                    width=scaled_size(26, min_size=24), height=scaled_size(20, min_size=18),
-                    corner_radius=6, fg_color=Colors.BG_CARD, hover_color=Colors.BG_HOVER,
-                    text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(9)),
+                    row,
+                    text="⬇",
+                    command=lambda: self._start_download(entry),
+                    width=scaled_size(26, min_size=24),
+                    height=scaled_size(20, min_size=18),
+                    corner_radius=6,
+                    fg_color=Colors.BG_CARD,
+                    hover_color=Colors.BG_HOVER,
+                    text_color=Colors.TEXT_MAIN,
+                    font=("Segoe UI", scaled_font_size(9)),
                     state="normal" if active else "disabled",
                 )
+
         else:
             # Нет прямой ссылки (GDrive folder / только страница) — открыть в браузере
             def _btn(row):
-                active = (self._active_row_key == key)
+                active = self._active_row_key == key
                 return CompatCTkButton(
-                    row, text="🔗", command=lambda: self._open_page(entry),
-                    width=scaled_size(26, min_size=24), height=scaled_size(20, min_size=18),
-                    corner_radius=6, fg_color=Colors.BG_CARD, hover_color=Colors.BG_HOVER,
-                    text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(9)),
+                    row,
+                    text="🔗",
+                    command=lambda: self._open_page(entry),
+                    width=scaled_size(26, min_size=24),
+                    height=scaled_size(20, min_size=18),
+                    corner_radius=6,
+                    fg_color=Colors.BG_CARD,
+                    hover_color=Colors.BG_HOVER,
+                    text_color=Colors.TEXT_MAIN,
+                    font=("Segoe UI", scaled_font_size(9)),
                     state="normal" if active else "disabled",
                 )
 
@@ -874,9 +911,13 @@ class RVCModelDropdown:
             subtitle,
             entry.get("size"),
             entry.get("description"),
-            None if downloadable else self._tr(
-                "rvc_open_in_browser_tip",
-                default="Нет прямой ссылки — откроется страница модели",
+            (
+                None
+                if downloadable
+                else self._tr(
+                    "rvc_open_in_browser_tip",
+                    default="Нет прямой ссылки — откроется страница модели",
+                )
             ),
         ]
         ToolTip(row, "\n".join(p for p in tip_parts if p))
@@ -952,9 +993,7 @@ class RVCModelDropdown:
         self.on_hide_cancel()
         self.on_progress(0)
         if ok:
-            local_name = os.path.splitext(
-                os.path.basename(rvc_catalog.local_model_path(entry))
-            )[0]
+            local_name = os.path.splitext(os.path.basename(rvc_catalog.local_model_path(entry)))[0]
             self.on_status(self.t("status_rvc_downloaded", entry.get("name", "")))
             self._active_row_key = ("local", local_name)
             self.variable.set(local_name)
@@ -972,9 +1011,7 @@ class RVCModelDropdown:
                     )
                 )
             else:
-                self.on_status(
-                    self.t("status_rvc_download_failed", entry.get("name", ""))
-                )
+                self.on_status(self.t("status_rvc_download_failed", entry.get("name", "")))
         if self._popup is not None:
             self._render_rows()
 

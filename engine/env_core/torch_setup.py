@@ -117,6 +117,7 @@ def _parse_cuda_version(cuda_version: str):
 def _pick_torch_variant(gpu_info: dict) -> tuple:
     try:
         from engine.settings_store import load_settings
+
         pref = load_settings().get("torch_device_preference")
         if pref == "cpu":
             return ("cpu", _TORCH_INDEX_URLS["cpu"])
@@ -153,6 +154,7 @@ def _clean_previous_torch_install(progress_cb=None) -> list:
     _handle_target_dir, уже на стороне pip, а не здесь).
     """
     import shutil
+
     failed = []
     if not os.path.isdir(SITE_PACKAGES):
         return failed
@@ -168,18 +170,25 @@ def _clean_previous_torch_install(progress_cb=None) -> list:
             except Exception as e:
                 failed.append(name)
                 if progress_cb:
-                    progress_cb(f"⚠️ Не удалось удалить {name} (вероятно, залочен запущенным процессом): {e}")
+                    progress_cb(
+                        f"⚠️ Не удалось удалить {name} (вероятно, залочен запущенным процессом): {e}"
+                    )
     return failed
 
 
 def _build_torch_install_cmd(index_url: str, site_packages: str) -> list:
     return [
-        PYTHON_EXE, "-m", "pip", "install",
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
         f"torch=={TORCH_VERSION}",
         f"torchaudio=={TORCHAUDIO_VERSION}",
         f"torchvision=={TORCHVISION_VERSION}",
-        "--index-url", index_url,
-        "--target", site_packages,
+        "--index-url",
+        index_url,
+        "--target",
+        site_packages,
         "--upgrade",
         "--no-deps",
     ]
@@ -207,7 +216,9 @@ except ImportError as e:
         try:
             proc = subprocess.run(
                 [PYTHON_EXE, "-c", probe],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             out = proc.stdout or ""
             if "OK=" in out:
@@ -229,19 +240,36 @@ except ImportError as e:
             last_error = "проверка не уложилась в таймаут"
         except Exception as e:
             last_error = str(e)
-    return {"installed": False, "path": None, "version": None, "cuda_available": False, "error": last_error}
+    return {
+        "installed": False,
+        "path": None,
+        "version": None,
+        "cuda_available": False,
+        "error": last_error,
+    }
 
 
 def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -> dict:
     from engine.env_core.diagnostics import _read_pip_output
+
     # Импортируем функции лока установки для предотвращения одновременных установок
     try:
-        from engine.gui.env_settings import _acquire_install_lock, _release_install_lock, _get_current_install_type
+        from engine.gui.env_settings import (
+            _acquire_install_lock,
+            _release_install_lock,
+            _get_current_install_type,
+        )
     except ImportError:
-        def _acquire_install_lock(install_type): return True
-        def _release_install_lock(): pass
-        def _get_current_install_type(): return "unknown"
-    
+
+        def _acquire_install_lock(install_type):
+            return True
+
+        def _release_install_lock():
+            pass
+
+        def _get_current_install_type():
+            return "unknown"
+
     def emit(line):
         if progress_cb:
             progress_cb(line)
@@ -249,7 +277,9 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
     # ── ЛОК УСТАНОВКИ: предотвращаем одновременные pip install ──
     install_type = f"torch:{variant or 'auto'}"
     if not _acquire_install_lock(install_type):
-        emit(f"❌ Уже выполняется другая установка ({_get_current_install_type()}). Дождитесь её завершения.")
+        emit(
+            f"❌ Уже выполняется другая установка ({_get_current_install_type()}). Дождитесь её завершения."
+        )
         raise RuntimeError(f"Установка отменена: уже выполняется {_get_current_install_type()}")
 
     checkpoint = load_torch_checkpoint()
@@ -258,7 +288,9 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
     gpu = detect_gpu()
 
     if variant == "cu118" and gpu.get("vendor") != "nvidia":
-        emit("⚠️ Внимание: затребована установка GPU-версии (CUDA), но ваша видеокарта не является NVIDIA.")
+        emit(
+            "⚠️ Внимание: затребована установка GPU-версии (CUDA), но ваша видеокарта не является NVIDIA."
+        )
         emit("Установка CUDA невозможна. Принудительно переключаюсь на стабильный вариант: CPU.")
         variant = "cpu"
         index_url = _TORCH_INDEX_URLS["cpu"]
@@ -271,8 +303,10 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
         index_url = _TORCH_INDEX_URLS.get(variant, _TORCH_INDEX_URLS["cpu"])
 
     if gpu.get("vendor") != "unknown":
-        emit(f"GPU: {gpu.get('vendor', 'unknown').upper()} {gpu.get('name', '')} "
-             f"(CUDA драйвера: {gpu.get('cuda_version') or '?'})")
+        emit(
+            f"GPU: {gpu.get('vendor', 'unknown').upper()} {gpu.get('name', '')} "
+            f"(CUDA драйвера: {gpu.get('cuda_version') or '?'})"
+        )
     emit(f"Вариант torch: {variant} (index: {index_url})")
 
     if is_resume:
@@ -282,9 +316,11 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
         emit("Удаляю предыдущую установку torch/torchaudio/torchvision (если была)...")
         clean_failed = _clean_previous_torch_install(progress_cb=progress_cb)
         if clean_failed:
-            emit(f"⚠️ Не удалось удалить {len(clean_failed)} элемент(ов) предыдущей установки "
-                 f"(вероятно, залочены запущенным приложением): {', '.join(clean_failed)}. "
-                 f"Установка продолжится — retry без --upgrade ниже подстрахует, если pip споткнётся об это же.")
+            emit(
+                f"⚠️ Не удалось удалить {len(clean_failed)} элемент(ов) предыдущей установки "
+                f"(вероятно, залочены запущенным приложением): {', '.join(clean_failed)}. "
+                f"Установка продолжится — retry без --upgrade ниже подстрахует, если pip споткнётся об это же."
+            )
         save_torch_checkpoint("cleaned", {"variant": variant, "gpu": gpu})
 
     env = os.environ.copy()
@@ -307,15 +343,21 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
     def _run(cmd_to_run):
         """Запускает pip, стримит вывод в progress_cb и возвращает (код, полный_текст)."""
         buf = []
+
         def _cb(line):
             buf.append(line)
             if progress_cb:
                 progress_cb(line)
+
         global active_proc
         proc = subprocess.Popen(
-            cmd_to_run, cwd=PROJECT_ROOT, env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE, bufsize=0,
+            cmd_to_run,
+            cwd=PROJECT_ROOT,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
+            bufsize=0,
         )
         active_proc = proc
         try:
@@ -338,15 +380,19 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
         or "Access is denied" in output
         or "Отказано" in output
     ):
-        emit("⚠️ pip не смог перезаписать залоченные файлы (процесс запущен). "
-             "Повторяю без --upgrade — уже стоящий пакет будет пропущен.")
+        emit(
+            "⚠️ pip не смог перезаписать залоченные файлы (процесс запущен). "
+            "Повторяю без --upgrade — уже стоящий пакет будет пропущен."
+        )
         cmd_retry = [c for c in cmd if c != "--upgrade"]
         returncode, output = _run(cmd_retry)
 
     if returncode != 0:
         save_torch_checkpoint("failed", {"returncode": returncode, "variant": variant})
         if variant != "cpu":
-            emit(f"❌ Установка torch ({variant}) не удалась (код {returncode}). Перехожу на CPU-fallback...")
+            emit(
+                f"❌ Установка torch ({variant}) не удалась (код {returncode}). Перехожу на CPU-fallback..."
+            )
             _release_install_lock()
             return install_torch(progress_cb=progress_cb, resume=False, variant="cpu")
         _release_install_lock()
@@ -359,7 +405,9 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
     if not status["installed"]:
         save_torch_checkpoint("failed", {"error": status.get("error"), "variant": variant})
         if variant != "cpu":
-            emit(f"❌ torch ({variant}) установился, но не импортируется. Перехожу на CPU-fallback...")
+            emit(
+                f"❌ torch ({variant}) установился, но не импортируется. Перехожу на CPU-fallback..."
+            )
             mark_torch_variant_broken(variant)
             _release_install_lock()
             return install_torch(progress_cb=progress_cb, resume=False, variant="cpu")
@@ -367,8 +415,10 @@ def install_torch(progress_cb=None, resume: bool = False, variant: str = None) -
         raise RuntimeError(f"Установка прошла, но импорт torch не удался: {status['error']}")
 
     if variant != "cpu" and not status.get("cuda_available"):
-        emit(f"⚠️ torch ({variant}) импортировался, но torch.cuda.is_available() == False. "
-             f"Перехожу на CPU-вариант...")
+        emit(
+            f"⚠️ torch ({variant}) импортировался, но torch.cuda.is_available() == False. "
+            f"Перехожу на CPU-вариант..."
+        )
         mark_torch_variant_broken(variant)
         clear_torch_checkpoint()
         _release_install_lock()
@@ -392,22 +442,26 @@ def uninstall_torch(progress_cb=None) -> bool:
     clear_torch_checkpoint()
     _clear_installed_torch_variant()
     if clean_failed:
-        emit(f"⚠️ Не удалось удалить: {', '.join(clean_failed)} — вероятно, залочены "
-             f"запущенным приложением. Закройте приложение и повторите удаление.")
+        emit(
+            f"⚠️ Не удалось удалить: {', '.join(clean_failed)} — вероятно, залочены "
+            f"запущенным приложением. Закройте приложение и повторите удаление."
+        )
         return False
     emit("✅ torch удалён.")
     return True
+
 
 def cancel_install_torch() -> bool:
     global active_proc
     # Также освобождаем лок установки, если он был захвачен
     try:
         from engine.gui.env_settings import _release_install_lock, _set_install_cancelled
+
         _set_install_cancelled()
         _release_install_lock()
     except ImportError:
         pass
-    
+
     global active_proc
     if active_proc is not None:
         try:
@@ -419,8 +473,10 @@ def cancel_install_torch() -> bool:
             print(f"[Torch Setup] Ошибка при остановке процесса: {e}")
     return False
 
+
 def clean_torch_cache() -> bool:
     import shutil
+
     cleaned = False
     for path in (PORTABLE_TEMP_DIR, PORTABLE_CACHE_DIR):
         if os.path.exists(path):

@@ -92,5 +92,5 @@ def set_dark_titlebar(root):
         hwnd,
         DWMWA_USE_IMMERSIVE_DARK_MODE,
         ctypes.byref(ctypes.c_int(1 if _current_theme == "dark" else 0)),
-        ctypes.sizeof(ctypes.c_int)
+        ctypes.sizeof(ctypes.c_int),
     )

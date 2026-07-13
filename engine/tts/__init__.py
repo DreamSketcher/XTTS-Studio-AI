@@ -15,11 +15,7 @@ os.environ["PYTHONHOME"] = ""
 os.environ["PYTHONNOUSERSITE"] = "1"
 os.environ["PYTHONEXECUTABLE"] = sys.executable
 
-os.environ["PATH"] = (
-    os.path.dirname(sys.executable)
-    + os.pathsep
-    + os.environ.get("PATH", "")
-)
+os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", "")
 
 # =========================
 # COQUI FIX (CRITICAL)
@@ -32,6 +28,7 @@ os.environ["TTS_SKIP_UPDATE"] = "1"
 # =========================
 try:
     from pydub import AudioSegment  # type: ignore
+
     PYDUB_OK = True
 except ImportError:
     AudioSegment = None  # type: ignore
@@ -54,8 +51,10 @@ if getattr(sys, "frozen", False):
 else:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
+
 def path(*args):
     return os.path.join(BASE_DIR, *args)
+
 
 # =========================
 # FFMPEG
@@ -65,14 +64,14 @@ os.environ["PATH"] = FFMPEG_DIR + os.pathsep + os.environ.get("PATH", "")
 
 if PYDUB_OK and AudioSegment is not None:
     AudioSegment.converter = path("ffmpeg", "bin", "ffmpeg.exe")
-    AudioSegment.ffprobe   = path("ffmpeg", "bin", "ffprobe.exe")
+    AudioSegment.ffprobe = path("ffmpeg", "bin", "ffprobe.exe")
 
 # =========================
 # COMPONENTS
 # =========================
-normalizer    = TextNormalizer()
-chunker       = TextChunker()
-pause_engine  = SmartPauseEngine()
+normalizer = TextNormalizer()
+chunker = TextChunker()
+pause_engine = SmartPauseEngine()
 ref_processor = ReferenceProcessor(backup_dir=path("library"))
 word_replacer = WordReplacer(rules_path=path("word_rules.json"))
 
@@ -87,13 +86,30 @@ _tts_instance = None
 _tts_lock = _threading.Lock()
 
 
-
-
 # Internal TTS Modules
 from .device import detect_device
 from .cache import _chunk_cache_key, _chunk_cache_path, _chunk_cache_get, _chunk_cache_set
-from .qc import _wav_to_mono_float, _detect_repeats, _validate_duration, _adaptive_trim, _normalize_loudness, _normalize_numpy_audio
-from .utils import path, _make_output_name, detect_lang_adaptive, _Cancelled, _is_dense_abbrev_chunk, _adjust_params_for_chunk, _count_real_words, _split_by_language, _normalize_lookup_text_with_map, _build_chunk_text_map, _get_embedding
+from .qc import (
+    _wav_to_mono_float,
+    _detect_repeats,
+    _validate_duration,
+    _adaptive_trim,
+    _normalize_loudness,
+    _normalize_numpy_audio,
+)
+from .utils import (
+    path,
+    _make_output_name,
+    detect_lang_adaptive,
+    _Cancelled,
+    _is_dense_abbrev_chunk,
+    _adjust_params_for_chunk,
+    _count_real_words,
+    _split_by_language,
+    _normalize_lookup_text_with_map,
+    _build_chunk_text_map,
+    _get_embedding,
+)
 from .export import export_audio
 
 
@@ -109,6 +125,7 @@ def _remove_with_retry(path_to_remove, attempts=6, delay=0.15):
         return
     try:
         import pygame  # type: ignore
+
         if pygame.mixer.get_init():
             try:
                 busy_file = getattr(pygame.mixer.music, "get_pos", None)
@@ -168,6 +185,7 @@ def get_rvc_processor():
     with _rvc_lock:
         if _rvc_processor is None:
             from engine.rvc_pipeline import RVCPostProcessor
+
             device = detect_device()
             # RVCInference ожидает вид "cuda:0" для GPU или "cpu" для CPU.
             rvc_device = "cuda:0" if device == "cuda" else "cpu"
@@ -179,11 +197,12 @@ def get_rvc_processor():
 
 
 PROSODY_PRESETS = {
-    "Высокое качество": dict(mode="balanced",     intensity=0.1),
-    "Нарратив":         dict(mode="balanced",     intensity=0.5),
-    "Динамика":         dict(mode="balanced",     intensity=1.1),
-    "Экспрессия":       dict(mode="studio_ultra", intensity=1.3),
+    "Высокое качество": dict(mode="balanced", intensity=0.1),
+    "Нарратив": dict(mode="balanced", intensity=0.5),
+    "Динамика": dict(mode="balanced", intensity=1.1),
+    "Экспрессия": dict(mode="studio_ultra", intensity=1.3),
 }
+
 
 def run_tts(
     text,
@@ -195,26 +214,28 @@ def run_tts(
     speed=1.0,
     language="auto",
     quality="Высокое качество",
-    quality_params=None
+    quality_params=None,
 ):
     def cancelled() -> bool:
         return bool(callable(is_cancelled) and is_cancelled())
 
     def send(stage, progress=None, text_msg=None, final=None):
         if status_callback:
-            status_callback({
-                "stage":    stage,
-                "progress": progress,
-                "text":     text_msg,
-                "final":    final,
-            })
+            status_callback(
+                {
+                    "stage": stage,
+                    "progress": progress,
+                    "text": text_msg,
+                    "final": final,
+                }
+            )
 
     def cleanup(files: list):
         for f in files:
             _remove_with_retry(f)
 
-
     import time
+
     gen_start = time.time()
 
     try:
@@ -223,7 +244,8 @@ def run_tts(
         # =========================
         # REFERENCE (0–10%)
         # =========================
-        if cancelled(): raise _Cancelled()
+        if cancelled():
+            raise _Cancelled()
         send("reference", 0, "Обработка reference...")
         ref_wav = ref_processor.process_reference(ref_path)
         send("reference", 10)
@@ -234,7 +256,8 @@ def run_tts(
         # ("2024" → "две тысячи двадцать четыре"), и в GPT улетает
         # раздутый по токенам текст — лишний расход дневной квоты Groq.
         # =========================
-        if cancelled(): raise _Cancelled()
+        if cancelled():
+            raise _Cancelled()
         use_gpt = quality_params.get("use_gpt", False) if quality_params else False
 
         if use_gpt:
@@ -253,7 +276,8 @@ def run_tts(
         # =========================
         # NORMALIZE (10–20%)
         # =========================
-        if cancelled(): raise _Cancelled()
+        if cancelled():
+            raise _Cancelled()
         send("normalize", 15, "Нормализация текста...")
         text = normalizer.normalize(text)
         text = normalizer.safe_character_filter(text)
@@ -266,6 +290,7 @@ def run_tts(
 
         # ждём подтверждения от GUI что text_box обновлён
         import time as _time
+
         if status_callback:
             textbox_ready = False
             for _ in range(10):
@@ -288,7 +313,8 @@ def run_tts(
         # =========================
         # CHUNKING (20–30%)
         # =========================
-        if cancelled(): raise _Cancelled()
+        if cancelled():
+            raise _Cancelled()
         send("chunking", 20, "Разбиение текста...")
 
         chunks_before_prosody = chunker.chunk_text(text)
@@ -296,15 +322,16 @@ def run_tts(
         chunk_map = _build_chunk_text_map(map_text, chunks_before_prosody)
 
         lang_detected = detect_lang_adaptive(text)
-        prosody_preset = PROSODY_PRESETS.get(
-            quality,
-            PROSODY_PRESETS["Высокое качество"]
+        prosody_preset = PROSODY_PRESETS.get(quality, PROSODY_PRESETS["Высокое качество"])
+        prosody_intensity = (
+            quality_params.get("prosody_intensity", prosody_preset["intensity"])
+            if quality_params
+            else prosody_preset["intensity"]
         )
-        prosody_intensity = quality_params.get("prosody_intensity", prosody_preset["intensity"]) if quality_params else prosody_preset["intensity"]
         prosody_engine = create_prosody_layer(
             mode=str(prosody_preset["mode"]),
             intensity=float(prosody_intensity),
-            breath_length="medium"
+            breath_length="medium",
         )
         # #4: process_chunks учитывает контекст серий list-item чанков
         ai_conductor_enabled = bool((quality_params or {}).get("ai_conductor_enabled", False))
@@ -320,15 +347,26 @@ def run_tts(
         conductor_map = None
         if ai_conductor_enabled:
             from ..ai_conductor import conduct
-            send("ai_conductor_on", None)   # ← пульсация сразу при старте
+
+            send("ai_conductor_on", None)  # ← пульсация сразу при старте
             send("generate", 30, "AI Conductor анализирует текст...")
-            chunks_wr = [word_replacer.apply(c) if (quality_params is None or quality_params.get("word_replacer_enabled", True)) else c for c in chunks]
+            chunks_wr = [
+                (
+                    word_replacer.apply(c)
+                    if (quality_params is None or quality_params.get("word_replacer_enabled", True))
+                    else c
+                )
+                for c in chunks
+            ]
             rewrite_enabled = bool((quality_params or {}).get("ai_rewrite_enabled", False))
             rewrite_context = str((quality_params or {}).get("ai_rewrite_context", "")).strip()
             rewrite_negative = str((quality_params or {}).get("ai_rewrite_negative", "")).strip()
 
             conductor_result = conduct(
-                text, chunks, quality_params, chunks_wr=chunks_wr,
+                text,
+                chunks,
+                quality_params,
+                chunks_wr=chunks_wr,
                 rewrite_enabled=rewrite_enabled,
                 rewrite_context=rewrite_context,
                 rewrite_negative=rewrite_negative,
@@ -339,18 +377,35 @@ def run_tts(
             # не полагаемся на одну лишь форму ответа conduct(), чтобы уровень 1
             # (параметры) и уровень 2 (rewrite) оставались независимыми даже если
             # conduct() когда-нибудь снова начнёт возвращать rewritten_text не по флагу.
-            if rewrite_enabled and isinstance(conductor_result, dict) and "rewritten_text" in conductor_result:
+            if (
+                rewrite_enabled
+                and isinstance(conductor_result, dict)
+                and "rewritten_text" in conductor_result
+            ):
                 text = conductor_result["rewritten_text"]
                 send("normalized_text", None, text_msg=text)
                 chunks_before_prosody = chunker.chunk_text(text)
                 chunk_map = _build_chunk_text_map(text, chunks_before_prosody)
                 chunks = chunks_before_prosody
-                chunks_wr = [word_replacer.apply(c) if (quality_params is None or quality_params.get("word_replacer_enabled", True)) else c for c in chunks]
+                chunks_wr = [
+                    (
+                        word_replacer.apply(c)
+                        if (
+                            quality_params is None
+                            or quality_params.get("word_replacer_enabled", True)
+                        )
+                        else c
+                    )
+                    for c in chunks
+                ]
                 conductor_map = conductor_result["chunks"]
                 # Если длина чанков изменилась — кондуктор переназначает параметры
                 if len(conductor_map) != len(chunks):
-                    print(f"[Conductor] Rewrite changed chunk count {len(conductor_map)}→{len(chunks)}, re-conducting")
+                    print(
+                        f"[Conductor] Rewrite changed chunk count {len(conductor_map)}→{len(chunks)}, re-conducting"
+                    )
                     from ..ai_conductor import _fallback_params
+
                     conductor_map = _fallback_params(chunks)
             elif isinstance(conductor_result, dict) and "chunks" in conductor_result:
                 # rewrite_enabled=False, но conduct() всё же вернул словарь —
@@ -366,7 +421,9 @@ def run_tts(
         os.makedirs(output_dir, exist_ok=True)
 
         override_path = (quality_params or {}).get("output_path_override")
-        final_path = override_path if override_path else _make_output_name(raw_text or text, output_dir)
+        final_path = (
+            override_path if override_path else _make_output_name(raw_text or text, output_dir)
+        )
 
         total = max(len(chunks), 1)
         chunk_items = []
@@ -377,6 +434,7 @@ def run_tts(
         send("generate", 30, "Генерация аудио...")
 
         import hashlib as _hashlib
+
         _ref_hash = _hashlib.md5(ref_path.encode("utf-8")).hexdigest()[:8]
         cache_path = os.path.splitext(ref_wav)[0] + f"_{_ref_hash}_embedding.pth"
         gpt_cond_latent, speaker_embedding = _get_embedding(tts, ref_wav, cache_path)
@@ -393,13 +451,17 @@ def run_tts(
             start, end = chunk_map[i] if i < len(chunk_map) else (0, 0)
 
             if status_callback:
-                status_callback({
-                    "stage": "chunk",
-                    "chunk_index": i,
-                    "chunk_start": start,
-                    "chunk_end": end,
-                    "chunk_raw": map_text[start:end] if start is not None and end is not None else "",
-                })
+                status_callback(
+                    {
+                        "stage": "chunk",
+                        "chunk_index": i,
+                        "chunk_start": start,
+                        "chunk_end": end,
+                        "chunk_raw": (
+                            map_text[start:end] if start is not None and end is not None else ""
+                        ),
+                    }
+                )
 
             chunk_path = os.path.join(output_dir, f"_chunk_{i}.wav")
             lang = detect_lang_adaptive(chunk) if language == "auto" else language
@@ -469,7 +531,9 @@ def run_tts(
                     cmap = conductor_map[i]
                     if "corrections" in cmap:
                         for original_word, corrected in cmap["corrections"].items():
-                            word_replacer.add_rule(original_word, corrected, category="ai_corrected")
+                            word_replacer.add_rule(
+                                original_word, corrected, category="ai_corrected"
+                            )
                             print(f"[WR] AI correction: {original_word} → {corrected}")
                         clean_chunk = word_replacer.apply(raw_chunk_before_wr)
 
@@ -489,11 +553,19 @@ def run_tts(
                 cache_preset["_rvc_index_rate"] = rvc_index_rate
                 cache_preset["_rvc_pitch_shift"] = rvc_pitch_shift
                 cache_preset["_rvc_f0_method"] = rvc_f0_method
-                cache_key = _chunk_cache_key(chunk, lang, cache_preset, speed_value, ref_path, conductor_active=ai_conductor_enabled)
+                cache_key = _chunk_cache_key(
+                    chunk,
+                    lang,
+                    cache_preset,
+                    speed_value,
+                    ref_path,
+                    conductor_active=ai_conductor_enabled,
+                )
                 cached = _chunk_cache_get(output_dir, cache_key)
 
                 if cached:
                     import shutil
+
                     try:
                         shutil.copy2(cached, chunk_path)
                         if not os.path.isfile(chunk_path):
@@ -503,29 +575,40 @@ def run_tts(
                         cached = None
 
                 if cached:
-                    chunk_items.append({
-                        "path": chunk_path,
-                        "source_text": chunks_before_prosody[i] if i < len(chunks_before_prosody) else chunk,
-                        "processed_text": chunks[i] if i < len(chunks) else chunk,
-                        "no_pause": no_pause_flag,
-                    })
+                    chunk_items.append(
+                        {
+                            "path": chunk_path,
+                            "source_text": (
+                                chunks_before_prosody[i]
+                                if i < len(chunks_before_prosody)
+                                else chunk
+                            ),
+                            "processed_text": chunks[i] if i < len(chunks) else chunk,
+                            "no_pause": no_pause_flag,
+                        }
+                    )
                     progress = 30 + int((i + 1) / total * 60)
                     send("generate", progress)
                     continue
 
                 # Перегенерация при браке (повторы / слишком короткое)
-                qc_enabled = bool(quality_params.get("qc_enabled", True)) if quality_params else True
+                qc_enabled = (
+                    bool(quality_params.get("qc_enabled", True)) if quality_params else True
+                )
                 max_attempts = 3 if qc_enabled else 1
                 wav = None
 
                 # Разбиваем на подчанки по языку только если язык auto
-                lang_split = quality_params.get("lang_split_enabled", True) if quality_params else True
+                lang_split = (
+                    quality_params.get("lang_split_enabled", True) if quality_params else True
+                )
                 if language == "auto" and lang_split:
                     subchunks = _split_by_language(clean_chunk, base_lang=lang)
                 else:
                     subchunks = [(clean_chunk, lang)]
 
                 import numpy as np  # type: ignore
+
                 wav_parts = []
 
                 for sub_text, sub_lang in subchunks:
@@ -536,7 +619,7 @@ def run_tts(
                     for attempt in range(max_attempts):
                         _infer_result: List[Any] = [None]
                         _infer_error: List[Optional[Exception]] = [None]
-                        _infer_done   = _threading.Event()
+                        _infer_done = _threading.Event()
 
                         def _infer_thread():
                             try:
@@ -546,7 +629,7 @@ def run_tts(
                                     gpt_cond_latent=gpt_cond_latent,
                                     speaker_embedding=speaker_embedding,
                                     speed=speed_value,
-                                    **sub_preset
+                                    **sub_preset,
                                 )
                             except Exception as _e:
                                 _infer_error[0] = _e
@@ -571,7 +654,7 @@ def run_tts(
                             raise RuntimeError(f"Inference returned invalid result: {out!r}")
 
                         candidate = out["wav"]
-                        if hasattr(candidate, 'device'):
+                        if hasattr(candidate, "device"):
                             candidate = candidate.cpu()
 
                         has_repeats = _detect_repeats(candidate)
@@ -620,6 +703,7 @@ def run_tts(
                 if rvc_enable and rvc_model:
                     try:
                         from engine.rvc_pipeline import RVCPipelineError
+
                         rvc_processor = get_rvc_processor()
                         rvc_processor.run_inference_via_lib(
                             input_path=chunk_path,
@@ -639,17 +723,22 @@ def run_tts(
                 # сохраняем в кэш
                 _chunk_cache_set(output_dir, cache_key, chunk_path)
 
-                chunk_items.append({
-                    "path": chunk_path,
-                    "source_text": chunks_before_prosody[i] if i < len(chunks_before_prosody) else chunk,
-                    "processed_text": chunks[i] if i < len(chunks) else chunk,
-                    "no_pause": no_pause_flag,
-                })
+                chunk_items.append(
+                    {
+                        "path": chunk_path,
+                        "source_text": (
+                            chunks_before_prosody[i] if i < len(chunks_before_prosody) else chunk
+                        ),
+                        "processed_text": chunks[i] if i < len(chunks) else chunk,
+                        "no_pause": no_pause_flag,
+                    }
+                )
 
             except _Cancelled:
                 raise
             except Exception as e:
                 import traceback
+
                 print(f"[Chunk {i} error]: {e}")
                 print(traceback.format_exc())
                 raise RuntimeError(f"Chunk {i} failed: {e}") from e
@@ -673,7 +762,7 @@ def run_tts(
             pause_engine=pause_engine,
             cleanup=cleanup,
             send=send,
-            cancelled=cancelled
+            cancelled=cancelled,
         )
         send("generate", 100)
 
@@ -684,16 +773,18 @@ def run_tts(
             voice_name = os.path.splitext(os.path.basename(ref_path))[0]
 
         if status_callback:
-            status_callback({
-                "stage":    "stats",
-                "progress": 100,
-                "time_sec": gen_elapsed,
-                "chunks": len(chunk_items),
-                "speed":    speed,
-                "voice":    voice_name,
-                "quality":  quality,
-                "text_len": len(text),
-            })
+            status_callback(
+                {
+                    "stage": "stats",
+                    "progress": 100,
+                    "time_sec": gen_elapsed,
+                    "chunks": len(chunk_items),
+                    "speed": speed,
+                    "voice": voice_name,
+                    "quality": quality,
+                    "text_len": len(text),
+                }
+            )
 
         return final_path
 

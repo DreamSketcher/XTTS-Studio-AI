@@ -1,7 +1,7 @@
 import importlib
-import sys
 import threading
 from typing import Any, Dict
+
 
 class LazyModule:
     """
@@ -9,6 +9,7 @@ class LazyModule:
     Using this for heavy ML modules like `torch`, `torchaudio`, or `TTS`
     allows the GUI to launch immediately without block-loading delays.
     """
+
     _loaded_modules: Dict[str, Any] = {}
     _lock = threading.Lock()
 
@@ -19,7 +20,7 @@ class LazyModule:
         # Fast double-checked locking pattern for thread safety
         if self._name in LazyModule._loaded_modules:
             return LazyModule._loaded_modules[self._name]
-            
+
         with LazyModule._lock:
             if self._name not in LazyModule._loaded_modules:
                 print(f"[LazyLoader] Real import triggered for heavy package: '{self._name}'")
@@ -41,11 +42,11 @@ class LazyModule:
 def lazy_import(name: str):
     """
     Utility wrapper to assign lazy modules.
-    
+
     Example:
         torch = lazy_import("torch")
         torchaudio = lazy_import("torchaudio")
-        
+
         # When you call torch.cuda.is_available(), it will finally import torch under the hood.
     """
     return LazyModule(name)

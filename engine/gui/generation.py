@@ -21,9 +21,14 @@ from engine.logging_utils import write_log
 from engine.history_store import _save_history
 from engine.gui import textbox
 from engine.gui.statusbar import set_status, set_stage, set_progress
-from engine.gui.textbox import (lock_textbox, unlock_textbox,
-                                clear_chunk_highlight, hide_placeholder,
-                                _highlight_chunk, _highlight_chunk_by_text)
+from engine.gui.textbox import (
+    lock_textbox,
+    unlock_textbox,
+    clear_chunk_highlight,
+    hide_placeholder,
+    _highlight_chunk,
+    _highlight_chunk_by_text,
+)
 
 # Внедряются из main_window: root, PYGAME_OK, ref_var, lang_var, quality_var,
 # word_replacer_enabled, lang_split_enabled, use_gpt, _textbox_updated,
@@ -81,6 +86,7 @@ def on_task_update(data):
         chunk_raw = data.get("chunk_raw", "")
         chunk_start = data.get("chunk_start")
         chunk_end = data.get("chunk_end")
+
         def _do_chunk_highlight(s=chunk_start, e=chunk_end, t_text=chunk_raw):
             try:
                 if s is not None and e is not None and int(e) > int(s):
@@ -89,6 +95,7 @@ def on_task_update(data):
                     _highlight_chunk_by_text(t_text)
             except Exception:
                 _highlight_chunk_by_text(t_text)
+
         root.after_idle(_do_chunk_highlight)
         return
     if isinstance(data, dict) and data.get("stage") == "ai_conductor_on":
@@ -100,6 +107,7 @@ def on_task_update(data):
     if isinstance(data, dict) and data.get("stage") == "normalized_text":
         normalized = data.get("text", "")
         if normalized:
+
             def _apply_normalized_text(nt=normalized):
                 try:
                     text_box.config(state="normal")
@@ -110,6 +118,7 @@ def on_task_update(data):
                     _textbox_updated.set()
                 except Exception as e:
                     print(f"[TextBox sync error]: {e}")
+
             root.after(0, _apply_normalized_text)
             return
     if isinstance(data, dict) and data.get("stage") == "check_textbox_ready":
@@ -134,9 +143,14 @@ def on_task_update(data):
             t_sec = task.stats.get("time_sec", 0)
             mins, secs = divmod(t_sec, 60)
             time_str = t("time_format_m_s", mins, secs) if mins else t("time_format_s", secs)
-            set_status(t("status_done_detail", time_str,
-                         task.stats.get('chunks', '?'),
-                         task.stats.get('voice', '?')))
+            set_status(
+                t(
+                    "status_done_detail",
+                    time_str,
+                    task.stats.get("chunks", "?"),
+                    task.stats.get("voice", "?"),
+                )
+            )
         else:
             set_status(t("status_done"))
         root.after(0, lambda: _on_task_done(task))
@@ -191,6 +205,8 @@ def _on_task_done(task: Task):
     _save_history(task)
     refresh_voice_list()
     messagebox.showinfo(t("dlg_done_title"), t("dlg_done_msg", task.output_path))
+
+
 def _on_task_error(task: Task):
     global current_task
     if current_task and current_task.id == task.id:
@@ -207,26 +223,29 @@ def _preload_model():
     try:
         import os
         import sys
+
         is_updates_mode = False
-        
+
         # 1. Проверяем переменную окружения (процесс-глобальный и самый надежный способ!)
         if os.environ.get("OPEN_UPDATES_ON_STARTUP") == "1":
             is_updates_mode = True
-            
+
         # 2. Проверяем __main__ (так как gui.py запускается напрямую и попадает в __main__)
         if "__main__" in sys.modules:
             main_mod = sys.modules["__main__"]
             if getattr(main_mod, "OPEN_UPDATES_ON_STARTUP", False):
                 is_updates_mode = True
-                
+
         # 3. Проверяем gui
         if "gui" in sys.modules:
             gui_mod = sys.modules["gui"]
             if getattr(gui_mod, "OPEN_UPDATES_ON_STARTUP", False):
                 is_updates_mode = True
-                
+
         if is_updates_mode:
-            print("[Preload] Отключение предзагрузки модели (запущен режим обновления/восстановления PyTorch).")
+            print(
+                "[Preload] Отключение предзагрузки модели (запущен режим обновления/восстановления PyTorch)."
+            )
             model_ready = False
             set_stage("IDLE")
             set_status(t("status_waiting"))
@@ -236,6 +255,7 @@ def _preload_model():
 
     try:
         from engine.tts_runner import get_tts
+
         set_stage("STARTUP")
         set_status(t("status_init"))
         get_tts()
@@ -247,6 +267,8 @@ def _preload_model():
         model_ready = False
         set_stage("IDLE")
         set_status(t("status_waiting"))
+
+
 def start_preload_thread():
     threading.Thread(target=_preload_model, daemon=True).start()
 
@@ -262,6 +284,8 @@ def cancel_task():
     set_stage("CANCELLING")
     set_progress(0)
     root.after(0, lambda: set_ai_pulse(False))
+
+
 def generate():
     global current_task, current_text_snapshot
     hide_placeholder()
@@ -310,7 +334,7 @@ def generate():
             "use_gpt": use_gpt.get(),
             "ai_conductor_enabled": params.get("ai_conductor_enabled", tk.BooleanVar()).get(),
             "ai_conductor_context": params.get("ai_conductor_context", tk.StringVar()).get(),
-        }
+        },
     )
     set_status(t("status_queued"))
     set_stage("QUEUED")

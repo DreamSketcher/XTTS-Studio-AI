@@ -67,25 +67,30 @@ def _staged_path(staging_dir) -> str:
 
 # ───────────────────────── правильный хэш ─────────────────────────
 
+
 def test_correct_hash_accepted(isolated_staging):
     ok = updater._download_to_staging(TEST_RELATIVE_PATH, CORRECT_HASH)
 
     assert ok is True
-    assert os.path.exists(_staged_path(isolated_staging)), \
-        "файл с верным хэшем должен остаться в staging"
+    assert os.path.exists(
+        _staged_path(isolated_staging)
+    ), "файл с верным хэшем должен остаться в staging"
 
 
 # ───────────────────────── неправильный хэш ─────────────────────────
+
 
 def test_wrong_hash_rejected(isolated_staging):
     ok = updater._download_to_staging(TEST_RELATIVE_PATH, WRONG_HASH)
 
     assert ok is False
-    assert not os.path.exists(_staged_path(isolated_staging)), \
-        "файл с неверным хэшем должен быть удалён из staging"
+    assert not os.path.exists(
+        _staged_path(isolated_staging)
+    ), "файл с неверным хэшем должен быть удалён из staging"
 
 
 # ───────────────────────── хэш отсутствует в манифесте ─────────────────────────
+
 
 def test_missing_hash_rejected(isolated_staging):
     """
@@ -98,8 +103,9 @@ def test_missing_hash_rejected(isolated_staging):
     ok = updater._download_to_staging(TEST_RELATIVE_PATH, None)
 
     assert ok is False
-    assert not os.path.exists(_staged_path(isolated_staging)), \
-        "файл без хэша в манифесте должен быть отклонён, а не тихо принят"
+    assert not os.path.exists(
+        _staged_path(isolated_staging)
+    ), "файл без хэша в манифесте должен быть отклонён, а не тихо принят"
 
 
 if __name__ == "__main__":
@@ -107,4 +113,5 @@ if __name__ == "__main__":
     # (python\runtime\python.exe test\test_sha256_verification.py) —
     # просто делегируем в pytest на этот же файл.
     import sys
+
     sys.exit(pytest.main([__file__, "-v"]))

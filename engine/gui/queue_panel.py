@@ -13,13 +13,21 @@ queue_card = None
 queue_listbox = None
 batch_btn_row = None
 
+
 def init(**deps):
     globals().update(deps)
+
 
 def update_queue_view():
     try:
         queue_listbox.delete(0, tk.END)
-        status_icons = {"queued": "⏳", "running": "▶ ", "done": "✔", "error": "❌", "cancelled": "⛔"}
+        status_icons = {
+            "queued": "⏳",
+            "running": "▶ ",
+            "done": "✔",
+            "error": "❌",
+            "cancelled": "⛔",
+        }
         queue = task_manager.get_queue()
         active_set = False
         for i, task in enumerate(queue):
@@ -39,12 +47,14 @@ def update_queue_view():
     except Exception:
         pass
 
+
 def queue_autorefresh():
     update_queue_view()
     try:
         root.after(500, queue_autorefresh)
     except Exception:
         pass
+
 
 def build_queue_card(left_panel):
     global queue_card, queue_listbox, batch_btn_row
@@ -57,21 +67,35 @@ def build_queue_card(left_panel):
     except Exception:
         pass
 
-    tk.Label(queue_card, text=t("card_queue"), bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", scaled_font_size(9), "bold"), anchor="w").pack(fill="x", padx=10, pady=(7, 3))
+    tk.Label(
+        queue_card,
+        text=t("card_queue"),
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_MAIN,
+        font=("Segoe UI", scaled_font_size(9), "bold"),
+        anchor="w",
+    ).pack(fill="x", padx=10, pady=(7, 3))
 
     list_wrap = tk.Frame(queue_card, bg=Colors.BORDER, padx=1, pady=1)
     list_wrap.pack(fill="both", expand=True, padx=10, pady=(0, 4))
 
     queue_listbox = tk.Listbox(
-        list_wrap, height=4,
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
-        relief="flat", highlightthickness=0, font=("Consolas", scaled_font_size(8)),
-        activestyle="none", exportselection=False
+        list_wrap,
+        height=4,
+        bg=Colors.BG_INPUT,
+        fg=Colors.TEXT_MAIN,
+        selectbackground=Colors.ACCENT,
+        selectforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        highlightthickness=0,
+        font=("Consolas", scaled_font_size(8)),
+        activestyle="none",
+        exportselection=False,
     )
     queue_listbox.pack(fill="both", expand=True)
 
     batch_btn_row = tk.Frame(queue_card, bg=Colors.BG_CARD)
     batch_btn_row.pack(fill="x", padx=10, pady=(0, 7))
-    create_button(batch_btn_row, t("btn_batch"), open_batch_window, bg=Colors.BG_INPUT).pack(fill="x")
+    create_button(batch_btn_row, t("btn_batch"), open_batch_window, bg=Colors.BG_INPUT).pack(
+        fill="x"
+    )

@@ -23,10 +23,10 @@ Provides:
   выбранного сервиса и указать его ключ в настройках приложения.
 """
 
-import os
 import json
-import urllib.request
+import os
 import urllib.error
+import urllib.request
 
 # Локализация подписей провайдеров (i18n не зависит от tkinter)
 from i18n import t as _t
@@ -34,11 +34,13 @@ from i18n import t as _t
 
 class GroqRateLimitError(RuntimeError):
     """429 — лимит токенов/запросов на стороне провайдера для конкретной модели."""
+
     pass
 
 
 class GroqNetworkError(RuntimeError):
     """Сетевая ошибка: нет соединения, разрыв, таймаут и т.п. (не лимит)."""
+
     pass
 
 
@@ -141,6 +143,7 @@ def refresh_i18n_labels():
     except Exception:
         pass
 
+
 # Обратная совместимость со старым кодом, который импортирует DEFAULT_MODEL /
 # AVAILABLE_MODELS / FALLBACK_MODEL напрямую (chat_window.py читает их через
 # getattr с фоллбэком, так что наличие этих имён ничего не ломает).
@@ -189,7 +192,6 @@ PROVIDER_CATALOGUE = [
         "label": "Mistral AI",
         "url": "https://api.mistral.ai/v1/chat/completions",
         "key_hint": "https://console.mistral.ai/api-keys",
-        "key_hint": "console.mistral.ai",
         "extra_headers": {},
         "notes": _t("cat_mistral_notes"),
         "models": [
@@ -317,6 +319,7 @@ def _write_settings(patch: dict):
 
 # ── provider management ─────────────────────────────────────────────────────────
 
+
 def get_provider() -> str:
     val = _read_settings().get("provider", DEFAULT_PROVIDER)
     all_ids = set(PROVIDERS.keys()) | {p["id"] for p in list_custom_providers()}
@@ -339,9 +342,11 @@ def get_provider_info(provider: str = None) -> dict:
             return p
     raise KeyError(f"Провайдер {pid!r} не найден")
 
+
 # ── key / model management (per-provider) ──────────────────────────────────────
 # Ключи храним раздельно по провайдеру (api_key_groq / api_key_proxy), чтобы
 # переключение провайдера в настройках не затирало второй ключ.
+
 
 def get_api_key(provider: str = None) -> str:
     provider = provider or get_provider()
@@ -375,6 +380,7 @@ def get_fallback_model(provider: str = None) -> str:
 # Это НЕЗАВИСИМО от api_key_<provider> (тот хранит "текущий активный" ключ).
 # Библиотека — это просто записная книжка ключей, из которой можно одним
 # кликом подставить нужный ключ в активный слот провайдера.
+
 
 def list_keys(provider: str = None) -> list:
     """Вернуть список сохранённых ключей. Если provider задан — только для него."""
@@ -433,10 +439,13 @@ def delete_key(key_id: str):
     if len(new_items) != len(items):
         _write_settings({"key_library": new_items})
 
+
 # ── custom providers ───────────────────────────────────────────────────────────
+
 
 def get_hidden_providers() -> set:
     return set(_read_settings().get("hidden_providers", []))
+
 
 def hide_provider(pid: str):
     if pid not in PROVIDERS:
@@ -450,20 +459,27 @@ def hide_provider(pid: str):
     with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
 def show_provider(pid: str):
     hidden = get_hidden_providers()
     hidden.discard(pid)
     _write_settings({"hidden_providers": list(hidden)})
+
 
 def list_custom_providers() -> list:
     items = _read_settings().get("custom_providers", [])
     return items if isinstance(items, list) else []
 
 
-def add_custom_provider(pid: str, label: str, url: str,
-                        models: list, fallback: str,
-                        headers: dict = None,
-                        key_hint: str = "") -> dict:
+def add_custom_provider(
+    pid: str,
+    label: str,
+    url: str,
+    models: list,
+    fallback: str,
+    headers: dict = None,
+    key_hint: str = "",
+) -> dict:
     pid = pid.strip()
     if not pid:
         raise ValueError("ID провайдера пустой")
@@ -510,7 +526,8 @@ def delete_custom_provider(pid: str):
         data["provider"] = DEFAULT_PROVIDER
     with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-        
+
+
 def get_key_entry(key_id: str):
     for it in list_keys():
         if it.get("id") == key_id:
@@ -536,11 +553,15 @@ def apply_key_from_library(key_id: str) -> dict:
 
 # ── low-level API call ─────────────────────────────────────────────────────────
 
-def _call_api(messages: list, model: str = None, max_tokens: int = 2048, provider: str = None) -> str:
+
+def _call_api(
+    messages: list, model: str = None, max_tokens: int = 2048, provider: str = None
+) -> str:
     provider = provider or get_provider()
 
     if provider == "local":
         from engine import local_llm_client
+
         model = model or get_model(provider)
         try:
             return local_llm_client.call_local_llm(messages, model=model, max_tokens=max_tokens)
@@ -562,12 +583,14 @@ def _call_api(messages: list, model: str = None, max_tokens: int = 2048, provide
     if not model:
         model = get_model(provider)
 
-    payload = json.dumps({
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": 0.7,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": 0.7,
+        }
+    ).encode("utf-8")
 
     headers = {
         "Content-Type": "application/json",
@@ -639,8 +662,10 @@ def _call_groq(messages: list, model: str = None, max_tokens: int = 2048) -> str
 #   - провайдеры без сохранённого ключа пропускаются молча (с записью в лог)
 #   - если цепочка закончилась без успеха -> возвращаем None, как при сети
 
+
 class AIUnavailable(RuntimeError):
     """ИИ временно недоступен (сеть или вся цепочка провайдеров) — не баг, не показываем messagebox."""
+
     pass
 
 
@@ -650,6 +675,7 @@ def _provider_available(pid: str) -> bool:
     if pid == "local":
         try:
             from engine import local_llm_client
+
             return local_llm_client.get_active_model() is not None
         except Exception:
             return False
@@ -682,6 +708,7 @@ def _build_provider_chain() -> list:
             chain.append(pid)
 
     return chain
+
 
 def get_chain_diagnostics() -> dict:
     """
@@ -756,6 +783,7 @@ def get_chain_diagnostics() -> dict:
         "providers": entries,
     }
 
+
 def _call_with_chain(messages: list, max_tokens: int = 2048) -> str:
     """
     Пробует все провайдеры из цепочки по очереди (primary, затем fallback модель
@@ -808,10 +836,11 @@ _CHAT_SYSTEM = (
 )
 
 FREE_CHAT_SYSTEM = (
-    "Ты умный и полезный AI-ассистент. "
-    "Отвечай чётко, по делу, на том же языке что и вопрос."
+    "Ты умный и полезный AI-ассистент. " "Отвечай чётко, по делу, на том же языке что и вопрос."
 )
-_FREE_CHAT_SYSTEM = FREE_CHAT_SYSTEM  # алиас для обратной совместимости, если где-то ещё используется старое имя
+_FREE_CHAT_SYSTEM = (
+    FREE_CHAT_SYSTEM  # алиас для обратной совместимости, если где-то ещё используется старое имя
+)
 
 _TTS_SYSTEM = (
     "Ты редактор текстов для синтеза речи (TTS). "
@@ -827,6 +856,7 @@ _TTS_SYSTEM = (
 
 
 # ── public API ─────────────────────────────────────────────────────────────────
+
 
 def chat(prompt: str, history: list = None, system: str = None) -> str:
     """
@@ -871,8 +901,7 @@ def preprocess_for_tts(text: str, mode: str = "assistant") -> str:
         return improve_for_tts(text)
 
     raise ValueError(
-        f"preprocess_for_tts: неизвестный mode={mode!r}. "
-        f"Доступные режимы: 'assistant'."
+        f"preprocess_for_tts: неизвестный mode={mode!r}. " f"Доступные режимы: 'assistant'."
     )
 
 
@@ -893,13 +922,18 @@ def validate_key(key: str, provider: str = None) -> tuple:
             max_tokens=5,
             provider=provider,
         )
-        return True, f"✅ Ключ рабочий. Провайдер: {info['label']} · Модель: {info['default_model']}"
+        return (
+            True,
+            f"✅ Ключ рабочий. Провайдер: {info['label']} · Модель: {info['default_model']}",
+        )
     except RuntimeError as e:
         return False, f"❌ {e}"
     finally:
         set_api_key(old_key, provider)
 
+
 # ── UI state (для аккордеона настроек) ─────────────────────────────────────────
+
 
 def get_ui_state() -> dict:
     return _read_settings().get("ui_state", {})

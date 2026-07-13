@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any
 
 class RVCPipelineError(Exception):
     """Exception class for RVC Pipeline errors."""
+
     pass
 
 
@@ -102,9 +103,7 @@ class RVCPostProcessor:
             rvc_engine.infer_file(input_path, output_path)
 
             if not os.path.isfile(output_path):
-                raise RVCPipelineError(
-                    f"RVC finished without producing output file: {output_path}"
-                )
+                raise RVCPipelineError(f"RVC finished without producing output file: {output_path}")
             return output_path
         except RVCPipelineError:
             raise
@@ -149,13 +148,21 @@ class RVCPostProcessor:
             raise RVCPipelineError("Python is not found in PATH to call RVC CLI.")
 
         cmd = [
-            "python", cli_script, "infer",
-            "--input_path", input_path,
-            "--output_path", output_path,
-            "--pth_path", model_path,
-            "--f0up_key", str(pitch_shift),
-            "--f0method", f0_method,
-            "--index_rate", str(index_rate),
+            "python",
+            cli_script,
+            "infer",
+            "--input_path",
+            input_path,
+            "--output_path",
+            output_path,
+            "--pth_path",
+            model_path,
+            "--f0up_key",
+            str(pitch_shift),
+            "--f0method",
+            f0_method,
+            "--index_rate",
+            str(index_rate),
         ]
 
         if os.path.exists(index_path):
@@ -163,11 +170,7 @@ class RVCPostProcessor:
 
         try:
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                encoding="utf-8"
+                cmd, capture_output=True, text=True, check=True, encoding="utf-8"
             )
             return output_path
         except subprocess.CalledProcessError as e:
@@ -218,11 +221,7 @@ class XTTSWithRVCPipeline:
 
             # 2. Apply RVC Voice Conversion
             # Default settings
-            settings = {
-                "index_rate": 0.75,
-                "pitch_shift": 0,
-                "f0_method": "rmvpe"
-            }
+            settings = {"index_rate": 0.75, "pitch_shift": 0, "f0_method": "rmvpe"}
             if rvc_settings:
                 settings.update(rvc_settings)
 
@@ -233,7 +232,7 @@ class XTTSWithRVCPipeline:
                 model_name=rvc_model,
                 index_rate=settings["index_rate"],
                 pitch_shift=settings["pitch_shift"],
-                f0_method=settings["f0_method"]
+                f0_method=settings["f0_method"],
             )
 
             return output_path

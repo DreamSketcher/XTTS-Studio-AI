@@ -17,6 +17,7 @@ def chunker():
 
 # ───────────────────────── базовое поведение ─────────────────────────
 
+
 def test_short_text_not_split(chunker):
     text = "Привет, как дела?"
     assert chunker.chunk_text(text) == [text]
@@ -41,6 +42,7 @@ def test_long_text_is_split_into_multiple_chunks(chunker):
 
 # ───────────────────────── правила безопасности просодии ─────────────────────────
 
+
 def test_bad_start_fragment_produced_mid_loop_gets_merged_into_previous(chunker):
     # Текст с 2+ итерациями цикла, где ПРОМЕЖУТОЧНЫЕ разрезы дают фрагмент,
     # начинающийся с "и" — а финальный остаток текста начинается с обычного
@@ -55,8 +57,9 @@ def test_bad_start_fragment_produced_mid_loop_gets_merged_into_previous(chunker)
     chunks = chunker._split_long(text)
     for c in chunks:
         first_word = c.strip().split(" ", 1)[0].lower().strip(",.;:!?")
-        assert first_word not in chunker.bad_start_tokens, \
-            f"Фрагмент, порождённый разрезом внутри цикла, не должен начинаться с запрещённого токена: {c!r}"
+        assert (
+            first_word not in chunker.bad_start_tokens
+        ), f"Фрагмент, порождённый разрезом внутри цикла, не должен начинаться с запрещённого токена: {c!r}"
 
 
 def test_trailing_remainder_after_loop_is_also_checked_for_bad_start(chunker):
@@ -70,8 +73,9 @@ def test_trailing_remainder_after_loop_is_also_checked_for_bad_start(chunker):
     chunks = chunker._split_long(text)
     for c in chunks:
         first_word = c.strip().split(" ", 1)[0].lower().strip(",.;:!?")
-        assert first_word not in chunker.bad_start_tokens, \
-            f"Хвостовой остаток начинается с запрещённого токена: {c!r}"
+        assert (
+            first_word not in chunker.bad_start_tokens
+        ), f"Хвостовой остаток начинается с запрещённого токена: {c!r}"
 
 
 def test_merge_glues_tiny_fragments_together(chunker):
@@ -84,6 +88,7 @@ def test_merge_glues_tiny_fragments_together(chunker):
 
 
 # ───────────────────────── смешанный RU/EN текст ─────────────────────────
+
 
 def test_mixed_ru_en_text_does_not_crash_and_splits_reasonably(chunker):
     text = (

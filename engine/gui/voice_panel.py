@@ -13,7 +13,13 @@ from engine.gui.colors import Colors, scaled_font_size
 from engine.gui.tooltip import ToolTip
 from engine.gui.widgets import create_card, create_button, create_entry
 from engine.gui.statusbar import set_status
-from engine.gui.player import (pick_reference, pick_backup_reference, play_reference, seek_back, seek_forward)
+from engine.gui.player import (
+    pick_reference,
+    pick_backup_reference,
+    play_reference,
+    seek_back,
+    seek_forward,
+)
 from engine.gui import player
 
 root = None
@@ -36,8 +42,10 @@ voice_btn_row = None
 lib_btn = None
 play_btn = None
 
+
 def init(**deps):
     globals().update(deps)
+
 
 def set_ref_info_font_size(base_size: int):
     """Меняет размер текста 'Конвертирован в WAV...' только в карточке голос-референс"""
@@ -48,6 +56,7 @@ def set_ref_info_font_size(base_size: int):
     except Exception:
         pass
 
+
 def refresh_voice_list():
     # Перескан library/ (VoiceManager.library_dir / backup_dir / root)
     try:
@@ -55,11 +64,16 @@ def refresh_voice_list():
         for attr in ("library_dir", "backup_dir", "root", "voices_dir", "base_dir"):
             if voice_manager is not None and hasattr(voice_manager, attr):
                 cur = getattr(voice_manager, attr, None)
-                if cur and ("reference" in str(cur).replace("\\", "/").lower()) and ("library" not in str(cur).replace("\\", "/").lower()):
+                if (
+                    cur
+                    and ("reference" in str(cur).replace("\\", "/").lower())
+                    and ("library" not in str(cur).replace("\\", "/").lower())
+                ):
                     try:
                         fixed = LIBRARY_DIR
                         if not fixed:
                             from engine.paths import BASE_DIR
+
                             fixed = os.path.join(str(BASE_DIR), "library")
                         setattr(voice_manager, attr, fixed)
                     except Exception:
@@ -72,6 +86,7 @@ def refresh_voice_list():
     for voice in voice_manager.list_voices():
         voice_map[voice.name] = voice
         voice_listbox.insert(tk.END, f"🎤 {voice.name}")
+
 
 def _voice_dir(voice) -> str | None:
     """Папка голоса: library/<name>/ (из Voice.path / .dir / .folder)."""
@@ -118,7 +133,10 @@ def _resolve_normalized_path(voice) -> str | None:
     if voice_path and os.path.isdir(voice_path):
         skip_ext = {".pt", ".pth", ".npy", ".json", ".txt", ".pkl"}
         # сначала normalized*, потом остальные
-        files = sorted(os.listdir(voice_path), key=lambda f: (0 if f.lower().startswith("normalized") else 1, f.lower()))
+        files = sorted(
+            os.listdir(voice_path),
+            key=lambda f: (0 if f.lower().startswith("normalized") else 1, f.lower()),
+        )
         for f in files:
             fl = f.lower()
             if fl.endswith((".wav", ".mp3", ".flac", ".ogg")):
@@ -127,6 +145,7 @@ def _resolve_normalized_path(voice) -> str | None:
             if os.path.splitext(fl)[1] in skip_ext:
                 continue
     return None
+
 
 def on_voice_select(event):
     selection = voice_listbox.curselection()
@@ -153,6 +172,7 @@ def on_voice_select(event):
             root.after(100, play_reference)
     set_status(t("active_voice", voice_name))
 
+
 def build_voice_cards(left_panel):
     global ref_card, ref_btn_row, ref_info_label, voice_card, voice_header, _voice_label_var
     global voice_list_frame, voice_listbox, voice_btn_row, lib_btn, play_btn
@@ -170,10 +190,24 @@ def build_voice_cards(left_panel):
     create_entry(ref_card, ref_var).pack(fill="x", padx=10, pady=(3, 5))
     ref_btn_row = tk.Frame(ref_card, bg=Colors.BG_CARD)
     ref_btn_row.pack(fill="x", padx=10, pady=(0, 4))
-    create_button(ref_btn_row, t("btn_pick_ref"), pick_reference, bg=Colors.BG_INPUT, font_size=10, height=0.75).pack(side="left", ipady=0)
+    create_button(
+        ref_btn_row,
+        t("btn_pick_ref"),
+        pick_reference,
+        bg=Colors.BG_INPUT,
+        font_size=10,
+        height=0.75,
+    ).pack(side="left", ipady=0)
     # Только эта карточка меняет шрифт — сохраняем ссылку
-    ref_info_label = tk.Label(ref_card, text=t("ref_info"), bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Consolas", scaled_font_size(9)), justify="left", anchor="w")
+    ref_info_label = tk.Label(
+        ref_card,
+        text=t("ref_info"),
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_DIM,
+        font=("Consolas", scaled_font_size(9)),
+        justify="left",
+        anchor="w",
+    )
     ref_info_label.pack(fill="x", padx=10, pady=(1, 3))
 
     # Voice library — тот же размер 165
@@ -187,8 +221,14 @@ def build_voice_cards(left_panel):
 
     voice_header = tk.Frame(voice_card, bg=Colors.BG_CARD)
     voice_header.pack(fill="x", padx=10, pady=(6, 4))
-    tk.Label(voice_header, text=t("card_voice_lib"), bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-             font=("Segoe UI", scaled_font_size(9), "bold"), anchor="w").pack(side="left")
+    tk.Label(
+        voice_header,
+        text=t("card_voice_lib"),
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_MAIN,
+        font=("Segoe UI", scaled_font_size(9), "bold"),
+        anchor="w",
+    ).pack(side="left")
 
     def _voice_display_name() -> str:
         p = ref_var.get().strip()
@@ -199,23 +239,38 @@ def build_voice_cards(left_panel):
         return folder if name.lower() == "normalized" else name
 
     _voice_label_var = tk.StringVar()
+
     def _update_voice_label(*_):
         _voice_label_var.set(_voice_display_name())
+
     ref_var.trace_add("write", _update_voice_label)
     _update_voice_label()
 
-    tk.Label(voice_header, textvariable=_voice_label_var, bg=Colors.BG_CARD, fg=Colors.TEXT_DIM,
-             font=("Segoe UI", scaled_font_size(7)), anchor="e", width=16).pack(side="right")
+    tk.Label(
+        voice_header,
+        textvariable=_voice_label_var,
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(7)),
+        anchor="e",
+        width=16,
+    ).pack(side="right")
 
     tk.Frame(voice_card, bg=Colors.BORDER, height=1).pack(fill="x", padx=10, pady=(0, 3))
     voice_list_frame = tk.Frame(voice_card, bg=Colors.BORDER, highlightthickness=0, padx=1, pady=1)
     voice_list_frame.pack(fill="both", expand=True, padx=10, pady=(0, 4))
     voice_listbox = tk.Listbox(
-        voice_list_frame, height=4,
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        selectbackground=Colors.ACCENT, selectforeground=Colors.TEXT_MAIN,
-        relief="flat", highlightthickness=0,
-        font=("Segoe UI", scaled_font_size(9)), activestyle="none", exportselection=False
+        voice_list_frame,
+        height=4,
+        bg=Colors.BG_INPUT,
+        fg=Colors.TEXT_MAIN,
+        selectbackground=Colors.ACCENT,
+        selectforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        highlightthickness=0,
+        font=("Segoe UI", scaled_font_size(9)),
+        activestyle="none",
+        exportselection=False,
     )
     voice_listbox.pack(fill="both", expand=True)
     voice_listbox.bind("<<ListboxSelect>>", on_voice_select)
@@ -227,17 +282,25 @@ def build_voice_cards(left_panel):
     lib_btn = create_button(voice_btn_row, "📂", pick_backup_reference, bg=Colors.BG_INPUT, width=3)
     lib_btn.pack(side="left", padx=(0, 2))
     ToolTip(lib_btn, t("tip_pick_from_lib"))
-    create_button(voice_btn_row, "⏪", seek_back, bg=Colors.BG_INPUT, width=3).pack(side="left", padx=(0, 2))
+    create_button(voice_btn_row, "⏪", seek_back, bg=Colors.BG_INPUT, width=3).pack(
+        side="left", padx=(0, 2)
+    )
     play_btn = create_button(voice_btn_row, "▶ ", play_reference, bg=Colors.BG_ACTIVE, width=3)
     play_btn.pack(side="left", padx=(0, 2))
-    create_button(voice_btn_row, "⏩", seek_forward, bg=Colors.BG_INPUT, width=3).pack(side="left", padx=(0, 2))
+    create_button(voice_btn_row, "⏩", seek_forward, bg=Colors.BG_INPUT, width=3).pack(
+        side="left", padx=(0, 2)
+    )
     player.play_btn = play_btn
 
     def _volume_icon(vol):
         return "🔇" if vol <= 0.001 else ("🔉" if vol < 0.5 else "🔊")
-    vol_btn = create_button(voice_btn_row, _volume_icon(player.get_volume()), None, bg=Colors.BG_INPUT, width=3)
+
+    vol_btn = create_button(
+        voice_btn_row, _volume_icon(player.get_volume()), None, bg=Colors.BG_INPUT, width=3
+    )
     vol_btn.pack(side="left")
     _vol_popup = {"win": None, "click_bind": None}
+
     def _close_volume_popup(event=None):
         if _vol_popup["click_bind"] is not None:
             try:
@@ -252,11 +315,13 @@ def build_voice_cards(left_panel):
             except Exception:
                 pass
             _vol_popup["win"] = None
+
     def _toggle_volume_popup():
         if _vol_popup["win"] is not None:
             _close_volume_popup()
             return
         from tkinter import ttk
+
         popup = tk.Toplevel(vol_btn)
         popup.overrideredirect(True)
         popup.configure(bg=Colors.BG_CARD, highlightthickness=1, highlightbackground=Colors.BORDER)
@@ -267,19 +332,30 @@ def build_voice_cards(left_panel):
         popup.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
         inner = tk.Frame(popup, bg=Colors.BG_CARD)
         inner.pack(fill="both", expand=True, padx=6, pady=6)
-        icon_lbl = tk.Label(inner, text=_volume_icon(player.get_volume()), bg=Colors.BG_CARD, fg=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(9)))
+        icon_lbl = tk.Label(
+            inner,
+            text=_volume_icon(player.get_volume()),
+            bg=Colors.BG_CARD,
+            fg=Colors.TEXT_DIM,
+            font=("Segoe UI", scaled_font_size(9)),
+        )
         icon_lbl.pack(side="bottom", pady=(6, 0))
         vol_var = tk.DoubleVar(value=player.get_volume() * 100)
+
         def _on_change(val):
             vol = max(0.0, min(1.0, float(val) / 100.0))
             player.set_volume(vol)
             icon = _volume_icon(vol)
             icon_lbl.config(text=icon)
             vol_btn.config(text=icon)
-        scale = ttk.Scale(inner, from_=100, to=0, orient="vertical", variable=vol_var, command=_on_change)
+
+        scale = ttk.Scale(
+            inner, from_=100, to=0, orient="vertical", variable=vol_var, command=_on_change
+        )
         scale.pack(side="top", fill="y", expand=True)
         popup.bind("<Escape>", _close_volume_popup)
         popup.focus_force()
+
         def _on_global_click(event):
             try:
                 wx, wy = popup.winfo_rootx(), popup.winfo_rooty()
@@ -292,7 +368,9 @@ def build_voice_cards(left_panel):
                     _close_volume_popup()
             except Exception:
                 _close_volume_popup()
+
         _vol_popup["click_bind"] = root.bind_all("<Button-1>", _on_global_click, add="+")
         _vol_popup["win"] = popup
+
     vol_btn.config(command=_toggle_volume_popup)
     ToolTip(vol_btn, "Громкость")

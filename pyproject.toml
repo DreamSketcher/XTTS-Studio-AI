@@ -2,31 +2,76 @@
 line-length = 100
 target-version = ['py310', 'py311']
 include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-)
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | python
+  | library
+  | models
+  | outputs
+  | logs
+  | reference
+  | word_rules_backups
+)/
+'''
+# force-exclude уважается даже когда путь передан явно (важно: защищает окружение).
+force-exclude = '''
+/(
+    python
+  | library
+  | models
+  | outputs
+  | logs
+  | reference
+  | word_rules_backups
+)/
 '''
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = [
+    "python",
+    "library",
+    "models",
+    "outputs",
+    "logs",
+    "reference",
+    "word_rules_backups",
+]
 
 [tool.ruff.lint]
-# Enable Pyflakes (F) and Pycodestyle (E, W) by default
-select = ["E", "F", "W", "I", "N"]
-ignore = ["E501"] # Ignore long lines (Black handles formatting)
+# E, F, W — базовые проверки (Pyflakes + pycodestyle).
+# N (pep8-naming) и I (isort) СОЗНАТЕЛЬНО НЕ включаем:
+#  - в проекте приняты "локальные константы" ЗАГЛАВНЫМИ внутри функций (N806);
+#  - порядок импортов исторический, авто-сортировка сломала бы отложенные импорты.
+select = ["E", "F", "W"]
+ignore = [
+    "E501", # длинные строки — форматирование делает Black
+    "E401", # несколько импортов в одной строке — исторический стиль
+    "E402", # импорты не в начале файла — в проекте есть намеренные отложенные импорты
+    "E722", # bare except — допускается в GUI-обёртках
+    "E741", # неоднозначные имена (l) — используются как локальные в lambda/def
+    "F401", # "неиспользуемый импорт" — в проекте шаблонные шапки + фасадные __init__
+    "F403", # `from module import *` — намеренные реэкспорты в env_setup.py
+    "F405", # имя может быть из star-import — следствие намеренных `import *`
+    "F811", # повторный импорт (дубли import re/torch) — безвреден, исторический
+    "F841", # присвоено но не используется — в проекте много "документирующих" присваиваний
+]
 
-[tool.ruff.lint.isort]
-known-first-party = ["engine"]
+# F821 (Undefined name) СПЕЦИАЛЬНО оставлен включённым — это ловит настоящие баги
+# (обращение к несуществующей переменной). Все найденные F821 уже исправлены в коде.
+
+[tool.pytest.ini_options]
+# Страховка от зависающих тестов: любой тест дольше 60с падает с трейсбеком,
+# а не блокирует весь прогон (и CI). Требует пакет pytest-timeout.
+timeout = 60

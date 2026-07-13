@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """engine/output_naming.py — генерация имени выходного файла (перенесено из gui.py: _make_output_name)."""
+
 import os
 import unicodedata
 
 from engine.paths import OUTPUT_DIR
+
 
 def _make_output_name(text: str) -> str:
     """Генерирует имя файла из первых слов текста с защитой от дублей."""

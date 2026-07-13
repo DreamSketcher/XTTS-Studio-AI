@@ -1,9 +1,8 @@
 ============================= test session starts =============================
 platform win32 -- Python 3.11.7, pytest-9.1.1, pluggy-1.6.0 -- C:\XTTS Studio\python\runtime\python.exe
 cachedir: .pytest_cache
-metadata: {'Python': '3.11.7', 'Platform': 'Windows-10-10.0.19045-SP0', 'Packages': {'pytest': '9.1.1', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.14.1', 'json-report': '1.5.0', 'metadata': '3.1.1'}}
-rootdir: C:\XTTS Studio\test
-plugins: anyio-4.14.1, json-report-1.5.0, metadata-3.1.1
+rootdir: C:\XTTS Studio
+configfile: pyproject.toml
 collecting ... collected 79 items
 
 test_chunker.py::test_short_text_not_split PASSED                        [  1%]
@@ -63,27 +62,4 @@ test_smart_pauses.py::test_detect_emotion_is_case_insensitive PASSED     [ 68%]
 test_updater.py::test_check_update_detects_available_version PASSED      [ 69%]
 test_updater.py::test_check_update_flags_manual_reinstall_when_too_old PASSED [ 70%]
 test_updater.py::test_apply_update_success_writes_files_and_marker PASSED [ 72%]
-test_updater.py::test_apply_update_aborts_on_bad_checksum_and_touches_nothing PASSED [ 73%]
-test_updater.py::test_rollback_restores_previous_file_content PASSED     [ 74%]
-test_updater.py::test_confirm_update_success_clears_marker_and_backup PASSED [ 75%]
-test_updater.py::test_startup_health_rolls_back_after_second_unconfirmed_launch PASSED [ 77%]
-test_updater.py::test_startup_health_ok_when_no_pending_update PASSED    [ 78%]
-test_updater.py::test_apply_update_fails_cleanly_when_file_missing_from_server PASSED [ 79%]
-test_updater_cancel_and_removed_files.py::test_is_cancelled_supports_dict_and_list_formats[flag_before0-None-False] PASSED [ 81%]
-test_updater_cancel_and_removed_files.py::test_is_cancelled_supports_dict_and_list_formats[flag_before1-None-True] PASSED [ 82%]
-test_updater_cancel_and_removed_files.py::test_is_cancelled_supports_dict_and_list_formats[flag_before2-None-False] PASSED [ 83%]
-test_updater_cancel_and_removed_files.py::test_is_cancelled_supports_dict_and_list_formats[flag_before3-None-True] PASSED [ 84%]
-test_updater_cancel_and_removed_files.py::test_is_cancelled_supports_dict_and_list_formats[None-None-False] PASSED [ 86%]
-test_updater_cancel_and_removed_files.py::test_apply_update_cancelled_before_any_file_touches_nothing PASSED [ 87%]
-test_updater_cancel_and_removed_files.py::test_apply_update_cancelled_mid_download_between_files PASSED [ 88%]
-test_updater_cancel_and_removed_files.py::test_apply_update_cancelled_mid_chunk_download PASSED [ 89%]
-test_updater_cancel_and_removed_files.py::test_cancellation_via_progress_callback_on_last_file_is_still_honored PASSED [ 91%]
-test_updater_cancel_and_removed_files.py::test_cancellation_ignored_once_backup_and_swap_have_actually_started PASSED [ 92%]
-test_updater_cancel_and_removed_files.py::test_apply_update_deletes_removed_files PASSED [ 93%]
-test_updater_cancel_and_removed_files.py::test_apply_update_removes_now_empty_directories PASSED [ 94%]
-test_updater_cancel_and_removed_files.py::test_apply_update_keeps_directory_if_other_files_remain PASSED [ 96%]
-test_updater_cancel_and_removed_files.py::test_apply_update_bad_checksum_does_not_delete_removed_files PASSED [ 97%]
-test_updater_cancel_and_removed_files.py::test_rollback_restores_deleted_removed_file PASSED [ 98%]
-test_updater_cancel_and_removed_files.py::test_confirm_update_success_after_removed_files_clears_backup PASSED [100%]
-
-============================= 79 passed in 10.49s =============================
+test_updater.py::test_apply_update_aborts_on_bad_checksum_and_touches_nothing ^C

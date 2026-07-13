@@ -20,6 +20,7 @@ try:
     # BACKUP_DIR — legacy-алиас; если paths.py ещё отдаёт reference/backup,
     # ниже принудительно предпочитаем LIBRARY_DIR.
     from engine.paths import BASE_DIR, OUTPUT_DIR, ICON_PATH
+
     try:
         from engine.paths import LIBRARY_DIR as _LIBRARY_DIR
     except ImportError:
@@ -32,12 +33,14 @@ except ImportError:
     # Fallback: paths.py в некоторых сборках экспортирует только BASE_DIR
     from engine.paths import BASE_DIR
     import os as _os_paths
+
     _LIBRARY_DIR = _os_paths.path.join(str(BASE_DIR), "library")
     _BACKUP_DIR = None
     OUTPUT_DIR = _os_paths.path.join(str(BASE_DIR), "outputs")
     ICON_PATH = _os_paths.path.join(str(BASE_DIR), "icon.ico")
 
 import os as _os_paths_lib
+
 
 def _resolve_voice_library_dir() -> str:
     """Каталог библиотеки голосов: C:\\XTTS Studio\\library\\<voice>\\normalized.wav
@@ -60,15 +63,25 @@ def _resolve_voice_library_dir() -> str:
             return False
         norm = _os_paths_lib.path.normpath(p).replace("\\", "/").lower()
         # Явно отклоняем старые пути reference/backup
-        if "/reference/backup" in norm or norm.endswith("/reference") or "/reference/" in norm and "/library" not in norm:
+        if (
+            "/reference/backup" in norm
+            or norm.endswith("/reference")
+            or "/reference/" in norm
+            and "/library" not in norm
+        ):
             return False
-        return norm.rstrip("/").endswith("/library") or "/library/" in norm or _os_paths_lib.path.basename(norm) == "library"
+        return (
+            norm.rstrip("/").endswith("/library")
+            or "/library/" in norm
+            or _os_paths_lib.path.basename(norm) == "library"
+        )
 
     for c in candidates:
         if _looks_like_library(c):
             return c
     # Жёсткий дефолт — всегда library рядом с приложением
     return _os_paths_lib.path.join(str(BASE_DIR), "library")
+
 
 LIBRARY_DIR = _resolve_voice_library_dir()
 # BACKUP_DIR оставляем как алиас на library для старого кода (player.pick_backup_reference и т.п.)
@@ -82,13 +95,30 @@ from engine import updater
 from engine.gui.theme import apply_theme, set_dark_titlebar
 from engine.gui.colors import Colors
 from engine.gui.layout import build_layout
-from engine.gui import (helpers, statusbar, console, textbox, player,
-                        voice_panel, queue_panel, history_window,
-                        output_window, dialogs, presets, settings_ui,
-                        ai_status_window, env_settings, header_panel,
-                        ai_conductor, styles_menu, generation,
-                        chat_panel, batch_panel, word_replacer_panel,
-                        toolbar)
+from engine.gui import (
+    helpers,
+    statusbar,
+    console,
+    textbox,
+    player,
+    voice_panel,
+    queue_panel,
+    history_window,
+    output_window,
+    dialogs,
+    presets,
+    settings_ui,
+    ai_status_window,
+    env_settings,
+    header_panel,
+    ai_conductor,
+    styles_menu,
+    generation,
+    chat_panel,
+    batch_panel,
+    word_replacer_panel,
+    toolbar,
+)
 
 # Layout preset support
 from engine.gui import theme_manager
@@ -113,6 +143,7 @@ def apply_layout_preset_to_all(preset: dict):
     # 0. Боковая панель: сторона
     try:
         from engine.gui.layout import apply_sidebar_side
+
         side = theme_manager.get_sidebar_side()
         if apply_sidebar_side(side):
             applied = True
@@ -138,8 +169,16 @@ def apply_layout_preset_to_all(preset: dict):
         pass
 
     # 2. Проходим по всем GUI-модулям, если у них есть apply_layout()
-    for mod in (header_panel, voice_panel, player, queue_panel, console,
-                textbox, toolbar, statusbar):
+    for mod in (
+        header_panel,
+        voice_panel,
+        player,
+        queue_panel,
+        console,
+        textbox,
+        toolbar,
+        statusbar,
+    ):
         func = getattr(mod, "apply_layout", None)
         if callable(func):
             try:
@@ -160,6 +199,7 @@ def open_theme_settings_dialog():
     """Открывает Конструктор темы с callback live-apply."""
     try:
         from engine.gui.chat_window.theme_settings import open_theme_customizer
+
         open_theme_customizer(root, on_layout_changed=apply_layout_preset_to_all)
     except Exception:
         # ИЗМЕНЕНО (по просьбе пользователя): трейсбек больше не печатается
@@ -169,8 +209,10 @@ def open_theme_settings_dialog():
         # write_log(), чтобы при реальном сбое информация не терялась
         # полностью, но не засоряла консоль на каждый клик.
         import traceback
+
         try:
             from engine.logging_utils import write_log
+
             write_log(traceback.format_exc())
         except Exception:
             pass
@@ -205,6 +247,7 @@ def create_main_window(startup_status: str = None):
     set_dark_titlebar(root)
     try:
         import os as _os
+
         if _os.path.isfile(ICON_PATH):
             root.iconbitmap(default=ICON_PATH)
     except Exception as e:
@@ -220,7 +263,9 @@ def create_main_window(startup_status: str = None):
         sidebar_side = theme_manager.get_sidebar_side()
     except Exception:
         sidebar_side = "left"
-    main_container, left_panel, right_panel = build_layout(root, preset=_current_layout_preset, sidebar_side=sidebar_side)
+    main_container, left_panel, right_panel = build_layout(
+        root, preset=_current_layout_preset, sidebar_side=sidebar_side
+    )
 
     # ── CONSOLE REDIRECT (как в gui.py: сразу после layout) ──
     console.install()
@@ -262,72 +307,112 @@ def create_main_window(startup_status: str = None):
     helpers.init(root=root)
     clean_path = helpers.clean_path
 
-    statusbar.init(root=root, status_var=status_var, stage_var=stage_var,
-                   progress_value=progress_value)
+    statusbar.init(
+        root=root, status_var=status_var, stage_var=stage_var, progress_value=progress_value
+    )
     console.init(root=root, console_visible=console_visible)
-    player.init(root=root, PYGAME_OK=PYGAME_OK, ref_var=ref_var,
-                clean_path=clean_path,
-                LIBRARY_DIR=LIBRARY_DIR, BACKUP_DIR=BACKUP_DIR)
-    voice_panel.init(root=root, PYGAME_OK=PYGAME_OK, ref_var=ref_var,
-                     voice_manager=voice_manager,
-                     LIBRARY_DIR=LIBRARY_DIR)
+    player.init(
+        root=root,
+        PYGAME_OK=PYGAME_OK,
+        ref_var=ref_var,
+        clean_path=clean_path,
+        LIBRARY_DIR=LIBRARY_DIR,
+        BACKUP_DIR=BACKUP_DIR,
+    )
+    voice_panel.init(
+        root=root,
+        PYGAME_OK=PYGAME_OK,
+        ref_var=ref_var,
+        voice_manager=voice_manager,
+        LIBRARY_DIR=LIBRARY_DIR,
+    )
     history_window.init(root=root, PYGAME_OK=PYGAME_OK)
     output_window.init(root=root, PYGAME_OK=PYGAME_OK)
     ai_status_window.init(root=root)
     env_settings.init(root=root)
     # Передаём в textbox callback открытия конструктора темы + текущий layout_preset
-    textbox.init(root=root, use_gpt=use_gpt, textbox_updated=_textbox_updated,
-                 clean_path=clean_path, show_help=dialogs.show_help,
-                 on_open_theme_settings=open_theme_settings_dialog,
-                 layout_preset=_current_layout_preset)
+    textbox.init(
+        root=root,
+        use_gpt=use_gpt,
+        textbox_updated=_textbox_updated,
+        clean_path=clean_path,
+        show_help=dialogs.show_help,
+        on_open_theme_settings=open_theme_settings_dialog,
+        layout_preset=_current_layout_preset,
+    )
 
     # ── QUALITY PARAMS (перенесено из gui.py, секция QUALITY PARAMS) ──
     presets.init(root=root, use_gpt=use_gpt)
     quality_params = presets.build_quality_params()
 
     # ── SETTINGS (save/apply) ──
-    settings_ui.init(lang_var=lang_var, quality_var=quality_var,
-                     ref_var=ref_var, use_gpt=use_gpt,
-                     word_replacer_enabled=word_replacer_enabled,
-                     lang_split_enabled=lang_split_enabled,
-                     ui_lang_var=ui_lang_var, quality_params=quality_params)
+    settings_ui.init(
+        lang_var=lang_var,
+        quality_var=quality_var,
+        ref_var=ref_var,
+        use_gpt=use_gpt,
+        word_replacer_enabled=word_replacer_enabled,
+        lang_split_enabled=lang_split_enabled,
+        ui_lang_var=ui_lang_var,
+        quality_params=quality_params,
+    )
     save_settings = settings_ui.save_settings
 
     presets.init(save_settings=save_settings)
-    dialogs.init(root=root, lang_var=lang_var,
-                 lang_split_enabled=lang_split_enabled,
-                 save_settings=save_settings)
-    header_panel.init(root=root, ui_lang_var=ui_lang_var,
-                      save_settings=save_settings)
-    ai_conductor.init(root=root, quality_params=quality_params,
-                      save_settings=save_settings)
-    styles_menu.init(root=root, quality_var=quality_var,
-                     save_settings=save_settings,
-                     PRESET_DESCRIPTIONS=presets.PRESET_DESCRIPTIONS)
-    toolbar.init(root=root, quality_var=quality_var, lang_var=lang_var,
-                 save_settings=save_settings)
+    dialogs.init(
+        root=root,
+        lang_var=lang_var,
+        lang_split_enabled=lang_split_enabled,
+        save_settings=save_settings,
+    )
+    header_panel.init(root=root, ui_lang_var=ui_lang_var, save_settings=save_settings)
+    ai_conductor.init(root=root, quality_params=quality_params, save_settings=save_settings)
+    styles_menu.init(
+        root=root,
+        quality_var=quality_var,
+        save_settings=save_settings,
+        PRESET_DESCRIPTIONS=presets.PRESET_DESCRIPTIONS,
+    )
+    toolbar.init(root=root, quality_var=quality_var, lang_var=lang_var, save_settings=save_settings)
 
     # ── TASK MANAGER (перенесено из gui.py, секция TASK MANAGER) ──
     task_manager = TaskManager(ui_callback=generation.on_task_update)
     task_manager.start()
 
     queue_panel.init(root=root, task_manager=task_manager)
-    generation.init(root=root, PYGAME_OK=PYGAME_OK, ref_var=ref_var,
-                    lang_var=lang_var, quality_var=quality_var,
-                    word_replacer_enabled=word_replacer_enabled,
-                    lang_split_enabled=lang_split_enabled, use_gpt=use_gpt,
-                    _textbox_updated=_textbox_updated, clean_path=clean_path,
-                    task_manager=task_manager, quality_params=quality_params,
-                    save_settings=save_settings,
-                    set_ai_pulse=ai_conductor.set_ai_pulse,
-                    update_queue_view=queue_panel.update_queue_view,
-                    refresh_voice_list=voice_panel.refresh_voice_list)
+    generation.init(
+        root=root,
+        PYGAME_OK=PYGAME_OK,
+        ref_var=ref_var,
+        lang_var=lang_var,
+        quality_var=quality_var,
+        word_replacer_enabled=word_replacer_enabled,
+        lang_split_enabled=lang_split_enabled,
+        use_gpt=use_gpt,
+        _textbox_updated=_textbox_updated,
+        clean_path=clean_path,
+        task_manager=task_manager,
+        quality_params=quality_params,
+        save_settings=save_settings,
+        set_ai_pulse=ai_conductor.set_ai_pulse,
+        update_queue_view=queue_panel.update_queue_view,
+        refresh_voice_list=voice_panel.refresh_voice_list,
+    )
 
     # ── CHAT / BATCH / WORD REPLACER — делегирование (как в gui.py) ──
     chat_panel.setup(root, use_gpt)
-    batch_panel.setup(root, OUTPUT_DIR, task_manager, ref_var, quality_var,
-                      quality_params, word_replacer_enabled,
-                      lang_split_enabled, use_gpt, lang_var)
+    batch_panel.setup(
+        root,
+        OUTPUT_DIR,
+        task_manager,
+        ref_var,
+        quality_var,
+        quality_params,
+        word_replacer_enabled,
+        lang_split_enabled,
+        use_gpt,
+        lang_var,
+    )
     word_replacer_panel.setup(root, word_replacer_enabled, save_settings)
 
     # ── LEFT PANEL (порядок как в gui.py) ──
@@ -335,8 +420,10 @@ def create_main_window(startup_status: str = None):
     for mod in (header_panel, voice_panel, queue_panel, console):
         func = getattr(mod, "apply_layout", None)
         if callable(func):
-            try: func(_current_layout_preset)
-            except Exception: pass
+            try:
+                func(_current_layout_preset)
+            except Exception:
+                pass
 
     header_panel.build_header(left_panel)
     voice_panel.build_voice_cards(left_panel)
@@ -353,16 +440,17 @@ def create_main_window(startup_status: str = None):
     for mod in (statusbar, textbox, toolbar):
         func = getattr(mod, "apply_layout", None)
         if callable(func):
-            try: func(_current_layout_preset)
-            except Exception: pass
+            try:
+                func(_current_layout_preset)
+            except Exception:
+                pass
 
     statusbar.build_statusbar(right_panel)
     textbox.build_text_card(right_panel)
     toolbar.build_toolbar(textbox.text_card)
 
     # виджеты/функции, ставшие доступными после сборки интерфейса
-    generation.init(text_box=textbox.text_box,
-                    update_gen_btn=toolbar.update_gen_btn)
+    generation.init(text_box=textbox.text_box, update_gen_btn=toolbar.update_gen_btn)
 
     # ── LAUNCH (перенесено из gui.py, секция LAUNCH) ──
     def on_closing():
@@ -391,8 +479,14 @@ def create_main_window(startup_status: str = None):
         set_language(_saved["ui_language"])
         ui_lang_var.set(_saved["ui_language"])
     settings_ui.apply_settings(_saved)
-    for _var in (lang_var, quality_var, ref_var, use_gpt,
-                 word_replacer_enabled, lang_split_enabled):
+    for _var in (
+        lang_var,
+        quality_var,
+        ref_var,
+        use_gpt,
+        word_replacer_enabled,
+        lang_split_enabled,
+    ):
         try:
             _var.trace_add("write", lambda *a: save_settings())
         except Exception:
@@ -426,8 +520,10 @@ def create_main_window(startup_status: str = None):
         except Exception:
             pass
         try:
-            print("[Updater] Прошлый запуск после обновления не подтвердился. "
-                  "Файлы откачены на предыдущую версию.")
+            print(
+                "[Updater] Прошлый запуск после обновления не подтвердился. "
+                "Файлы откачены на предыдущую версию."
+            )
         except Exception:
             pass
 

@@ -3,9 +3,12 @@ import re
 import wave
 from typing import Tuple, List, Optional
 
+
 class ValidationError(Exception):
     """Custom exception class for TTS validation errors."""
+
     pass
+
 
 class TTSValidator:
     """
@@ -16,8 +19,23 @@ class TTSValidator:
     """
 
     SUPPORTED_LANGUAGES = {
-        "en", "es", "fr", "de", "it", "pt", "pl", "tr", "ru", "nl", 
-        "cs", "ar", "zh-cn", "ja", "hu", "ko", "zh"
+        "en",
+        "es",
+        "fr",
+        "de",
+        "it",
+        "pt",
+        "pl",
+        "tr",
+        "ru",
+        "nl",
+        "cs",
+        "ar",
+        "zh-cn",
+        "ja",
+        "hu",
+        "ko",
+        "zh",
     }
 
     @classmethod
@@ -51,12 +69,24 @@ class TTSValidator:
         lang_code = language.strip().lower()
         # Normalization (e.g. mapping "russian" -> "ru" or "english" -> "en")
         lang_map = {
-            "english": "en", "spanish": "es", "french": "fr", "german": "de",
-            "italian": "it", "portuguese": "pt", "polish": "pl", "turkish": "tr",
-            "russian": "ru", "dutch": "nl", "czech": "cs", "arabic": "ar",
-            "chinese": "zh-cn", "japanese": "ja", "hungarian": "hu", "korean": "ko"
+            "english": "en",
+            "spanish": "es",
+            "french": "fr",
+            "german": "de",
+            "italian": "it",
+            "portuguese": "pt",
+            "polish": "pl",
+            "turkish": "tr",
+            "russian": "ru",
+            "dutch": "nl",
+            "czech": "cs",
+            "arabic": "ar",
+            "chinese": "zh-cn",
+            "japanese": "ja",
+            "hungarian": "hu",
+            "korean": "ko",
         }
-        
+
         if lang_code in lang_map:
             lang_code = lang_map[lang_code]
 
@@ -65,11 +95,13 @@ class TTSValidator:
                 f"Language '{language}' is not supported by XTTS v2.\n"
                 f"Supported language codes: {', '.join(sorted(cls.SUPPORTED_LANGUAGES))}"
             )
-        
+
         return lang_code
 
     @classmethod
-    def validate_reference_audio(cls, audio_path: str, min_duration_sec: float = 2.0, max_duration_sec: float = 30.0) -> str:
+    def validate_reference_audio(
+        cls, audio_path: str, min_duration_sec: float = 2.0, max_duration_sec: float = 30.0
+    ) -> str:
         """
         Validates the reference voice clone audio.
         Checks for path existence, format, duration, and integrity.
@@ -86,23 +118,23 @@ class TTSValidator:
 
         # Check for WAV file extension and header validity
         _, ext = os.path.splitext(abs_path.lower())
-        if ext != '.wav':
+        if ext != ".wav":
             raise ValidationError(
                 f"Unsupported format '{ext}'. Reference voice clone must be in WAV format (.wav)."
             )
 
         # Robust check using Python's standard `wave` module (to avoid loading heavy torch/librosa)
         try:
-            with wave.open(abs_path, 'rb') as wav_file:
+            with wave.open(abs_path, "rb") as wav_file:
                 frames = wav_file.getnframes()
                 rate = wav_file.getframerate()
                 channels = wav_file.getnchannels()
-                
+
                 if frames == 0 or rate == 0:
                     raise ValidationError("The reference WAV file seems empty or corrupted.")
-                
+
                 duration = frames / float(rate)
-                
+
                 if duration < min_duration_sec:
                     raise ValidationError(
                         f"Reference audio is too short ({duration:.2f}s). "
@@ -110,10 +142,12 @@ class TTSValidator:
                     )
                 if duration > max_duration_sec:
                     # Log a warning or truncate, here we raise error or warn
-                    pass # We can warningly allow or truncate during inference
-                    
+                    pass  # We can warningly allow or truncate during inference
+
         except wave.Error as e:
-            raise ValidationError(f"Corrupted or invalid WAV format: {e}. Please supply a standard PCM WAV.")
+            raise ValidationError(
+                f"Corrupted or invalid WAV format: {e}. Please supply a standard PCM WAV."
+            )
         except Exception as e:
             raise ValidationError(f"Error reading reference audio file: {e}")
 
@@ -140,7 +174,9 @@ class TTSValidator:
         return abs_output
 
     @classmethod
-    def validate_all(cls, text: str, language: str, speaker_wav: str, output_path: str) -> Tuple[str, str, str, str]:
+    def validate_all(
+        cls, text: str, language: str, speaker_wav: str, output_path: str
+    ) -> Tuple[str, str, str, str]:
         """
         Runs the full check pipeline. Returns a clean tuple of:
         (cleaned_text, cleaned_language, cleaned_speaker_wav, cleaned_output_path)

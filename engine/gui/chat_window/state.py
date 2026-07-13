@@ -93,7 +93,7 @@ _HOTKEYS = {
     "settings": ["<Control-comma>"],
     "close_window": ["<Control-w>"],
     "send_msg": ["<Return>"],
-    "newline": ["<Shift-Return>", "<Control-Return>"]
+    "newline": ["<Shift-Return>", "<Control-Return>"],
 }
 
 _sessions = []

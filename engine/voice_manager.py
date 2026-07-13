@@ -20,10 +20,7 @@ class VoiceManager:
         if os.path.isabs(base_dir):
             self.base_dir = base_dir
         else:
-            self.base_dir = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                base_dir
-            )
+            self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), base_dir)
 
         self.voices: List[VoiceProfile] = []
         self.active_voice: Optional[VoiceProfile] = None
@@ -56,10 +53,10 @@ class VoiceManager:
 
                 files = os.listdir(voice_path)
 
-                original  = self._find_file(files, "original")
+                original = self._find_file(files, "original")
                 converted = self._find_file(files, "converted")
                 normalized = self._find_file(files, "normalized")
-                embedding  = self._find_file(files, "embedding")  # ← добавлено
+                embedding = self._find_file(files, "embedding")  # ← добавлено
 
                 try:
                     last_modified = os.path.getmtime(voice_path)
@@ -73,7 +70,7 @@ class VoiceManager:
                     converted=converted,
                     normalized=normalized,
                     embedding=embedding,
-                    last_modified=last_modified
+                    last_modified=last_modified,
                 )
 
                 voices.append(voice)

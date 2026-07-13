@@ -15,6 +15,7 @@ PATCH: shared singleton + ring-buffer лога, чтобы при rebuild стр
 настроек (show_page / _invalidate_page) прогресс проверки/установки
 НЕ сбрасывался. UI только переподписывается на callbacks.
 """
+
 from __future__ import annotations
 
 import re
@@ -253,6 +254,7 @@ class LocalAIInstallController:
         if self._cached_resolved is not None and not force:
             return self._cached_resolved
         from engine import env_setup
+
         self._cached_resolved = env_setup.resolve_backend()
         return self._cached_resolved
 
@@ -268,6 +270,7 @@ class LocalAIInstallController:
         def worker():
             try:
                 from engine import env_setup
+
                 resolved = self.resolve_backend(force=True)
                 cpu = resolved["cpu"]
                 gpu = resolved["gpu"]
@@ -328,6 +331,7 @@ class LocalAIInstallController:
         try:
             from engine import env_setup
             import os as _os
+
             models_dir = _os.path.join(env_setup.BASE_DIR, "models")
             if not _os.path.isdir(models_dir):
                 return []
@@ -343,6 +347,7 @@ class LocalAIInstallController:
         self._buttons(installing=True)
         if model_path:
             import os as _os
+
             self._log(
                 f"── Установка llama-cpp-python под модель: {_os.path.basename(model_path)} ──"
             )
@@ -353,6 +358,7 @@ class LocalAIInstallController:
         def worker():
             try:
                 from engine import env_setup
+
                 env_setup.install_llama_cpp(
                     progress_cb=self._log, resume=resume, model_path=model_path
                 )
@@ -380,6 +386,7 @@ class LocalAIInstallController:
         def worker():
             try:
                 from engine import env_setup
+
                 env_setup.uninstall_llama_cpp(progress_cb=self._log)
                 self._status("llama-cpp-python удалён", "error")
             except Exception as e:
@@ -395,6 +402,7 @@ class LocalAIInstallController:
     def get_resume_stage(self) -> Optional[str]:
         try:
             from engine import env_setup
+
             checkpoint = env_setup._load_checkpoint()
             stage = checkpoint.get("stage")
             if stage and stage not in (None, "", "done"):
@@ -409,6 +417,7 @@ class LocalAIInstallController:
     def cleanup_orphaned_checkpoint(self):
         try:
             from engine import env_setup
+
             env_setup.cleanup_orphaned_checkpoint()
         except Exception:
             pass
@@ -416,6 +425,7 @@ class LocalAIInstallController:
     def describe_startup_state(self) -> str:
         try:
             from engine import env_setup
+
             info = env_setup.get_startup_install_state()
         except Exception as e:
             return f"Не удалось проверить состояние установки: {e}"
@@ -457,4 +467,3 @@ def get_or_create_controller(**ui_cbs) -> LocalAIInstallController:
             replace=True,
         )
     return ctrl
-

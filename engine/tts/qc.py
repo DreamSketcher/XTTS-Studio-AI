@@ -26,11 +26,9 @@ def _wav_to_mono_float(wav):
 
     return np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
 
+
 def _detect_repeats(
-    wav: list,
-    sample_rate: int = 24000,
-    window_sec: float = 0.3,
-    threshold: float = 0.985
+    wav: list, sample_rate: int = 24000, window_sec: float = 0.3, threshold: float = 0.985
 ) -> bool:
     """
     Детектирует зацикливание/повторы.
@@ -46,7 +44,7 @@ def _detect_repeats(
     if arr.size < window * 3:
         return False
 
-    global_rms = float(np.sqrt(np.mean(arr ** 2)))
+    global_rms = float(np.sqrt(np.mean(arr**2)))
 
     if global_rms < 1e-5:
         return False
@@ -56,11 +54,11 @@ def _detect_repeats(
     hits = 0
 
     for pos in range(0, arr.size - window * 2, hop):
-        a = arr[pos:pos + window]
-        b = arr[pos + window:pos + window * 2]
+        a = arr[pos : pos + window]
+        b = arr[pos + window : pos + window * 2]
 
-        a_rms = float(np.sqrt(np.mean(a ** 2)))
-        b_rms = float(np.sqrt(np.mean(b ** 2)))
+        a_rms = float(np.sqrt(np.mean(a**2)))
+        b_rms = float(np.sqrt(np.mean(b**2)))
 
         if a_rms < min_rms or b_rms < min_rms:
             hits = 0
@@ -94,11 +92,9 @@ def _detect_repeats(
 
     return False
 
+
 def _validate_duration(
-    wav: list,
-    chunk_text: str,
-    sample_rate: int = 24000,
-    min_sec_per_word: float = 0.16
+    wav: list, chunk_text: str, sample_rate: int = 24000, min_sec_per_word: float = 0.16
 ) -> bool:
     """
     Проверяет базовую валидность длительности и сигнала.
@@ -121,7 +117,7 @@ def _validate_duration(
         return True
 
     peak = float(np.max(np.abs(arr)))
-    rms = float(np.sqrt(np.mean(arr ** 2)))
+    rms = float(np.sqrt(np.mean(arr**2)))
 
     if peak < 1e-4 or rms < 2e-5:
         print(f"[QC] Audio is almost silent: peak={peak:.6f}, rms={rms:.6f}")
@@ -156,13 +152,9 @@ def _validate_duration(
 
     return False
 
+
 def _adaptive_trim(
-    seg,
-    chunk_text="",
-    base_ms=100,
-    mode="auto",
-    range_ms=30,
-    silence_thresh_db=-35.0
+    seg, chunk_text="", base_ms=100, mode="auto", range_ms=30, silence_thresh_db=-35.0
 ):
     if len(seg) < 100:
         return seg
@@ -202,7 +194,7 @@ def _adaptive_trim(
 
     # Ищем последнюю речь в хвосте
     for pos in range(len(seg), max(0, len(seg) - 300), -step):
-        chunk = seg[max(0, pos - step):pos]
+        chunk = seg[max(0, pos - step) : pos]
         if chunk.dBFS > speech_thresh_db:
             artifact_end = pos
             break
@@ -211,7 +203,7 @@ def _adaptive_trim(
 
     # Ищем тишину перед артефактом/хвостом
     for pos in range(artifact_end, max(0, artifact_end - 500), -step):
-        chunk = seg[max(0, pos - step):pos]
+        chunk = seg[max(0, pos - step) : pos]
         if chunk.dBFS <= tail_silence_thresh:
             artifact_start = pos
             break
@@ -220,7 +212,7 @@ def _adaptive_trim(
 
     # Ищем последнюю речь перед тишиной
     for pos in range(artifact_start, max(0, artifact_start - 500), -step):
-        chunk = seg[max(0, pos - step):pos]
+        chunk = seg[max(0, pos - step) : pos]
         if chunk.dBFS > speech_thresh_db:
             silence_start = pos
             break
@@ -236,9 +228,10 @@ def _adaptive_trim(
     trim_ms = min(trim_ms, max_trim)
 
     if trim_ms > 0 and len(seg) > trim_ms:
-        return seg[:-int(trim_ms)].fade_out(min(40, int(trim_ms)))
+        return seg[: -int(trim_ms)].fade_out(min(40, int(trim_ms)))
 
     return seg
+
 
 def _normalize_loudness(seg, target_lufs: float = -23.0):
     """
@@ -283,7 +276,7 @@ def _normalize_loudness(seg, target_lufs: float = -23.0):
     if active.size < max(32, int(arr.size * 0.01)):
         active = arr
 
-    rms = float(np.sqrt(np.mean(active ** 2)))
+    rms = float(np.sqrt(np.mean(active**2)))
 
     if rms < 1e-8:
         return seg
@@ -306,6 +299,7 @@ def _normalize_loudness(seg, target_lufs: float = -23.0):
         return seg
 
     return seg.apply_gain(gain_db)
+
 
 def _normalize_numpy_audio(data, target_dbfs: float = -23.0):
     """
@@ -332,7 +326,7 @@ def _normalize_numpy_audio(data, target_dbfs: float = -23.0):
     if active.size < max(32, int(mono.size * 0.01)):
         active = mono
 
-    rms = float(np.sqrt(np.mean(active ** 2)))
+    rms = float(np.sqrt(np.mean(active**2)))
 
     if rms < 1e-8:
         return data
@@ -350,4 +344,3 @@ def _normalize_numpy_audio(data, target_dbfs: float = -23.0):
     out = arr * gain
 
     return np.clip(out, -0.999, 0.999).astype(np.float32)
-

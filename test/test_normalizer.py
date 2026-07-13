@@ -18,13 +18,16 @@ def norm():
 
 # ───────────────────────── числа → слова ─────────────────────────
 
+
 def test_simple_integer_to_words(norm):
     assert norm.normalize("У меня 5 яблок") == "У меня пять яблок."
 
 
 def test_percent_to_words(norm):
-    assert norm.normalize("Показатель вырос на 87%") == \
-        "Показатель вырос на восемьдесят семь процентов."
+    assert (
+        norm.normalize("Показатель вырос на 87%")
+        == "Показатель вырос на восемьдесят семь процентов."
+    )
 
 
 def test_decimal_number_to_words(norm):
@@ -43,6 +46,7 @@ def test_ordinal_list_marker(norm):
 
 
 # ───────────────────────── аббревиатуры ─────────────────────────
+
 
 def test_known_cyrillic_abbreviation_from_dict(norm):
     result = norm.normalize("РФ и СНГ подписали договор")
@@ -73,6 +77,7 @@ def test_single_latin_abbreviation_is_left_alone(norm):
 
 # ───────────────────────── финальная пунктуация ─────────────────────────
 
+
 def test_adds_trailing_period_if_missing(norm):
     assert norm.normalize("Просто текст без точки") == "Просто текст без точки."
 
@@ -86,6 +91,7 @@ def test_empty_string_returns_empty(norm):
 
 
 # ───────────────────────── safe_character_filter ─────────────────────────
+
 
 def test_safe_character_filter_removes_unsupported_symbols(norm):
     result = norm.safe_character_filter("Привет @мир# $100")

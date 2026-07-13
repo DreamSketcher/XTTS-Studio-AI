@@ -58,6 +58,7 @@ def _load_button_cfg(button_id: str | None) -> tuple[bool, dict]:
         return True, {}
     try:
         from engine.gui import theme_manager as tm
+
         buttons = tm.get_neon_buttons()
         entry = buttons.get(button_id) or {}
         return bool(entry.get("enabled", True)), dict(entry.get("style") or {})
@@ -195,7 +196,11 @@ def refresh_neon_button(btn) -> None:
     bid = getattr(btn, "_neon_button_id", None)
     enabled, style = _load_button_cfg(bid)
     default_fg = getattr(Colors, "AI_ACCENT", None) or getattr(Colors, "ACCENT", "#7aa2f7")
-    neon_fg = _style_to_base_color(style, default_fg) if enabled else getattr(Colors, "TEXT_MAIN", "#c0caf5")
+    neon_fg = (
+        _style_to_base_color(style, default_fg)
+        if enabled
+        else getattr(Colors, "TEXT_MAIN", "#c0caf5")
+    )
     btn._neon_enabled = enabled
     try:
         btn.configure(text_color=neon_fg)

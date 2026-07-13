@@ -17,13 +17,16 @@ console_inner = None
 console_text = None
 console_scroll = None
 
+
 def init(**deps):
     globals().update(deps)
+
 
 class ConsoleRedirect:
     def __init__(self):
         self.widget = None
         self._buffer = []
+
     def attach(self, widget):
         self.widget = widget
         for line in self._buffer:
@@ -32,6 +35,7 @@ class ConsoleRedirect:
             except Exception:
                 pass
         self._buffer.clear()
+
     def _write_to_widget(self, text):
         if self.widget is None:
             return
@@ -49,6 +53,7 @@ class ConsoleRedirect:
             self.widget.see(tk.END)
         except Exception:
             pass
+
     def write(self, text):
         if self.widget is None:
             self._buffer.append(text)
@@ -57,18 +62,23 @@ class ConsoleRedirect:
                 self.widget.after(0, self._write_to_widget, text)
             except Exception:
                 pass
+
     def flush(self):
         pass
 
+
 console_redirect = ConsoleRedirect()
+
 
 def install():
     sys.stdout = console_redirect
     sys.stderr = console_redirect
 
+
 def _save_console_state():
     try:
         from engine.gui import theme_manager as tm
+
         data = tm._read_json()
         data["console_visible"] = bool(console_visible.get()) if console_visible else True
         try:
@@ -78,13 +88,16 @@ def _save_console_state():
             pass
         with open(tm.THEME_FILE, "w", encoding="utf-8") as f:
             import json
+
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
 
+
 def _load_console_state():
     try:
         from engine.gui import theme_manager as tm
+
         data = tm._read_json()
         vis = data.get("console_visible", None)
         if vis is not None and console_visible is not None:
@@ -93,6 +106,7 @@ def _load_console_state():
     except Exception:
         return 0.0
 
+
 def _redistribute_left_panel():
     # Все 4 окна изначально одинаковые 165
     # При закрытой консоли — 3 остальных растут, и текст референса увеличивается
@@ -100,6 +114,7 @@ def _redistribute_left_panel():
     try:
         import engine.gui.voice_panel as vp
         import engine.gui.queue_panel as qp
+
         is_open = bool(console_visible.get()) if console_visible else True
 
         if is_open:
@@ -128,7 +143,7 @@ def _redistribute_left_panel():
                 pass
             # Текст референса — базовый увеличенный 9pt (было 7)
             try:
-                if hasattr(vp, 'set_ref_info_font_size'):
+                if hasattr(vp, "set_ref_info_font_size"):
                     vp.set_ref_info_font_size(9)
             except Exception:
                 pass
@@ -164,7 +179,7 @@ def _redistribute_left_panel():
                 pass
             # Текст "Конвертирован в WAV..." увеличивается когда консоль закрыта
             try:
-                if hasattr(vp, 'set_ref_info_font_size'):
+                if hasattr(vp, "set_ref_info_font_size"):
                     vp.set_ref_info_font_size(10)
             except Exception:
                 pass
@@ -175,6 +190,7 @@ def _redistribute_left_panel():
             pass
     except Exception:
         pass
+
 
 def toggle_console():
     if console_visible.get():
@@ -194,13 +210,29 @@ def toggle_console():
     _save_console_state()
     _redistribute_left_panel()
 
+
 def show_context_menu(event):
-    menu = tk.Menu(root, tearoff=0, bg=Colors.BG_CARD, fg=Colors.TEXT_MAIN,
-                   activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
-                   relief="flat", borderwidth=1)
-    menu.add_command(label=t("ctx_copy"),
-                     command=lambda: (root.clipboard_clear(),
-                                      root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST))) if console_text.tag_ranges(tk.SEL) else None)
+    menu = tk.Menu(
+        root,
+        tearoff=0,
+        bg=Colors.BG_CARD,
+        fg=Colors.TEXT_MAIN,
+        activebackground=Colors.BG_HOVER,
+        activeforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        borderwidth=1,
+    )
+    menu.add_command(
+        label=t("ctx_copy"),
+        command=lambda: (
+            (
+                root.clipboard_clear(),
+                root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST)),
+            )
+            if console_text.tag_ranges(tk.SEL)
+            else None
+        ),
+    )
     menu.add_separator()
     menu.add_command(label="🗑 " + t("ctx_clear"), command=clear_console)
     try:
@@ -208,11 +240,13 @@ def show_context_menu(event):
     finally:
         menu.grab_release()
 
+
 def clear_console():
     try:
         console_text.delete("1.0", tk.END)
     except Exception:
         pass
+
 
 def build_console_card(left_panel, queue_card):
     global console_card, console_header, toggle_btn, _clr_btn
@@ -230,22 +264,38 @@ def build_console_card(left_panel, queue_card):
     console_header.pack(fill="x", padx=8, pady=(7, 3))
 
     toggle_btn = tk.Button(
-        console_header, text=t("console_show"), command=toggle_console,
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
-        relief="flat", borderwidth=0, font=("Segoe UI", scaled_font_size(8)),
-        cursor="hand2", padx=5, pady=1
+        console_header,
+        text=t("console_show"),
+        command=toggle_console,
+        bg=Colors.BG_INPUT,
+        fg=Colors.TEXT_MAIN,
+        activebackground=Colors.BG_HOVER,
+        activeforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        borderwidth=0,
+        font=("Segoe UI", scaled_font_size(8)),
+        cursor="hand2",
+        padx=5,
+        pady=1,
     )
     toggle_btn.bind("<Enter>", lambda e: toggle_btn.config(bg=Colors.BG_HOVER))
     toggle_btn.bind("<Leave>", lambda e: toggle_btn.config(bg=Colors.BG_INPUT))
     toggle_btn.pack(side="left")
 
     _clr_btn = tk.Button(
-        console_header, text="🗑", command=clear_console,
-        bg=Colors.BG_INPUT, fg=Colors.TEXT_MAIN,
-        activebackground=Colors.BG_HOVER, activeforeground=Colors.TEXT_MAIN,
-        relief="flat", borderwidth=0, font=("Segoe UI", scaled_font_size(8)),
-        cursor="hand2", padx=5, pady=1
+        console_header,
+        text="🗑",
+        command=clear_console,
+        bg=Colors.BG_INPUT,
+        fg=Colors.TEXT_MAIN,
+        activebackground=Colors.BG_HOVER,
+        activeforeground=Colors.TEXT_MAIN,
+        relief="flat",
+        borderwidth=0,
+        font=("Segoe UI", scaled_font_size(8)),
+        cursor="hand2",
+        padx=5,
+        pady=1,
     )
     _clr_btn.bind("<Enter>", lambda e: _clr_btn.config(bg=Colors.BG_HOVER))
     _clr_btn.bind("<Leave>", lambda e: _clr_btn.config(bg=Colors.BG_INPUT))
@@ -258,14 +308,22 @@ def build_console_card(left_panel, queue_card):
     text_wrap.pack(fill="both", expand=True)
 
     console_text = tk.Text(
-        text_wrap, height=4,
-        bg=Colors.BG_DARK, fg=Colors.TEXT_MAIN,
-        font=("Consolas", scaled_font_size(9)), state="normal", wrap="word", cursor="arrow",
-        relief="flat", highlightthickness=0,
-        padx=8, pady=6
+        text_wrap,
+        height=4,
+        bg=Colors.BG_DARK,
+        fg=Colors.TEXT_MAIN,
+        font=("Consolas", scaled_font_size(9)),
+        state="normal",
+        wrap="word",
+        cursor="arrow",
+        relief="flat",
+        highlightthickness=0,
+        padx=8,
+        pady=6,
     )
-    console_scroll = tk.Scrollbar(text_wrap, command=console_text.yview,
-                                  bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK)
+    console_scroll = tk.Scrollbar(
+        text_wrap, command=console_text.yview, bg=Colors.BG_INPUT, troughcolor=Colors.BG_DARK
+    )
     console_text.configure(yscrollcommand=console_scroll.set)
     console_scroll.pack(side="right", fill="y")
     console_text.pack(fill="both", expand=True)
@@ -276,10 +334,30 @@ def build_console_card(left_panel, queue_card):
     console_text.tag_configure("info", foreground=Colors.TEXT_MAIN)
     console_redirect.attach(console_text)
     console_text.bind("<Button-3>", show_context_menu)
-    console_text.bind("<Control-c>", lambda e: (root.clipboard_clear(),
-        root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST)), "break")[-1] if console_text.tag_ranges(tk.SEL) else "break")
-    console_text.bind("<Control-C>", lambda e: (root.clipboard_clear(),
-        root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST)), "break")[-1] if console_text.tag_ranges(tk.SEL) else "break")
+    console_text.bind(
+        "<Control-c>",
+        lambda e: (
+            (
+                root.clipboard_clear(),
+                root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST)),
+                "break",
+            )[-1]
+            if console_text.tag_ranges(tk.SEL)
+            else "break"
+        ),
+    )
+    console_text.bind(
+        "<Control-C>",
+        lambda e: (
+            (
+                root.clipboard_clear(),
+                root.clipboard_append(console_text.get(tk.SEL_FIRST, tk.SEL_LAST)),
+                "break",
+            )[-1]
+            if console_text.tag_ranges(tk.SEL)
+            else "break"
+        ),
+    )
 
     try:
         saved_pos = _load_console_state()

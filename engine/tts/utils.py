@@ -13,11 +13,11 @@ import torch
 import gc
 
 
-
 if getattr(sys, "frozen", False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
 
 def path(*args):
     return os.path.join(BASE_DIR, *args)
@@ -44,11 +44,14 @@ def _make_output_name(text: str, output_dir: str) -> str:
         counter += 1
     return candidate
 
+
 def detect_lang_adaptive(text: str) -> str:
-    return "ru" if any('\u0400' <= c <= '\u04FF' for c in text) else "en"
+    return "ru" if any("\u0400" <= c <= "\u04FF" for c in text) else "en"
+
 
 class _Cancelled(Exception):
     pass
+
 
 def _is_dense_abbrev_chunk(text: str, threshold: float = 0.5) -> bool:
     """
@@ -59,14 +62,16 @@ def _is_dense_abbrev_chunk(text: str, threshold: float = 0.5) -> bool:
     Срабатывает только на нетипичный контент: для обычной прозы
     такая плотность практически недостижима.
     """
-    words = re.findall(r'\S+', text)
+    words = re.findall(r"\S+", text)
     if not words:
         return False
-    short_words = sum(1 for w in words if len(w.strip(',.!?')) <= 3)
+    short_words = sum(1 for w in words if len(w.strip(",.!?")) <= 3)
     return (short_words / len(words)) > threshold
 
-def _adjust_params_for_chunk(base_params: dict, chunk_idx: int,
-                              total_chunks: int, chunk_text: str) -> dict:
+
+def _adjust_params_for_chunk(
+    base_params: dict, chunk_idx: int, total_chunks: int, chunk_text: str
+) -> dict:
     """
     #2: temperature schedule для перечислений.
     На мелких list-item чанках слегка повышаем temperature
@@ -86,20 +91,18 @@ def _adjust_params_for_chunk(base_params: dict, chunk_idx: int,
             params["repetition_penalty"] = max(params["repetition_penalty"] - 1.0, 5.0)
     return params
 
+
 def _count_real_words(chunk: str) -> int:
-    return sum(
-        1 for w in re.findall(r'[A-Za-zА-Яа-яЁё]+', chunk)
-        if len(w) >= 1
-    )
+    return sum(1 for w in re.findall(r"[A-Za-zА-Яа-яЁё]+", chunk) if len(w) >= 1)
 
 
 _TOKEN_RE = re.compile(
-    r'(?P<en>[A-Za-z][A-Za-z0-9\-]*)'
-    r'|(?P<ru>[А-Яа-яЁё]+)'
-    r'|(?P<num>\d+)'
-    r'|(?P<punct>[^\w\s])'
-    r'|(?P<space>\s+)',
-    re.UNICODE
+    r"(?P<en>[A-Za-z][A-Za-z0-9\-]*)"
+    r"|(?P<ru>[А-Яа-яЁё]+)"
+    r"|(?P<num>\d+)"
+    r"|(?P<punct>[^\w\s])"
+    r"|(?P<space>\s+)",
+    re.UNICODE,
 )
 
 
@@ -107,9 +110,7 @@ def _split_by_language(text: str, base_lang: str = "ru") -> List[Tuple[str, str]
     if not text.strip():
         return []
 
-    raw_tokens = [
-        (m.group(0), m.lastgroup) for m in _TOKEN_RE.finditer(text)
-    ]
+    raw_tokens = [(m.group(0), m.lastgroup) for m in _TOKEN_RE.finditer(text)]
     if not raw_tokens:
         return []
 
@@ -141,10 +142,7 @@ def _split_by_language(text: str, base_lang: str = "ru") -> List[Tuple[str, str]
             next_lang = lang
         elif lang is None and next_lang is not None:
             classified[i] = (classified[i][0], next_lang)
-    classified = [
-        (tok, lang if lang is not None else base_lang)
-        for tok, lang in classified
-    ]
+    classified = [(tok, lang if lang is not None else base_lang) for tok, lang in classified]
 
     merged = []
     for tok, lang in classified:
@@ -171,10 +169,7 @@ def _split_by_language(text: str, base_lang: str = "ru") -> List[Tuple[str, str]
         while i < len(merged):
             chunk, lang = merged[i]
 
-            should_absorb = (
-                lang == "en"
-                and _count_real_words(chunk) <= 3
-            )
+            should_absorb = lang == "en" and _count_real_words(chunk) <= 3
 
             if not should_absorb:
                 result.append([chunk, lang])
@@ -199,11 +194,8 @@ def _split_by_language(text: str, base_lang: str = "ru") -> List[Tuple[str, str]
 
         merged = result
 
-    return [
-        (re.sub(r' {2,}', ' ', chunk).strip(), lang)
-        for chunk, lang in merged
-        if chunk.strip()
-    ]
+    return [(re.sub(r" {2,}", " ", chunk).strip(), lang) for chunk, lang in merged if chunk.strip()]
+
 
 def _normalize_lookup_text_with_map(text: str):
     norm_chars = []
@@ -231,6 +223,7 @@ def _normalize_lookup_text_with_map(text: str):
         index_map.pop()
 
     return "".join(norm_chars), index_map
+
 
 def _build_chunk_text_map(full_text: str, chunks: list) -> list:
     """
@@ -295,8 +288,10 @@ def _build_chunk_text_map(full_text: str, chunks: list) -> list:
 
     return chunk_map
 
+
 def _get_embedding(tts, ref_wav, cache_path):
     import torch  # type: ignore
+
     device = detect_device()
 
     if os.path.exists(cache_path):
@@ -308,16 +303,15 @@ def _get_embedding(tts, ref_wav, cache_path):
             print(f"[XTTS] Cache load failed, recomputing: {e}")
 
     print("[XTTS] Computing embedding...")
-    gpt_cond_latent, speaker_embedding = (
-        tts.synthesizer.tts_model.get_conditioning_latents(audio_path=ref_wav)
+    gpt_cond_latent, speaker_embedding = tts.synthesizer.tts_model.get_conditioning_latents(
+        audio_path=ref_wav
     )
     gpt_cond_latent = gpt_cond_latent.to(device)
     speaker_embedding = speaker_embedding.to(device)
     try:
-        torch.save({
-            "gpt_cond_latent":   gpt_cond_latent,
-            "speaker_embedding": speaker_embedding
-        }, cache_path)
+        torch.save(
+            {"gpt_cond_latent": gpt_cond_latent, "speaker_embedding": speaker_embedding}, cache_path
+        )
         print("[XTTS] Embedding saved to cache")
     except Exception as e:
         print(f"[XTTS] Cache save failed: {e}")

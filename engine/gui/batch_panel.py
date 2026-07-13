@@ -7,8 +7,18 @@ from engine.gui.colors import Colors
 from engine.gui.helpers import clean_path
 
 
-def setup(root, output_dir, task_manager, ref_var, quality_var, quality_params,
-          word_replacer_enabled, lang_split_enabled, use_gpt, lang_var):
+def setup(
+    root,
+    output_dir,
+    task_manager,
+    ref_var,
+    quality_var,
+    quality_params,
+    word_replacer_enabled,
+    lang_split_enabled,
+    use_gpt,
+    lang_var,
+):
     batch_window.init(
         root=root,
         colors=Colors,

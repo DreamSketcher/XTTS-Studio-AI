@@ -4,6 +4,7 @@ import tkinter as tk
 
 from engine.gui.colors import Colors, scaled_font_size
 
+
 class ToolTip:
     def __init__(self, widget, text: str):
         self.widget = widget
@@ -12,6 +13,7 @@ class ToolTip:
         widget.bind("<Enter>", self.show, add="+")
         widget.bind("<Leave>", self.hide, add="+")
         widget.bind("<ButtonPress>", self.hide, add="+")
+
     def show(self, event=None):
         if self.tip:
             return
@@ -31,8 +33,9 @@ class ToolTip:
             padx=10,
             pady=7,
             font=("Segoe UI", scaled_font_size(9)),
-            wraplength=280
+            wraplength=280,
         ).pack()
+
     def hide(self, event=None):
         if self.tip:
             self.tip.destroy()

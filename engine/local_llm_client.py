@@ -3,20 +3,21 @@ engine/local_llm_client.py — локальные GGUF-модели через l
 (инференс прямо в процессе приложения, без внешних серверов вроде Ollama).
 """
 
-import os
-import sys
+import http.client
 import json
+import os
 import shutil
-import ssl
 import socket
+import ssl
+import sys
 import threading
 import time
-import urllib.request
 import urllib.error
-import http.client
+import urllib.request
 
 try:
     import certifi
+
     _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 except Exception:
     _SSL_CONTEXT = ssl.create_default_context()
@@ -39,6 +40,7 @@ _RETRY_BACKOFF_SEC = 3  # линейный backoff: 3с, 6с, 9с...
 # (актуально для bundled/python и portable-окружений)
 try:
     from engine import env_setup
+
     if env_setup.SITE_PACKAGES not in sys.path:
         sys.path.insert(0, env_setup.SITE_PACKAGES)
 except Exception:
@@ -124,6 +126,7 @@ def _write_settings(patch: dict):
 
 # ── Установленные модели (persisted список, не статика) ────────────────────────
 
+
 def get_last_model_dir() -> str:
     """Последняя папка, из которой выбирали файл модели."""
     return _read_settings().get("last_model_dir", "")
@@ -137,10 +140,12 @@ def set_last_model_dir(path: str):
 
 # ── Оценка совместимости и скачивание моделей ─────────────────────────────────
 
+
 def _get_system_ram_gb() -> float:
     try:
         import psutil
-        return psutil.virtual_memory().available / (1024 ** 3)
+
+        return psutil.virtual_memory().available / (1024**3)
     except Exception:
         return 8.0  # безопасный дефолт
 
@@ -225,7 +230,9 @@ def get_compatible_models(ram_gb: float = None, vram_gb: float = None) -> list:
     return result
 
 
-def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=None, resume: bool = False) -> str:
+def download_model(
+    url: str, filename: str, progress_cb=None, cancelled_flag=None, resume: bool = False
+) -> str:
     """
     Скачивает .gguf по url в MODELS_DIR с поддержкой resume и отмены.
     progress_cb(line: str) — вызывается на каждом блоке.
@@ -294,8 +301,8 @@ def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=Non
                         _save_download_checkpoint(filename, downloaded, total, url)
                         if total:
                             pct = downloaded / total * 100
-                            mb = downloaded / (1024 ** 2)
-                            total_mb = total / (1024 ** 2)
+                            mb = downloaded / (1024**2)
+                            total_mb = total / (1024**2)
                             emit(f"\rСкачано: {mb:.1f} / {total_mb:.1f} MB ({pct:.1f}%)")
                         else:
                             emit(f"\rСкачано: {downloaded / (1024 ** 2):.1f} MB")
@@ -319,13 +326,14 @@ def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=Non
 
             if attempt >= _MAX_DOWNLOAD_RETRIES:
                 raise RuntimeError(
-                    f"Не удалось скачать модель после {attempt} попыток "
-                    f"(обрыв соединения): {e}"
+                    f"Не удалось скачать модель после {attempt} попыток " f"(обрыв соединения): {e}"
                 )
 
             wait_s = _RETRY_BACKOFF_SEC * attempt
-            emit(f"⚠ Обрыв соединения ({e}). Повтор через {wait_s}с "
-                 f"(попытка {attempt}/{_MAX_DOWNLOAD_RETRIES})...")
+            emit(
+                f"⚠ Обрыв соединения ({e}). Повтор через {wait_s}с "
+                f"(попытка {attempt}/{_MAX_DOWNLOAD_RETRIES})..."
+            )
 
             # Спим короткими интервалами, чтобы отмена сработала быстро,
             # а не только после полного ожидания.
@@ -347,7 +355,9 @@ def download_model(url: str, filename: str, progress_cb=None, cancelled_flag=Non
             raise RuntimeError(f"Не удалось скачать модель: {e}")
 
 
-def install_catalog_model(model_id: str, progress_cb=None, cancelled_flag=None, resume: bool = False) -> dict:
+def install_catalog_model(
+    model_id: str, progress_cb=None, cancelled_flag=None, resume: bool = False
+) -> dict:
     """
     Скачивает модель из каталога и регистрирует как установленную.
     Возвращает entry установленной модели.
@@ -358,7 +368,9 @@ def install_catalog_model(model_id: str, progress_cb=None, cancelled_flag=None, 
 
     filename = model.get("filename")
     url = model.get("download_link")
-    path = download_model(url, filename, progress_cb=progress_cb, cancelled_flag=cancelled_flag, resume=resume)
+    path = download_model(
+        url, filename, progress_cb=progress_cb, cancelled_flag=cancelled_flag, resume=resume
+    )
     _clear_download_checkpoint(filename)
     return register_model(path, label=model.get("label"), n_gpu_layers=_default_n_gpu_layers())
 
@@ -399,8 +411,12 @@ def _default_n_gpu_layers() -> int:
         return 0
     try:
         from engine import env_setup
+
         gpu = env_setup.detect_gpu()
-        if gpu.get("vendor") in ("nvidia", "amd", "intel") and env_setup.llama_cpp_status()["installed"]:
+        if (
+            gpu.get("vendor") in ("nvidia", "amd", "intel")
+            and env_setup.llama_cpp_status()["installed"]
+        ):
             return -1
     except Exception:
         pass
@@ -410,6 +426,7 @@ def _default_n_gpu_layers() -> int:
 def register_model(path: str, label: str = None, n_gpu_layers: int = None) -> dict:
     """Регистрирует уже лежащий по path .gguf как установленную модель."""
     import uuid as _uuid
+
     filename = os.path.basename(path)
     entry = {
         "id": str(_uuid.uuid4()),
@@ -478,6 +495,7 @@ def _get_llm(path: str):
         # Убеждаемся, что нужная папка site-packages в путях
         try:
             from engine import env_setup
+
             if env_setup.SITE_PACKAGES not in sys.path:
                 sys.path.insert(0, env_setup.SITE_PACKAGES)
         except Exception:
@@ -532,7 +550,7 @@ def _get_llm(path: str):
         except Exception as e:
             err_str = str(e)
             print(f"[LLM] Ошибка инициализации Llama (GPU слои: {n_gpu_layers}): {err_str}")
-            
+
             # Если слоев > 0 или мы словили C++ Exception (ошибка инициализации Vulkan/CUDA)
             if n_gpu_layers != 0 or "529697949" in err_str or "e06d7363" in err_str.lower():
                 print("[LLM] GPU-backend неисправен на этой сборке — фиксирую как broken...")
@@ -542,6 +560,7 @@ def _get_llm(path: str):
                 # (env_setup._pick_llama_backend больше не предложит его).
                 try:
                     from engine import env_setup
+
                     env_setup.mark_backend_broken(env_setup.get_installed_backend() or "vulkan")
                 except Exception:
                     pass
@@ -550,9 +569,9 @@ def _get_llm(path: str):
                 print("[LLM] Включаем автоматический откат на CPU-инференс...")
 
                 # Изолируем llama.cpp от проблемных GPU-драйверов
-                os.environ["GGML_VK_VISIBLE_DEVICES"] = "" 
+                os.environ["GGML_VK_VISIBLE_DEVICES"] = ""
                 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-                
+
                 try:
                     _loaded_llm = Llama(
                         model_path=path,
@@ -563,7 +582,9 @@ def _get_llm(path: str):
                     )
                     print("[LLM] Успешно выполнено переключение на CPU.")
                 except Exception as e_cpu:
-                    raise RuntimeError(f"Сбой загрузки модели. GPU-ошибка: {e}. CPU-ошибка: {e_cpu}")
+                    raise RuntimeError(
+                        f"Сбой загрузки модели. GPU-ошибка: {e}. CPU-ошибка: {e_cpu}"
+                    )
             else:
                 raise RuntimeError(f"Сбой загрузки модели: {e}")
 
@@ -595,12 +616,12 @@ def call_local_llm(messages: list, model: str = None, max_tokens: int = 2048) ->
     # Стоп-токены нескольких популярных семейств моделей разом — лишние
     # варианты безвредны, если модель их не использует.
     stop_tokens = [
-        "</s>",           # Llama-2 / TinyLlama / Mistral (классика)
-        "<|im_end|>",     # ChatML — Qwen, многие современные finetune
-        "<|eot_id|>",     # Llama-3 / Llama-3.1
+        "</s>",  # Llama-2 / TinyLlama / Mistral (классика)
+        "<|im_end|>",  # ChatML — Qwen, многие современные finetune
+        "<|eot_id|>",  # Llama-3 / Llama-3.1
         "<end_of_turn>",  # Gemma
-        "<|end|>",        # Phi-3
-        "[/INST]",        # Llama-2 Instruct / TinyLlama
+        "<|end|>",  # Phi-3
+        "[/INST]",  # Llama-2 Instruct / TinyLlama
         "[INST]",
         "<<SYS>>",
         "<</SYS>>",

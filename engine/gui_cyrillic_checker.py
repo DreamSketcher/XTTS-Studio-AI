@@ -1,10 +1,12 @@
 import os
-import sys
 import re
+import sys
+
 
 def has_cyrillic(text: str) -> bool:
     """Checks if the string contains any Russian (Cyrillic) characters."""
-    return bool(re.search('[а-яА-ЯёЁ]', text))
+    return bool(re.search("[а-яА-ЯёЁ]", text))
+
 
 def check_project_path():
     """
@@ -14,7 +16,7 @@ def check_project_path():
     """
     app_dir = os.path.abspath(os.path.dirname(__file__))
     # Go up if inside engine/
-    if os.path.basename(app_dir) == 'engine':
+    if os.path.basename(app_dir) == "engine":
         project_root = os.path.dirname(app_dir)
     else:
         project_root = app_dir
@@ -23,7 +25,7 @@ def check_project_path():
     python_exe = os.path.abspath(sys.executable)
 
     problematic_paths = []
-    
+
     if has_cyrillic(project_root):
         problematic_paths.append(f"Project directory: '{project_root}'")
     if has_cyrillic(cwd):
@@ -36,7 +38,8 @@ def check_project_path():
         message = (
             "⚠️ CRITICAL PATH WARNING ⚠️\n\n"
             "Cyrillic (Russian) characters were detected in your installation paths:\n"
-            + "\n".join(f"• {path}" for path in problematic_paths) + "\n\n"
+            + "\n".join(f"• {path}" for path in problematic_paths)
+            + "\n\n"
             "XTTS Studio, PyTorch, and CUDA dependencies are highly sensitive to non-ASCII paths. "
             "Running from folders containing spaces, Cyrillic, or special characters frequently causes: \n"
             "  1. Silent crashes during model loading\n"
@@ -57,10 +60,13 @@ def check_project_path():
         if sys.platform == "win32":
             try:
                 import ctypes
+
                 # MB_OKCANCEL = 0x1, MB_ICONWARNING = 0x30, IDOK = 1, IDCANCEL = 2
                 response = ctypes.windll.user32.MessageBoxW(0, message, title, 0x1 | 0x30)
                 if response == 2:  # Cancel clicked
-                    print("Execution aborted by the user to fix path encoding issue.", file=sys.stderr)
+                    print(
+                        "Execution aborted by the user to fix path encoding issue.", file=sys.stderr
+                    )
                     sys.exit(1)
             except Exception as e:
                 print(f"Could not display native Windows warning dialog: {e}", file=sys.stderr)
@@ -69,10 +75,11 @@ def check_project_path():
             try:
                 if sys.stdin.isatty():
                     ans = input("\nDo you want to abort and move the folder? (y/n): ")
-                    if ans.lower() in ['y', 'yes', '']:
+                    if ans.lower() in ["y", "yes", ""]:
                         sys.exit(1)
             except Exception:
                 pass
+
 
 if __name__ == "__main__":
     check_project_path()

@@ -67,6 +67,7 @@ def _build_rvc_constraints(frozen_reqs: dict, site_packages: str) -> list:
 def _detect_installed_torch_variant(site_packages: str):
     """Возвращает установленную сборку torch ('cu118'/'cpu') или None."""
     import importlib.metadata as ilm
+
     prev = list(sys.path)
     sys.path.insert(0, site_packages)
     installed = None
@@ -86,7 +87,10 @@ def _fallback_cuda_available() -> bool:
     """Запасной детект NVIDIA-GPU, если недоступен основной механизм проекта."""
     try:
         proc = subprocess.run(
-            ["nvidia-smi"], capture_output=True, text=True, timeout=10,
+            ["nvidia-smi"],
+            capture_output=True,
+            text=True,
+            timeout=10,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if proc.returncode == 0:
@@ -96,11 +100,17 @@ def _fallback_cuda_available() -> bool:
     if sys.platform == "win32":
         try:
             out = subprocess.run(
-                ["powershell", "-NoProfile", "-Command",
-                 "Get-CimInstance Win32_VideoController | "
-                 "Where-Object { $_.Name -match 'NVIDIA' } | Measure-Object | "
-                 "Select-Object -ExpandProperty Count"],
-                capture_output=True, text=True, timeout=15,
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "Get-CimInstance Win32_VideoController | "
+                    "Where-Object { $_.Name -match 'NVIDIA' } | Measure-Object | "
+                    "Select-Object -ExpandProperty Count",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             if out.returncode == 0 and out.stdout.strip() not in ("", "0"):
@@ -122,6 +132,7 @@ def detect_torch_build(site_packages: str):
         любой вариант без ручного переключения.
     """
     from engine.env_core.torch_setup import _TORCH_INDEX_URLS
+
     installed = _detect_installed_torch_variant(site_packages)
     if installed:
         return (installed, _TORCH_INDEX_URLS[installed])
@@ -130,6 +141,7 @@ def detect_torch_build(site_packages: str):
     try:
         from engine.env_core.torch_setup import _pick_torch_variant
         from engine.env_core.cpu_gpu import detect_gpu
+
         variant, index_url = _pick_torch_variant(detect_gpu())
         return (variant, index_url)
     except Exception:
@@ -144,16 +156,23 @@ def detect_torch_build(site_packages: str):
 def _run_pip_capture(cmd, env, progress_cb=None):
     """Запускает pip, стримит вывод в progress_cb и возвращает (returncode, текст)."""
     from engine.env_core.diagnostics import _read_pip_output
+
     proc = subprocess.Popen(
-        cmd, cwd=BASE_DIR, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        stdin=subprocess.PIPE, bufsize=0,
+        cmd,
+        cwd=BASE_DIR,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
+        bufsize=0,
     )
     buf = []
+
     def _cb(line):
         buf.append(line)
         if progress_cb:
             progress_cb(line)
+
     _read_pip_output(proc, _cb)
     proc.wait()
     return proc.returncode, "\n".join(buf)
@@ -162,7 +181,8 @@ def _run_pip_capture(cmd, env, progress_cb=None):
 def _read_requires_dist(dist_name: str) -> list:
     """Читает Requires-Dist из установленного dist-info пакета dist_name."""
     dist_info_dirs = [
-        d for d in os.listdir(SITE_PACKAGES)
+        d
+        for d in os.listdir(SITE_PACKAGES)
         if d.lower().startswith(dist_name.lower() + "-") and d.endswith(".dist-info")
     ]
     if not dist_info_dirs:
@@ -200,8 +220,10 @@ def _install_with_retry(cmd, env, progress_cb=None):
         or "Отказано" in output
     ):
         if progress_cb:
-            progress_cb("⚠️ pip не смог перезаписать залоченные .pyd (приложение запущено). "
-                        "Повторяю установку без --upgrade — уже стоящие пакеты будут пропущены.")
+            progress_cb(
+                "⚠️ pip не смог перезаписать залоченные .pyd (приложение запущено). "
+                "Повторяю установку без --upgrade — уже стоящие пакеты будут пропущены."
+            )
         cmd2 = [c for c in cmd if c != "--upgrade"]
         rc, output = _run_pip_capture(cmd2, env, progress_cb)
     return rc, output
@@ -209,18 +231,23 @@ def _install_with_retry(cmd, env, progress_cb=None):
 
 def rvc_status() -> dict:
     """Проверяет работоспособность rvc-python в отдельном процессе."""
-    probe_script = """import sys
+    probe_script = (
+        """import sys
 try:
     sys.path.insert(0, r'%s')
     from rvc_python.infer import RVCInference
     print('OK')
 except Exception as e:
     print('FAIL=' + str(e))
-""" % SITE_PACKAGES
+"""
+        % SITE_PACKAGES
+    )
     try:
         proc = subprocess.run(
             [PYTHON_EXE, "-c", probe_script],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         out = proc.stdout or ""
         if "OK" in out:
@@ -235,20 +262,28 @@ def install_rvc(progress_cb=None) -> dict:
     Устанавливает пакет rvc-python во встроенное окружение site-packages.
     На Windows автоматически обходит проблему компиляции fairseq, устанавливая prebuilt wheel.
     """
-    from engine.env_core.diagnostics import _read_pip_output, clear_diagnostics_cache, parse_requirements_txt
+    from engine.env_core.diagnostics import (
+        _read_pip_output,
+        clear_diagnostics_cache,
+        parse_requirements_txt,
+    )
     from engine.logging_utils import write_log
+
     # Импортируем проверку лока установки для защиты кэша
     try:
         from engine.gui.env_settings import _can_clear_diagnostics_cache
     except ImportError:
-        def _can_clear_diagnostics_cache(): return True
+
+        def _can_clear_diagnostics_cache():
+            return True
+
     def emit(line):
         write_log(line)
         if progress_cb:
             progress_cb(line)
 
     emit("Начинаю установку rvc-python во встроенное окружение...")
-    
+
     # Принудительно очищаем кэш перед установкой (только если нет активной установки/восстановления)
     if _can_clear_diagnostics_cache():
         clear_diagnostics_cache()
@@ -270,7 +305,9 @@ def install_rvc(progress_cb=None) -> dict:
     # хотя они уже стоят. Добавляем SITE_PACKAGES в PYTHONPATH, чтобы pip
     # увидел уже установленные пакеты через sys.path и не трогал их.
     existing_pythonpath = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = SITE_PACKAGES + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+    env["PYTHONPATH"] = SITE_PACKAGES + (
+        os.pathsep + existing_pythonpath if existing_pythonpath else ""
+    )
 
     # ── Восстановление numpy до зафиксированной версии ──
     # Предыдущие попытки установки зависимостей RVC без --no-deps могли
@@ -284,9 +321,13 @@ def install_rvc(progress_cb=None) -> dict:
     numpy_spec = frozen_reqs.get("numpy", "numpy==1.26.4")
     emit(f"Восстанавливаю numpy ({numpy_spec}) на случай порчи предыдущими попытками...")
     cmd_numpy = [
-        PYTHON_EXE, "-m", "pip", "install",
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
         numpy_spec,
-        "--target", SITE_PACKAGES,
+        "--target",
+        SITE_PACKAGES,
         "--force-reinstall",
         "--no-deps",
         # Без --no-cache-dir: pip возьмёт уже скачанный wheel из
@@ -294,9 +335,13 @@ def install_rvc(progress_cb=None) -> dict:
     ]
     try:
         proc = subprocess.Popen(
-            cmd_numpy, cwd=BASE_DIR, env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE, bufsize=0,
+            cmd_numpy,
+            cwd=BASE_DIR,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
+            bufsize=0,
         )
         _read_pip_output(proc, progress_cb)
         proc.wait()
@@ -317,15 +362,21 @@ def install_rvc(progress_cb=None) -> dict:
             "3.11": "https://github.com/gdiaz384/fairseq/releases/download/v0.12.2.2024Feb07/fairseq-0.12.3.1-cp311-cp311-win_amd64.whl",
             "3.12": "https://github.com/gdiaz384/fairseq/releases/download/v0.12.2.2024Feb07/fairseq-0.12.3.1-cp312-cp312-win_amd64.whl",
         }
-        
+
         if py_ver in fairseq_wheels:
             wheel_url = fairseq_wheels[py_ver]
-            emit(f"Windows & Python {py_ver} обнаружены. Для обхода компиляции fairseq сначала устанавливаю prebuilt wheel...")
-            
+            emit(
+                f"Windows & Python {py_ver} обнаружены. Для обхода компиляции fairseq сначала устанавливаю prebuilt wheel..."
+            )
+
             cmd_wheel = [
-                PYTHON_EXE, "-m", "pip", "install",
+                PYTHON_EXE,
+                "-m",
+                "pip",
+                "install",
                 wheel_url,
-                "--target", SITE_PACKAGES,
+                "--target",
+                SITE_PACKAGES,
                 "--upgrade",
                 "--no-deps",
                 # Без --no-cache-dir: повторная установка того же wheel
@@ -335,9 +386,13 @@ def install_rvc(progress_cb=None) -> dict:
             emit(f"Команда установки wheel: {' '.join(cmd_wheel)}")
             try:
                 proc = subprocess.Popen(
-                    cmd_wheel, cwd=BASE_DIR, env=env,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    stdin=subprocess.PIPE, bufsize=0,
+                    cmd_wheel,
+                    cwd=BASE_DIR,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.PIPE,
+                    bufsize=0,
                 )
                 _read_pip_output(proc, progress_cb)
                 proc.wait()
@@ -345,7 +400,9 @@ def install_rvc(progress_cb=None) -> dict:
                     emit("✅ Prebuilt wheel для fairseq успешно установлен!")
                     fairseq_wheel_installed = True
                 else:
-                    emit("⚠️ Не удалось установить prebuilt wheel для fairseq. Попробую установить rvc-python стандартным методом...")
+                    emit(
+                        "⚠️ Не удалось установить prebuilt wheel для fairseq. Попробую установить rvc-python стандартным методом..."
+                    )
             except Exception as wheel_err:
                 emit(f"⚠️ Ошибка при установке wheel: {wheel_err}. Попробую стандартный метод...")
 
@@ -376,17 +433,25 @@ def install_rvc(progress_cb=None) -> dict:
     # версии rvc-python с новыми пинами).
     emit("Устанавливаю rvc-python (--no-deps, зависимости разберём отдельно)...")
     cmd_rvc = [
-        PYTHON_EXE, "-m", "pip", "install",
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
         "rvc-python",
-        "--target", SITE_PACKAGES,
+        "--target",
+        SITE_PACKAGES,
         "--upgrade",
         "--no-deps",
     ]
     emit(f"Команда установки RVC: {' '.join(cmd_rvc)}")
     proc = subprocess.Popen(
-        cmd_rvc, cwd=BASE_DIR, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        stdin=subprocess.PIPE, bufsize=0,
+        cmd_rvc,
+        cwd=BASE_DIR,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.PIPE,
+        bufsize=0,
     )
     _read_pip_output(proc, progress_cb)
     proc.wait()
@@ -401,7 +466,8 @@ def install_rvc(progress_cb=None) -> dict:
     fairseq_spec = None
     try:
         dist_info_dirs = [
-            d for d in os.listdir(SITE_PACKAGES)
+            d
+            for d in os.listdir(SITE_PACKAGES)
             if d.lower().startswith("rvc_python-") and d.endswith(".dist-info")
         ]
         if not dist_info_dirs:
@@ -442,12 +508,15 @@ def install_rvc(progress_cb=None) -> dict:
             # omegaconf==2.0.6 с битыми метаданными, потом faiss-cpu==1.7.3
             # с numpy<=1.23.5) — берём последнюю совместимую версию вместо
             # жёсткого пина автора rvc-python.
-            version_part = clause[len(pkg_name):].strip()
+            version_part = clause[len(pkg_name) :].strip()
             if re.fullmatch(r"==\s*[\w.\-+]+", version_part):
                 extra_deps.append(pkg_name)
             else:
                 extra_deps.append(clause)
-        emit(f"Реальные зависимости rvc-python из METADATA: {', '.join(extra_deps) if extra_deps else '(пусто)'}" + (f"; fairseq: {fairseq_spec}" if fairseq_spec else ""))
+        emit(
+            f"Реальные зависимости rvc-python из METADATA: {', '.join(extra_deps) if extra_deps else '(пусто)'}"
+            + (f"; fairseq: {fairseq_spec}" if fairseq_spec else "")
+        )
     except Exception as meta_err:
         if _can_clear_diagnostics_cache():
             clear_diagnostics_cache()
@@ -459,26 +528,40 @@ def install_rvc(progress_cb=None) -> dict:
     # с --no-deps (используя ровно ту версию, что объявлена в METADATA rvc-python),
     # чтобы не тянуть следом omegaconf==2.0.6 с битыми метаданными.
     if fairseq_spec and not fairseq_wheel_installed:
-        emit(f"⚠️ Prebuilt wheel для fairseq не установился — ставлю {fairseq_spec} через pip напрямую (--no-deps, без резолвинга omegaconf)...")
+        emit(
+            f"⚠️ Prebuilt wheel для fairseq не установился — ставлю {fairseq_spec} через pip напрямую (--no-deps, без резолвинга omegaconf)..."
+        )
         cmd_fairseq = [
-            PYTHON_EXE, "-m", "pip", "install",
+            PYTHON_EXE,
+            "-m",
+            "pip",
+            "install",
             fairseq_spec,
-            "--target", SITE_PACKAGES,
+            "--target",
+            SITE_PACKAGES,
             "--upgrade",
             "--no-deps",
         ]
         proc = subprocess.Popen(
-            cmd_fairseq, cwd=BASE_DIR, env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE, bufsize=0,
+            cmd_fairseq,
+            cwd=BASE_DIR,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
+            bufsize=0,
         )
         _read_pip_output(proc, progress_cb)
         proc.wait()
         if proc.returncode != 0:
             if _can_clear_diagnostics_cache():
                 clear_diagnostics_cache()
-            emit(f"❌ Не удалось установить {fairseq_spec}: pip завершился с кодом {proc.returncode}")
-            raise RuntimeError(f"Не удалось установить {fairseq_spec} (ни через wheel, ни через pip)")
+            emit(
+                f"❌ Не удалось установить {fairseq_spec}: pip завершился с кодом {proc.returncode}"
+            )
+            raise RuntimeError(
+                f"Не удалось установить {fairseq_spec} (ни через wheel, ни через pip)"
+            )
         emit(f"✅ {fairseq_spec} установлен напрямую через pip.")
 
     # ── Доставка зависимостей fairseq ──
@@ -513,7 +596,7 @@ def install_rvc(progress_cb=None) -> dict:
             continue
         if low in frozen_reqs:
             continue
-        version_part = clause[len(pkg_name):].strip()
+        version_part = clause[len(pkg_name) :].strip()
         if re.fullmatch(r"==\s*[\w.\-+]+", version_part):
             core_fairseq_deps.append(pkg_name)
         else:
@@ -521,9 +604,13 @@ def install_rvc(progress_cb=None) -> dict:
 
     def _install_fairseq_chunk(specs):
         cmd = [
-            PYTHON_EXE, "-m", "pip", "install",
+            PYTHON_EXE,
+            "-m",
+            "pip",
+            "install",
             *specs,
-            "--target", SITE_PACKAGES,
+            "--target",
+            SITE_PACKAGES,
             "--upgrade",
         ]
         torch_build, torch_index = detect_torch_build(SITE_PACKAGES)
@@ -539,7 +626,9 @@ def install_rvc(progress_cb=None) -> dict:
         return rc
 
     if core_fairseq_deps:
-        emit(f"Доставляю зависимости fairseq: {', '.join(core_fairseq_deps)} (нужны для импорта RVC)...")
+        emit(
+            f"Доставляю зависимости fairseq: {', '.join(core_fairseq_deps)} (нужны для импорта RVC)..."
+        )
         rc = _install_fairseq_chunk(core_fairseq_deps)
         if rc != 0:
             emit("⚠️ Не удалось доставить зависимости fairseq — импорт RVC может не пройти.")
@@ -568,7 +657,7 @@ def install_rvc(progress_cb=None) -> dict:
                 continue
             if low in frozen_reqs:
                 continue
-            version_part = clause[len(pkg_name):].strip()
+            version_part = clause[len(pkg_name) :].strip()
             if re.fullmatch(r"==\s*[\w\.\-+]+", version_part):
                 sacrebleu_deps.append(pkg_name)
             else:
@@ -579,7 +668,9 @@ def install_rvc(progress_cb=None) -> dict:
         else:
             # Запасной вариант, если METADATA sacrebleu не прочитался:
             # ставим минимально известный набор, включая portalocker.
-            emit("⚠️ Не удалось прочитать METADATA sacrebleu — ставлю запасной набор зависимостей (regex/tabulate/colorama/portalocker).")
+            emit(
+                "⚠️ Не удалось прочитать METADATA sacrebleu — ставлю запасной набор зависимостей (regex/tabulate/colorama/portalocker)."
+            )
             _install_fairseq_chunk(["regex", "tabulate", "colorama", "portalocker"])
 
     if extra_deps:
@@ -590,9 +681,14 @@ def install_rvc(progress_cb=None) -> dict:
             f.write("\n".join(extra_deps) + "\n")
 
         cmd_deps = [
-            PYTHON_EXE, "-m", "pip", "install",
-            "-r", deps_file_path,
-            "--target", SITE_PACKAGES,
+            PYTHON_EXE,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            deps_file_path,
+            "--target",
+            SITE_PACKAGES,
             "--upgrade",
             # Без --no-cache-dir: при повторных попытках уже скачанные
             # av/faiss-cpu/torchcrepe и т.п. возьмутся из PIP_CACHE_DIR.
@@ -618,9 +714,11 @@ def install_rvc(progress_cb=None) -> dict:
         constraint_lines = _build_rvc_constraints(frozen_reqs, SITE_PACKAGES)
         with open(constraints_path, "w", encoding="utf-8") as f:
             f.write("\n".join(constraint_lines) + "\n")
-        emit(f"Динамический constraint для зависимостей RVC (по установленным версиям): "
-             f"torch→{next((l for l in constraint_lines if l.lower().startswith('torch==')), 'n/a')}; "
-             f"целевая сборка torch: {torch_build}")
+        emit(
+            f"Динамический constraint для зависимостей RVC (по установленным версиям): "
+            f"torch→{next((l for l in constraint_lines if l.lower().startswith('torch==')), 'n/a')}; "
+            f"целевая сборка torch: {torch_build}"
+        )
         cmd_deps.extend(["--constraint", constraints_path])
         emit(f"Команда установки зависимостей RVC: {' '.join(cmd_deps)}")
 
@@ -645,9 +743,13 @@ def install_rvc(progress_cb=None) -> dict:
     # чтобы гарантированно вернуть целый yaml/error.py и _yaml.
     emit("Восстанавливаю PyYAML (модуль yaml) — критично для импорта rvc-python...")
     cmd_yaml = [
-        PYTHON_EXE, "-m", "pip", "install",
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
         "PyYAML",
-        "--target", SITE_PACKAGES,
+        "--target",
+        SITE_PACKAGES,
         "--force-reinstall",
         "--no-deps",
     ]
@@ -691,9 +793,13 @@ def install_rvc(progress_cb=None) -> dict:
         pip_pkg = _MODULE_TO_PIP.get(missing_mod, missing_mod)
         emit(f"⚠️ Не хватает модуля '{missing_mod}' (пакет {pip_pkg}) — доустанавливаю...")
         cmd_missing = [
-            PYTHON_EXE, "-m", "pip", "install",
+            PYTHON_EXE,
+            "-m",
+            "pip",
+            "install",
             pip_pkg,
-            "--target", SITE_PACKAGES,
+            "--target",
+            SITE_PACKAGES,
             "--upgrade",
         ]
         torch_build, torch_index = detect_torch_build(SITE_PACKAGES)
@@ -709,7 +815,7 @@ def install_rvc(progress_cb=None) -> dict:
         clear_diagnostics_cache()
 
     if not status or not status["installed"]:
-        msg = (status.get("error") if status else "импорт не прошёл без сообщения об ошибке")
+        msg = status.get("error") if status else "импорт не прошёл без сообщения об ошибке"
         raise RuntimeError(f"Установка завершена, но импорт не удался: {msg}")
 
     emit("✅ Готово — rvc-python успешно установлен и работает.")
@@ -718,12 +824,15 @@ def install_rvc(progress_cb=None) -> dict:
 
 def uninstall_rvc(progress_cb=None) -> bool:
     from engine.logging_utils import write_log
+
     def emit(line):
         write_log(line)
         if progress_cb:
             progress_cb(line)
 
-    emit("Удаляю rvc-python и возможные хвосты от предыдущих попыток установки (fairseq и его зависимости)...")
+    emit(
+        "Удаляю rvc-python и возможные хвосты от предыдущих попыток установки (fairseq и его зависимости)..."
+    )
     if not os.path.isdir(SITE_PACKAGES):
         return True
 
@@ -731,10 +840,13 @@ def uninstall_rvc(progress_cb=None) -> bool:
     # которые могли протащиться при установке без --no-deps в прошлый раз
     # и остаться в site-packages даже после удаления самого rvc-python.
     prefixes = (
-        "rvc_python", "rvc-python",
+        "rvc_python",
+        "rvc-python",
         "fairseq",
-        "omegaconf", "omegaconf-",
-        "hydra_core", "hydra-core",
+        "omegaconf",
+        "omegaconf-",
+        "hydra_core",
+        "hydra-core",
         "antlr4",
         "sacrebleu",
         "bitarray",
@@ -746,7 +858,9 @@ def uninstall_rvc(progress_cb=None) -> bool:
         # установки RVC ломался ещё и TTS (его глубокая проверка тоже
         # требует portalocker). Оставляем его на месте как разделяемый пакет.
         "av-",  # dist-info/egg-info от предыдущих ручных попыток
-        "faiss", "faiss_cpu", "faiss-cpu",
+        "faiss",
+        "faiss_cpu",
+        "faiss-cpu",
     )
     for name in os.listdir(SITE_PACKAGES):
         low = name.lower()

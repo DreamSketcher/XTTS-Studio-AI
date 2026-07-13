@@ -8,8 +8,18 @@ from tkinter import filedialog, messagebox
 import tkinter as tk
 
 import engine.gui.chat_window.state as state
-from engine.gui.chat_window.custom_widgets import CTK_AVAILABLE, CTkFrame, CTkLabel, CTkButton, TkFrame, TkLabel, TkButton, TkRawFrame
+from engine.gui.chat_window.custom_widgets import (
+    CTK_AVAILABLE,
+    CTkFrame,
+    CTkLabel,
+    CTkButton,
+    TkFrame,
+    TkLabel,
+    TkButton,
+    TkRawFrame,
+)
 from i18n import t
+
 
 def _send_to_main_editor(content: str):
     if state._set_text is None or not content.strip():
@@ -23,7 +33,6 @@ def _send_to_main_editor(content: str):
 
 
 def _stop_generation(silent: bool = False):
-
 
     with state._generation_lock:
         if state._generation_cancel_event is not None:
@@ -54,8 +63,15 @@ def _set_generation_ui(running: bool):
             pass
 
     btn_state = "disabled" if running else "normal"
-    for btn in (state.improve_btn, state.paste_editor_btn, state.clear_btn,
-                state.export_btn, state.settings_btn, state.new_chat_btn, state.delete_chat_btn):
+    for btn in (
+        state.improve_btn,
+        state.paste_editor_btn,
+        state.clear_btn,
+        state.export_btn,
+        state.settings_btn,
+        state.new_chat_btn,
+        state.delete_chat_btn,
+    ):
         _set_button_state(btn, btn_state)
 
 
@@ -67,15 +83,19 @@ def improve_text_with_gpt():
             parent=_get_app_parent() or state._root,
         )
         return
-    
+
     try:
         raw = state._get_text()
     except Exception as e:
-        messagebox.showerror(t("chat_err_title"), t("chat_err_get_text", e), parent=_get_app_parent() or state._root)
+        messagebox.showerror(
+            t("chat_err_title"), t("chat_err_get_text", e), parent=_get_app_parent() or state._root
+        )
         return
 
     if not raw or raw == state._placeholder or not raw.strip():
-        messagebox.showwarning(t("chat_empty_title"), t("chat_empty_editor"), parent=_get_app_parent() or state._root)
+        messagebox.showwarning(
+            t("chat_empty_title"), t("chat_empty_editor"), parent=_get_app_parent() or state._root
+        )
         return
 
     _set_button_state(state.improve_btn, "disabled")
@@ -85,6 +105,7 @@ def improve_text_with_gpt():
     def _worker():
         try:
             import engine.gpt_client as _gpt
+
             result = _gpt.improve_for_tts(raw)
             result = "" if result is None else str(result)
 
@@ -116,7 +137,9 @@ def improve_text_with_gpt():
                 _set_button_state(state.improve_btn, "normal")
                 _set_button_state(state.chat_send_btn, "normal")
                 set_chat_status(t("chat_err_improve", msg))
-                messagebox.showerror(t("chat_err_ai_title"), msg, parent=_get_app_parent() or state._root)
+                messagebox.showerror(
+                    t("chat_err_ai_title"), msg, parent=_get_app_parent() or state._root
+                )
 
             _safe_after(0, _show_error)
 
@@ -183,21 +206,117 @@ def append_chat_message(role: str, message: str):
     _update_token_counter()
 
 
-
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import _now_ts, _now_full, _approx_tokens, _ai_display_name, _build_editor_compose_prompt
-from engine.gui.chat_window.engine.sessions import _load_sessions, _save_sessions, _enforce_limits, _create_session_dict, _get_current_session, _update_session_title_if_needed, _messages_for_api
+from engine.gui.chat_window.engine.utils import (
+    _now_ts,
+    _now_full,
+    _approx_tokens,
+    _ai_display_name,
+    _build_editor_compose_prompt,
+)
+from engine.gui.chat_window.engine.sessions import (
+    _load_sessions,
+    _save_sessions,
+    _enforce_limits,
+    _create_session_dict,
+    _get_current_session,
+    _update_session_title_if_needed,
+    _messages_for_api,
+)
 from engine.gui.chat_window.engine.generation import _run_generation
-from engine.gui.chat_window.ui_utils import _c, _safe_after, _widget_exists, _set_dark_titlebar, _get_app_parent, _show_window, _call_and_break, _ask_simple_text, _make_button, _set_button_text, _set_button_state, _is_descendant, _get_widget_text, _select_all_widget, _paste_clipboard_into_widget, _copy_to_clipboard
-from engine.gui.chat_window.hotkeys import _event_has_ctrl, _event_has_shift, _match_hotkey, _on_ctrl_keypress, _handle_text_ctrl, _handle_window_ctrl, _bind_window_hotkeys, _bind_text_hotkeys
-from engine.gui.chat_window.placeholders import _create_placeholder_overlay, _sync_text_placeholder, _refresh_placeholder_state, _update_input_placeholder_text
-from engine.gui.chat_window.chat_scroll import _is_chat_near_bottom, _scroll_chat_to_bottom, _show_new_message_indicator, _hide_new_message_indicator, _scroll_to_new_message, _chat_mousewheel
-from engine.gui.chat_window.chat_history import _refresh_session_list, _on_session_select, new_chat, delete_current_chat, clear_chat_history
-from engine.gui.chat_window.chat_messages import _add_message_bubble, _add_system_message, _resize_bubble_text, content_lines_estimate, _lighten_color, _selected_bubble_frame_get, _select_bubble, _on_bubble_text_click, _show_bubble_context_menu, _update_wraplengths, _render_current_session, _add_empty_state, _destroy_empty_state_if_any, _clear_messages_ui
-from engine.gui.chat_window.chat_input import _focus_chat_input, _reset_editor_mode, _input_has_placeholder, _set_input_placeholder, _clear_input_placeholder, _get_input_text, _clear_input_text, _resize_input, _update_token_counter, _paste_into_input, _on_input_focus_in, _on_input_focus_out, _on_input_key_release, _on_enter, _submit_prompt, send_chat_message, _insert_prompt_into_chat_input
+from engine.gui.chat_window.ui_utils import (
+    _c,
+    _safe_after,
+    _widget_exists,
+    _set_dark_titlebar,
+    _get_app_parent,
+    _show_window,
+    _call_and_break,
+    _ask_simple_text,
+    _make_button,
+    _set_button_text,
+    _set_button_state,
+    _is_descendant,
+    _get_widget_text,
+    _select_all_widget,
+    _paste_clipboard_into_widget,
+    _copy_to_clipboard,
+)
+from engine.gui.chat_window.hotkeys import (
+    _event_has_ctrl,
+    _event_has_shift,
+    _match_hotkey,
+    _on_ctrl_keypress,
+    _handle_text_ctrl,
+    _handle_window_ctrl,
+    _bind_window_hotkeys,
+    _bind_text_hotkeys,
+)
+from engine.gui.chat_window.placeholders import (
+    _create_placeholder_overlay,
+    _sync_text_placeholder,
+    _refresh_placeholder_state,
+    _update_input_placeholder_text,
+)
+from engine.gui.chat_window.chat_scroll import (
+    _is_chat_near_bottom,
+    _scroll_chat_to_bottom,
+    _show_new_message_indicator,
+    _hide_new_message_indicator,
+    _scroll_to_new_message,
+    _chat_mousewheel,
+)
+from engine.gui.chat_window.chat_history import (
+    _refresh_session_list,
+    _on_session_select,
+    new_chat,
+    delete_current_chat,
+    clear_chat_history,
+)
+from engine.gui.chat_window.chat_messages import (
+    _add_message_bubble,
+    _add_system_message,
+    _resize_bubble_text,
+    content_lines_estimate,
+    _lighten_color,
+    _selected_bubble_frame_get,
+    _select_bubble,
+    _on_bubble_text_click,
+    _show_bubble_context_menu,
+    _update_wraplengths,
+    _render_current_session,
+    _add_empty_state,
+    _destroy_empty_state_if_any,
+    _clear_messages_ui,
+)
+from engine.gui.chat_window.chat_input import (
+    _focus_chat_input,
+    _reset_editor_mode,
+    _input_has_placeholder,
+    _set_input_placeholder,
+    _clear_input_placeholder,
+    _get_input_text,
+    _clear_input_text,
+    _resize_input,
+    _update_token_counter,
+    _paste_into_input,
+    _on_input_focus_in,
+    _on_input_focus_out,
+    _on_input_key_release,
+    _on_enter,
+    _submit_prompt,
+    send_chat_message,
+    _insert_prompt_into_chat_input,
+)
 from engine.gui.chat_window.chat_typing import _show_typing, _animate_typing, _hide_typing
 from engine.gui.chat_window.chat_export import export_current_chat
 from engine.gui.chat_window.chat_search import open_search
 from engine.gui.chat_window.chat_settings import open_gpt_settings
-from engine.gui.chat_window.chat_editor import _show_editor_preview, _hide_editor_preview, open_editor_text_window, _get_selected_or_all_text, _show_editor_window
+from engine.gui.chat_window.chat_editor import (
+    _show_editor_preview,
+    _hide_editor_preview,
+    open_editor_text_window,
+    _get_selected_or_all_text,
+    _show_editor_window,
+)
 from engine.gui.chat_window import init, open_chat_window

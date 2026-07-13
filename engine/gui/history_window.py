@@ -24,6 +24,7 @@ from i18n import t
 
 from engine.history_store import HISTORY_PATH
 from engine.paths import BASE_DIR
+
 try:
     from engine.paths import ICON_PATH
 except ImportError:
@@ -80,9 +81,30 @@ def _compute_waveform_peaks(path, num_bars=_WAVE_BARS):
 
 def _round_rect(canvas, x1, y1, x2, y2, r, **kwargs):
     points = [
-        x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
-        x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-        x1, y2, x1, y2 - r, x1, y1 + r, x1, y1,
+        x1 + r,
+        y1,
+        x2 - r,
+        y1,
+        x2,
+        y1,
+        x2,
+        y1 + r,
+        x2,
+        y2 - r,
+        x2,
+        y2,
+        x2 - r,
+        y2,
+        x1 + r,
+        y2,
+        x1,
+        y2,
+        x1,
+        y2 - r,
+        x1,
+        y1 + r,
+        x1,
+        y1,
     ]
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
@@ -91,6 +113,7 @@ def _apply_window_icon(win: tk.Toplevel):
     """Фикс иконки в панели задач Windows (как в output_window)."""
     try:
         import ctypes
+
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("XTTSStudio.App")
         except Exception:
@@ -101,12 +124,14 @@ def _apply_window_icon(win: tk.Toplevel):
     candidates = []
     if ICON_PATH:
         candidates.append(ICON_PATH)
-    candidates.extend([
-        os.path.join(str(BASE_DIR), "icon.ico"),
-        os.path.join(str(BASE_DIR), "icon.png"),
-        os.path.join(str(BASE_DIR), "images", "icon.ico"),
-        os.path.join(str(BASE_DIR), "images", "icon.png"),
-    ])
+    candidates.extend(
+        [
+            os.path.join(str(BASE_DIR), "icon.ico"),
+            os.path.join(str(BASE_DIR), "icon.png"),
+            os.path.join(str(BASE_DIR), "images", "icon.ico"),
+            os.path.join(str(BASE_DIR), "images", "icon.png"),
+        ]
+    )
     ico_file = None
     png_file = None
     for p in candidates:
@@ -136,6 +161,7 @@ def _apply_window_icon(win: tk.Toplevel):
                     win.iconbitmap(ico_file)
                 except Exception:
                     pass
+
         try:
             win.after(100, _reapply_icon)
             win.after(400, _reapply_icon)
@@ -153,6 +179,7 @@ def _apply_window_icon(win: tk.Toplevel):
         if photo is None and ico_file:
             try:
                 from PIL import Image, ImageTk
+
                 im = Image.open(ico_file)
                 im = im.resize((32, 32), Image.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
@@ -215,10 +242,16 @@ def open_history():
         scaled_diameter = scaled_size(diameter, min_size=diameter)
         # УВЕЛИЧЕНО: было 14/12 -> 17/15 как в аудио окне
         btn = CompatCTkButton(
-            parent, text=text, command=cmd if not disabled else None,
-            width=scaled_diameter, height=scaled_diameter, corner_radius=scaled_diameter // 2,
-            fg_color=bg, text_color=Colors.TEXT_MAIN if not disabled else Colors.TEXT_DIM,
-            hover_color=hover, border_width=0,
+            parent,
+            text=text,
+            command=cmd if not disabled else None,
+            width=scaled_diameter,
+            height=scaled_diameter,
+            corner_radius=scaled_diameter // 2,
+            fg_color=bg,
+            text_color=Colors.TEXT_MAIN if not disabled else Colors.TEXT_DIM,
+            hover_color=hover,
+            border_width=0,
             font=("Segoe UI", scaled_font_size(17 if primary else 15)),
         )
         if disabled:
@@ -230,7 +263,7 @@ def open_history():
         return f"{sec // 60}:{sec % 60:02d}"
 
     def _truncate(s, max_chars=44):
-        return s if len(s) <= max_chars else s[:max_chars - 1] + "…"
+        return s if len(s) <= max_chars else s[: max_chars - 1] + "…"
 
     def _get_duration(path):
         try:
@@ -275,8 +308,9 @@ def open_history():
                     color = Colors.ACCENT if x0 <= played_x else Colors.BG_INPUT
                     wave_canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline="")
             if _p["path"]:
-                wave_canvas.create_line(played_x, body_top - 2, played_x, h,
-                                        fill=Colors.TEXT_MAIN, width=1)
+                wave_canvas.create_line(
+                    played_x, body_top - 2, played_x, h, fill=Colors.TEXT_MAIN, width=1
+                )
             wave_canvas.create_rectangle(0, 0, w, text_zone_h, fill=Colors.BG_CARD, outline="")
             if _p.get("error"):
                 title, title_color = _p["error"], Colors.TEXT_ERROR
@@ -285,11 +319,23 @@ def open_history():
             else:
                 title, title_color = t("no_file"), Colors.TEXT_DIM
             # УВЕЛИЧЕНО: 9->12 и 8->11 как в аудио окне
-            wave_canvas.create_text(10, text_zone_h / 2, text=_truncate(title), anchor="w",
-                                    fill=title_color, font=("Segoe UI", scaled_font_size(12), "bold"))
+            wave_canvas.create_text(
+                10,
+                text_zone_h / 2,
+                text=_truncate(title),
+                anchor="w",
+                fill=title_color,
+                font=("Segoe UI", scaled_font_size(12), "bold"),
+            )
             time_text = f"{_fmt(_p['pos'])} / {_fmt(_p['duration'])}" if _p["path"] else "0:00"
-            wave_canvas.create_text(w - 10, text_zone_h / 2, text=time_text, anchor="e",
-                                    fill=Colors.TEXT_DIM, font=("Consolas", scaled_font_size(11)))
+            wave_canvas.create_text(
+                w - 10,
+                text_zone_h / 2,
+                text=time_text,
+                anchor="e",
+                fill=Colors.TEXT_DIM,
+                font=("Consolas", scaled_font_size(11)),
+            )
         except Exception:
             pass
 
@@ -303,10 +349,12 @@ def open_history():
 
         def worker():
             peaks = _compute_waveform_peaks(path)
+
             def apply():
                 if _wave_state["path"] == path:
                     _wave_state["peaks"] = peaks
                     _redraw_waveform()
+
             try:
                 win.after(0, apply)
             except Exception:
@@ -477,9 +525,13 @@ def open_history():
             return
         if _empty_state["widget"] is None:
             # УВЕЛИЧЕНО: 10->13
-            lbl = CompatCTkLabel(list_frame, text=t("history_empty"),
-                                 fg_color=Colors.BG_DARK, text_color=Colors.TEXT_DIM,
-                                 font=("Segoe UI", scaled_font_size(13)))
+            lbl = CompatCTkLabel(
+                list_frame,
+                text=t("history_empty"),
+                fg_color=Colors.BG_DARK,
+                text_color=Colors.TEXT_DIM,
+                font=("Segoe UI", scaled_font_size(13)),
+            )
             lbl.pack(pady=50)
             _empty_state["widget"] = lbl
 
@@ -517,8 +569,9 @@ def open_history():
         x = vol_btn.winfo_rootx() - (popup_w - vol_btn.winfo_width()) // 2
         y = vol_btn.winfo_rooty() - popup_h - 10
         popup.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
-        pcanvas = tk.Canvas(popup, width=popup_w, height=popup_h, bg=canvas_bg,
-                            highlightthickness=0, bd=0)
+        pcanvas = tk.Canvas(
+            popup, width=popup_w, height=popup_h, bg=canvas_bg, highlightthickness=0, bd=0
+        )
         pcanvas.pack(fill="both", expand=True)
 
         track_top, track_bottom = 16, popup_h - 40
@@ -527,20 +580,50 @@ def open_history():
 
         def _redraw_slider():
             pcanvas.delete("all")
-            _round_rect(pcanvas, 2, 2, popup_w - 2, popup_h - 2, 18,
-                       fill=Colors.BG_CARD, outline=Colors.BORDER)
-            _round_rect(pcanvas, cx - 3, track_top, cx + 3, track_bottom, 3,
-                       fill=Colors.BG_INPUT, outline="")
+            _round_rect(
+                pcanvas,
+                2,
+                2,
+                popup_w - 2,
+                popup_h - 2,
+                18,
+                fill=Colors.BG_CARD,
+                outline=Colors.BORDER,
+            )
+            _round_rect(
+                pcanvas,
+                cx - 3,
+                track_top,
+                cx + 3,
+                track_bottom,
+                3,
+                fill=Colors.BG_INPUT,
+                outline="",
+            )
             fill_top = track_top + track_h * (1 - _p["volume"])
             if track_bottom - fill_top > 1:
-                _round_rect(pcanvas, cx - 3, fill_top, cx + 3, track_bottom, 3,
-                           fill=Colors.ACCENT, outline="")
+                _round_rect(
+                    pcanvas,
+                    cx - 3,
+                    fill_top,
+                    cx + 3,
+                    track_bottom,
+                    3,
+                    fill=Colors.ACCENT,
+                    outline="",
+                )
             thumb_y = track_top + track_h * (1 - _p["volume"])
-            pcanvas.create_oval(cx - 7, thumb_y - 7, cx + 7, thumb_y + 7,
-                               fill=Colors.TEXT_MAIN, outline="")
+            pcanvas.create_oval(
+                cx - 7, thumb_y - 7, cx + 7, thumb_y + 7, fill=Colors.TEXT_MAIN, outline=""
+            )
             # УВЕЛИЧЕНО 11->14
-            pcanvas.create_text(cx, popup_h - 18, text=_volume_icon(_p["volume"]),
-                               font=("Segoe UI", scaled_font_size(14)), fill=Colors.TEXT_DIM)
+            pcanvas.create_text(
+                cx,
+                popup_h - 18,
+                text=_volume_icon(_p["volume"]),
+                font=("Segoe UI", scaled_font_size(14)),
+                fill=Colors.TEXT_DIM,
+            )
 
         def _on_slider_drag(event):
             frac = 1 - min(1.0, max(0.0, (event.y - track_top) / track_h))
@@ -574,8 +657,13 @@ def open_history():
         output_path = entry.get("output", "")
         audio_exists = bool(output_path) and os.path.isfile(output_path)
 
-        card = CompatCTkFrame(parent, fg_color=Colors.BG_CARD, corner_radius=14,
-                              border_width=1, border_color=Colors.BORDER)
+        card = CompatCTkFrame(
+            parent,
+            fg_color=Colors.BG_CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=Colors.BORDER,
+        )
         card.pack(fill="x", padx=4, pady=5)
         if output_path:
             _card_widgets[output_path] = card
@@ -590,8 +678,14 @@ def open_history():
 
         btn_listen = _round_btn(actions, "▶", _play_entry, diameter=34, disabled=not audio_exists)
         btn_listen.pack(side="left", padx=(0, 6))
-        ToolTip(btn_listen, _safe_t("tip_listen", "Прослушать") if audio_exists
-                else _safe_t("tip_audio_missing", "Аудио удалено"))
+        ToolTip(
+            btn_listen,
+            (
+                _safe_t("tip_listen", "Прослушать")
+                if audio_exists
+                else _safe_t("tip_audio_missing", "Аудио удалено")
+            ),
+        )
 
         def _reuse(t_text=entry.get("text", "")):
             set_textbox_content(t_text)
@@ -605,25 +699,47 @@ def open_history():
         left.pack(side="left", fill="both", expand=True, padx=14, pady=10)
 
         # УВЕЛИЧЕНО: дата 8->11, мета 8->11, превью 11->14
-        CompatCTkLabel(left, text=entry.get("date", ""), fg_color=Colors.BG_CARD,
-                      text_color=Colors.ACCENT, font=("Segoe UI", scaled_font_size(11), "bold"),
-                      anchor="w").pack(fill="x")
+        CompatCTkLabel(
+            left,
+            text=entry.get("date", ""),
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.ACCENT,
+            font=("Segoe UI", scaled_font_size(11), "bold"),
+            anchor="w",
+        ).pack(fill="x")
         meta = f"🎤 {entry.get('voice', '?')}   ·   ⭐ {entry.get('quality', '?')}   ·   {entry.get('chunks', 0)} {t('chunks_word')}"
-        CompatCTkLabel(left, text=meta, fg_color=Colors.BG_CARD, text_color=Colors.TEXT_DIM,
-                      font=("Segoe UI", scaled_font_size(11)), anchor="w").pack(fill="x", pady=(2, 4))
+        CompatCTkLabel(
+            left,
+            text=meta,
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_DIM,
+            font=("Segoe UI", scaled_font_size(11)),
+            anchor="w",
+        ).pack(fill="x", pady=(2, 4))
         text_preview = entry.get("text", "").replace("\n", " ")
         # ФИКС: уменьшили обрезку с 90 до 65 символов,
         # чтобы при крупном шрифте текст не выдавливал кнопки за пределы карточки
-        CompatCTkLabel(left, text=_truncate(text_preview, 65), fg_color=Colors.BG_CARD,
-                      text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(14)),
-                      anchor="w", justify="left").pack(fill="x")
+        CompatCTkLabel(
+            left,
+            text=_truncate(text_preview, 65),
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(14)),
+            anchor="w",
+            justify="left",
+        ).pack(fill="x")
 
     # LAYOUT
     header = tk.Frame(win, bg=Colors.BG_DARK, pady=12)
     header.pack(fill="x", padx=16)
 
-    clear_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=18,
-                                border_width=1, border_color=Colors.BORDER)
+    clear_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=18,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     clear_pill.pack(side="left")
     clear_row = tk.Frame(clear_pill, bg=Colors.BG_CARD)
     clear_row.pack(padx=6, pady=6)
@@ -631,13 +747,22 @@ def open_history():
     btn_clear.pack(side="left")
     ToolTip(btn_clear, t("btn_clear_history"))
 
-    count_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=14,
-                                border_width=1, border_color=Colors.BORDER)
+    count_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     count_pill.pack(side="right")
     # УВЕЛИЧЕНО 9->12
-    count_lbl = CompatCTkLabel(count_pill, text=t("entries_count", len(history)),
-                               fg_color=Colors.BG_CARD, text_color=Colors.TEXT_DIM,
-                               font=("Segoe UI", scaled_font_size(12)))
+    count_lbl = CompatCTkLabel(
+        count_pill,
+        text=t("entries_count", len(history)),
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(12)),
+    )
     count_lbl.pack(padx=16, pady=9)
 
     list_frame = ctk.CTkScrollableFrame(win, fg_color=Colors.BG_DARK, corner_radius=12)
@@ -650,12 +775,18 @@ def open_history():
     outer_wrap = tk.Frame(win, bg=Colors.BG_DARK)
     outer_wrap.pack(fill="x", side="bottom")
 
-    player_card = CompatCTkFrame(outer_wrap, fg_color=Colors.BG_CARD, corner_radius=20,
-                                 border_width=1, border_color=Colors.BORDER)
+    player_card = CompatCTkFrame(
+        outer_wrap,
+        fg_color=Colors.BG_CARD,
+        corner_radius=20,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     player_card.pack(fill="x", padx=14, pady=(6, 14))
 
-    wave_canvas = tk.Canvas(player_card, bg=Colors.BG_CARD, height=90, bd=0,
-                            highlightthickness=0, cursor="hand2")
+    wave_canvas = tk.Canvas(
+        player_card, bg=Colors.BG_CARD, height=90, bd=0, highlightthickness=0, cursor="hand2"
+    )
     wave_canvas.pack(fill="x", padx=18, pady=(16, 6))
     wave_canvas.bind("<Button-1>", _wave_seek)
     wave_canvas.bind("<B1-Motion>", _wave_seek)

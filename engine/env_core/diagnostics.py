@@ -32,8 +32,15 @@ DIAG_CACHE_PATH = os.path.join(PROJECT_ROOT, ".env_diagnostics_cache.json")
 # Именно ЭТИ компоненты имеет смысл считать "неисправными" в смысле,
 # требующем аварийного восстановления/предупреждения пользователя.
 CRITICAL_COMPONENTS = {
-    "numpy", "torch", "torchaudio", "torchvision",
-    "tts", "soundfile", "pygame", "customtkinter", "num2words",
+    "numpy",
+    "torch",
+    "torchaudio",
+    "torchvision",
+    "tts",
+    "soundfile",
+    "pygame",
+    "customtkinter",
+    "num2words",
 }
 # ОПЦИОНАЛЬНЫЕ: дополнительные фичи (локальный LLM-чат, конвертация голоса).
 # Их отсутствие — это НОРМАЛЬНОЕ состояние по умолчанию (пользователь просто
@@ -52,7 +59,8 @@ def get_broken_critical(results: dict) -> list:
     сломанным" в разных окнах GUI.
     """
     return [
-        k for k, v in results.items()
+        k
+        for k, v in results.items()
         if k in CRITICAL_COMPONENTS
         and v is not True
         and not (isinstance(v, str) and v.startswith("SKIPPED"))
@@ -145,6 +153,7 @@ def parse_requirements_txt() -> dict:
 
 def get_python_env_info() -> dict:
     from engine.env_core.llama_setup import get_site_packages
+
     info = {
         "executable": PYTHON_EXE,
         "version": sys.version.replace("\n", " "),
@@ -158,7 +167,9 @@ def get_python_env_info() -> dict:
     try:
         out = subprocess.run(
             [PYTHON_EXE, "-m", "pip", "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if out.returncode == 0:
             info["pip_version"] = out.stdout.strip()
@@ -168,7 +179,9 @@ def get_python_env_info() -> dict:
     try:
         out = subprocess.run(
             [PYTHON_EXE, "-m", "pip", "show", "llama-cpp-python"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if out.returncode == 0:
             info["pip_show"] = out.stdout.strip()
@@ -189,9 +202,13 @@ print('SYS_PATH=' + repr(sys.path))
     try:
         out = subprocess.run(
             [PYTHON_EXE, "-c", probe_script],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
-        info["import_probe"] = (out.stdout.strip() + ("\nSTDERR: " + out.stderr.strip() if out.stderr.strip() else "")).strip()
+        info["import_probe"] = (
+            out.stdout.strip() + ("\nSTDERR: " + out.stderr.strip() if out.stderr.strip() else "")
+        ).strip()
     except Exception as e:
         info["import_probe"] = f"ошибка: {e}"
 
@@ -273,7 +290,9 @@ def _read_pip_output(proc: subprocess.Popen, progress_cb=None):
         emit(f"[ошибка чтения вывода: {e}]")
 
 
-def _install_watchdog(stop_event: threading.Event, progress_cb, interval: float = 20.0, stall_threshold: float = 90.0):
+def _install_watchdog(
+    stop_event: threading.Event, progress_cb, interval: float = 20.0, stall_threshold: float = 90.0
+):
     def emit(line):
         if progress_cb:
             progress_cb(line)
@@ -282,7 +301,9 @@ def _install_watchdog(stop_event: threading.Event, progress_cb, interval: float 
         info = get_install_activity_status()
         ago = info["last_activity_seconds_ago"]
         if ago is None:
-            emit("🔧 Сборка идёт (файлы сборки ещё не появились на диске — это нормально на старте)...")
+            emit(
+                "🔧 Сборка идёт (файлы сборки ещё не появились на диске — это нормально на старте)..."
+            )
         elif ago < stall_threshold:
             emit(f"🔧 Сборка идёт — файлы менялись {int(ago)} сек назад, процесс жив.")
         else:
@@ -315,9 +336,20 @@ def _install_single_dependency(package: str, progress_cb=None) -> bool:
     emit(f"Ставлю недостающую зависимость: {package}...")
     try:
         proc = subprocess.run(
-            [PYTHON_EXE, "-m", "pip", "install", "--no-deps", "--target", SITE_PACKAGES,
-             "--no-cache-dir", package],
-            capture_output=True, text=True, timeout=180,
+            [
+                PYTHON_EXE,
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--target",
+                SITE_PACKAGES,
+                "--no-cache-dir",
+                package,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=180,
         )
     except Exception as e:
         emit(f"⚠️ Не удалось установить {package}: {e}")
@@ -340,8 +372,11 @@ def _find_pip_build_activity(max_scan_seconds: float = 0.5) -> Optional[float]:
             if not entry.is_dir(follow_symlinks=False):
                 continue
             name = entry.name.lower()
-            if not (name.startswith("pip-install-") or name.startswith("pip-req-build-")
-                    or name.startswith("pip-build-env-")):
+            if not (
+                name.startswith("pip-install-")
+                or name.startswith("pip-req-build-")
+                or name.startswith("pip-build-env-")
+            ):
                 continue
             for root, _dirs, files in os.walk(entry.path):
                 for fname in files:
@@ -385,7 +420,10 @@ def get_install_activity_status() -> dict:
         result["target_dir_files"] = count
         if newest is not None:
             ago = max(0.0, now - newest)
-            if result["last_activity_seconds_ago"] is None or ago < result["last_activity_seconds_ago"]:
+            if (
+                result["last_activity_seconds_ago"] is None
+                or ago < result["last_activity_seconds_ago"]
+            ):
                 result["last_activity_seconds_ago"] = ago
 
     return result
@@ -465,14 +503,20 @@ def run_full_diagnostics(force_refresh=False) -> dict:
             if os.path.exists(DIAG_CACHE_PATH):
                 with open(DIAG_CACHE_PATH, "r", encoding="utf-8") as f:
                     cache = json.load(f)
-                
-                current_mtime = os.path.getmtime(SITE_PACKAGES) if os.path.exists(SITE_PACKAGES) else 0.0
-                current_count = len(os.listdir(SITE_PACKAGES)) if os.path.exists(SITE_PACKAGES) else 0
-                
-                if (cache.get("python_exe") == PYTHON_EXE and 
-                    cache.get("site_packages_mtime") == current_mtime and 
-                    cache.get("site_packages_count") == current_count and 
-                    "results" in cache):
+
+                current_mtime = (
+                    os.path.getmtime(SITE_PACKAGES) if os.path.exists(SITE_PACKAGES) else 0.0
+                )
+                current_count = (
+                    len(os.listdir(SITE_PACKAGES)) if os.path.exists(SITE_PACKAGES) else 0
+                )
+
+                if (
+                    cache.get("python_exe") == PYTHON_EXE
+                    and cache.get("site_packages_mtime") == current_mtime
+                    and cache.get("site_packages_count") == current_count
+                    and "results" in cache
+                ):
                     return cache["results"]
         except Exception as e:
             write_log(f"[Diagnostics] Ошибка проверки кэша диагностики: {e}")
@@ -480,7 +524,8 @@ def run_full_diagnostics(force_refresh=False) -> dict:
     write_log("[Diagnostics] Запуск полного сканирования библиотек в изолированном процессе...")
     clean_site_packages = SITE_PACKAGES.replace("\\", "/")
 
-    probe_script = """import sys, json
+    probe_script = (
+        """import sys, json
 sys.path.insert(0, r'%s')
 results = {}
 _SKIP_MSG = "SKIPPED: ожидает починки numpy (зависит от него на импорте)"
@@ -579,11 +624,22 @@ except Exception as e:
     results['rvc_python'] = str(e)
 
 print("SUB_RESULT=" + json.dumps(results))
-""" % clean_site_packages
+"""
+        % clean_site_packages
+    )
 
     _ALL_KEYS = (
-        "numpy", "torch", "torchaudio", "torchvision", "tts", "soundfile",
-        "pygame", "customtkinter", "num2words", "llama_cpp", "rvc_python",
+        "numpy",
+        "torch",
+        "torchaudio",
+        "torchvision",
+        "tts",
+        "soundfile",
+        "pygame",
+        "customtkinter",
+        "num2words",
+        "llama_cpp",
+        "rvc_python",
     )
     results = {}
     try:
@@ -592,9 +648,7 @@ print("SUB_RESULT=" + json.dumps(results))
         # лёгкие llama_cpp/rvc_python) — здесь же в холодном сабпроцессе
         # с нуля импортируются torch/TTS, это заметно дольше.
         proc = subprocess.run(
-            [PYTHON_EXE, "-c", probe_script],
-            capture_output=True, text=True, timeout=90,
-            env=env
+            [PYTHON_EXE, "-c", probe_script], capture_output=True, text=True, timeout=90, env=env
         )
         out = proc.stdout or ""
         found = False
@@ -614,18 +668,20 @@ print("SUB_RESULT=" + json.dumps(results))
             results[k] = err_text
 
     is_all_ok = results and all(v is True for v in results.values())
-    
+
     if is_all_ok:
         try:
-            current_mtime = os.path.getmtime(SITE_PACKAGES) if os.path.exists(SITE_PACKAGES) else 0.0
+            current_mtime = (
+                os.path.getmtime(SITE_PACKAGES) if os.path.exists(SITE_PACKAGES) else 0.0
+            )
             current_count = len(os.listdir(SITE_PACKAGES)) if os.path.exists(SITE_PACKAGES) else 0
-            
+
             cache_data = {
                 "python_exe": PYTHON_EXE,
                 "site_packages_mtime": current_mtime,
                 "site_packages_count": current_count,
                 "timestamp": time.time(),
-                "results": results
+                "results": results,
             }
             with open(DIAG_CACHE_PATH, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, ensure_ascii=False, indent=2)
@@ -685,10 +741,10 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
         "gpt_settings.json",
         "env_cache.cfg",
         ".known_safe_files.json",
-        ".torch_install_checkpoint.json"
+        ".torch_install_checkpoint.json",
     }
 
-    ZERO_BYTE_SAFE_EXT = {'.whl', '.tmp', '.log', '.bak', '.part', '.crdownload', '.old'}
+    ZERO_BYTE_SAFE_EXT = {".whl", ".tmp", ".log", ".bak", ".part", ".crdownload", ".old"}
 
     emit("Выполняю предварительную диагностику до перемещения файлов...")
     baseline_res = run_full_diagnostics(force_refresh=True)
@@ -699,12 +755,12 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
         baseline_failed = {k for k, v in baseline_res.items() if v is not True}
 
     all_files = []
-    
+
     emit("🔍 Начинаю сканирование временных папок...")
     paths_to_scan_directly = [PORTABLE_TEMP_DIR, os.path.join(PROJECT_ROOT, "logs")]
     if os.path.exists(PORTABLE_CACHE_DIR):
         paths_to_scan_directly.append(PORTABLE_CACHE_DIR)
-        
+
     for base_path in paths_to_scan_directly:
         folder_name = os.path.basename(base_path)
         emit(f"Сканирую папку: {folder_name} ...")
@@ -721,21 +777,25 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
                     continue
                 try:
                     stat = os.stat(abs_path)
-                    all_files.append({
-                        "rel_path": rel_path,
-                        "abs_path": abs_path,
-                        "size": stat.st_size,
-                        "mtime": stat.st_mtime
-                    })
+                    all_files.append(
+                        {
+                            "rel_path": rel_path,
+                            "abs_path": abs_path,
+                            "size": stat.st_size,
+                            "mtime": stat.st_mtime,
+                        }
+                    )
                 except Exception:
                     pass
-                    
-    emit(f"🔍 Сканирую всю директорию {PROJECT_ROOT} на наличие кэша, временных и мусорных файлов...")
+
+    emit(
+        f"🔍 Сканирую всю директорию {PROJECT_ROOT} на наличие кэша, временных и мусорных файлов..."
+    )
     excluded_dirs = {"models", "outputs", "library", "reference", ".git", "Quarantine"}
-    
+
     for root_dir, dirs, files in os.walk(PROJECT_ROOT):
         dirs[:] = [d for d in dirs if d not in excluded_dirs and d != "Quarantine"]
-        
+
         if os.path.basename(root_dir) in ("__pycache__", ".pytest_cache"):
             for file in files:
                 if file in EXCLUDED_FILENAMES:
@@ -744,38 +804,42 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
                 rel_path = os.path.relpath(abs_path, PROJECT_ROOT).replace("\\", "/")
                 try:
                     stat = os.stat(abs_path)
-                    all_files.append({
-                        "rel_path": rel_path,
-                        "abs_path": abs_path,
-                        "size": stat.st_size,
-                        "mtime": stat.st_mtime
-                    })
+                    all_files.append(
+                        {
+                            "rel_path": rel_path,
+                            "abs_path": abs_path,
+                            "size": stat.st_size,
+                            "mtime": stat.st_mtime,
+                        }
+                    )
                 except Exception:
                     pass
             continue
-            
+
         for file in files:
             if file in EXCLUDED_FILENAMES:
                 continue
             abs_path = os.path.join(root_dir, file)
             rel_path = os.path.relpath(abs_path, PROJECT_ROOT).replace("\\", "/")
             ext = os.path.splitext(file)[1].lower()
-            
+
             try:
                 stat = os.stat(abs_path)
                 size = stat.st_size
                 mtime = stat.st_mtime
-                is_zero_byte = (size == 0)
+                is_zero_byte = size == 0
             except Exception:
                 continue
-                
+
             is_garbage = False
-            
+
             if is_zero_byte:
                 if ext in ZERO_BYTE_SAFE_EXT:
                     is_garbage = True
                 else:
-                    emit(f"   [!] Внимание: Обнаружен 0-байтовый системный файл (не трогаем): {rel_path}")
+                    emit(
+                        f"   [!] Внимание: Обнаружен 0-байтовый системный файл (не трогаем): {rel_path}"
+                    )
                     continue
             else:
                 if ext in (".bak", ".log"):
@@ -797,14 +861,11 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
                     # embeddable-сборка без .py-исходников, поэтому .pyc/.pyo — это просто
                     # регенерируемый байткод-кэш, безопасный для удаления где угодно в дереве.
                     is_garbage = True
-                    
+
             if is_garbage:
-                all_files.append({
-                    "rel_path": rel_path,
-                    "abs_path": abs_path,
-                    "size": size,
-                    "mtime": mtime
-                })
+                all_files.append(
+                    {"rel_path": rel_path, "abs_path": abs_path, "size": size, "mtime": mtime}
+                )
 
     safe_all_files = []
     for f in all_files:
@@ -824,17 +885,30 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
         for f in safe_all_files:
             rel = f["rel_path"]
             cached = cache.get("safe_files", {}).get(rel)
-            if cached and cached.get("size") == f["size"] and abs(cached.get("mtime", 0) - f["mtime"]) < 1.0:
+            if (
+                cached
+                and cached.get("size") == f["size"]
+                and abs(cached.get("mtime", 0) - f["mtime"]) < 1.0
+            ):
                 to_quarantine.append(f)
             else:
                 skipped_new.append(f)
-        emit(f"Быстрое сканирование завершено. Будет перемещено в карантин: {len(to_quarantine)}. Пропущено новых файлов: {len(skipped_new)}")
+        emit(
+            f"Быстрое сканирование завершено. Будет перемещено в карантин: {len(to_quarantine)}. Пропущено новых файлов: {len(skipped_new)}"
+        )
     else:
         emit("Выполняю глубокое сканирование (полная проверка всех файлов)...")
         to_quarantine = safe_all_files.copy()
 
     if not to_quarantine:
-        return {"quarantined_count": 0, "size_mb": 0.0, "restored_count": 0, "restored_list": [], "mode": mode, "quarantined_list": []}
+        return {
+            "quarantined_count": 0,
+            "size_mb": 0.0,
+            "restored_count": 0,
+            "restored_list": [],
+            "mode": mode,
+            "quarantined_list": [],
+        }
 
     for f in to_quarantine:
         if not os.path.exists(f["abs_path"]):
@@ -850,17 +924,19 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
             write_log(f"[Garbage Scan] Ошибка перемещения {f['rel_path']}: {e}")
 
     emit("Выполняю диагностику работоспособности компонентов после изоляции...")
-    diag_res = run_full_diagnostics(force_refresh=True) # Форсируем обход кэша
-    
+    diag_res = run_full_diagnostics(force_refresh=True)  # Форсируем обход кэша
+
     if "error" in diag_res:
         new_failed = {"diagnostic_script_crash"}
     else:
         post_failed = {k for k, v in diag_res.items() if v is not True}
         new_failed = post_failed - baseline_failed
-    
+
     restored = []
     if new_failed:
-        emit(f"⚠️ Сбой диагностики компонентов из-за перемещенных файлов: {', '.join(new_failed)}. Запускаю автоматический возврат...")
+        emit(
+            f"⚠️ Сбой диагностики компонентов из-за перемещенных файлов: {', '.join(new_failed)}. Запускаю автоматический возврат..."
+        )
         for f in quarantined_files:
             try:
                 os.makedirs(os.path.dirname(f["abs_path"]), exist_ok=True)
@@ -879,20 +955,20 @@ def scan_for_garbage(mode="fast", progress_cb=None) -> dict:
             cache["safe_files"][f["rel_path"]] = {
                 "size": f["size"],
                 "mtime": f["mtime"],
-                "safe": True
+                "safe": True,
             }
         emit("Диагностика успешна! Все изолированные файлы подтверждены как безопасные.")
 
     save_safe_files_cache(cache)
     size_mb = total_size / (1024 * 1024)
-    
+
     return {
         "quarantined_count": len(quarantined_files),
         "size_mb": size_mb,
         "restored_count": len(restored),
         "restored_list": restored,
         "mode": mode,
-        "quarantined_list": quarantined_files
+        "quarantined_list": quarantined_files,
     }
 
 
@@ -900,7 +976,7 @@ def finalize_deletion(quarantined_list: list) -> int:
     cache = load_safe_files_cache()
     deleted_count = 0
     now = time.time()
-    
+
     for f in quarantined_list:
         q_path = f.get("quarantine_path")
         if q_path and os.path.exists(q_path):
@@ -910,36 +986,38 @@ def finalize_deletion(quarantined_list: list) -> int:
                 else:
                     os.remove(q_path)
                 deleted_count += 1
-                
+
                 package_name = "unknown"
                 parts = f["rel_path"].split("/")
                 if "site-packages" in parts:
                     idx = parts.index("site-packages")
                     if idx + 1 < len(parts):
                         package_name = parts[idx + 1]
-                
+
                 if "deleted_files" not in cache:
                     cache["deleted_files"] = []
-                cache["deleted_files"].append({
-                    "path": f["rel_path"],
-                    "size": f["size"],
-                    "package": package_name,
-                    "timestamp": now
-                })
+                cache["deleted_files"].append(
+                    {
+                        "path": f["rel_path"],
+                        "size": f["size"],
+                        "package": package_name,
+                        "timestamp": now,
+                    }
+                )
             except Exception as e:
                 write_log(f"[Garbage Scan] Ошибка удаления {f['rel_path']}: {e}")
-                
+
     if os.path.exists(QUARANTINE_DIR):
         try:
             shutil.rmtree(QUARANTINE_DIR, ignore_errors=True)
         except Exception:
             pass
-            
+
     save_safe_files_cache(cache)
-    
+
     # Сбрасываем кэш диагностики, чтобы форсировать перепроверку при следующем открытии окна
     clear_diagnostics_cache()
-            
+
     return deleted_count
 
 
@@ -986,12 +1064,14 @@ def _resolve_recovery_torch_variant() -> tuple:
     if suffix:
         try:
             from engine.env_core.torch_setup import _TORCH_INDEX_URLS
+
             return suffix, _TORCH_INDEX_URLS.get(suffix, _TORCH_INDEX_URLS["cpu"])
         except Exception:
             return suffix, "https://download.pytorch.org/whl/" + suffix
 
     try:
         from engine.env_core import torch_setup
+
         v = torch_setup.get_installed_torch_variant()
         if v in ("cu118", "cpu"):
             return v, torch_setup._TORCH_INDEX_URLS[v]
@@ -1001,6 +1081,7 @@ def _resolve_recovery_torch_variant() -> tuple:
     try:
         from engine.env_core import torch_setup
         from engine.env_core.cpu_gpu import detect_gpu
+
         return torch_setup._pick_torch_variant(detect_gpu())
     except Exception:
         pass
@@ -1016,6 +1097,7 @@ def _torch_already_ok(variant: str) -> bool:
     """
     try:
         from engine.env_core.torch_setup import torch_status
+
         st = torch_status()
     except Exception:
         return False
@@ -1041,6 +1123,7 @@ def _get_av_pin() -> str:
         pass
     try:
         from engine.env_core.rvc_setup import AV_PIN
+
         if AV_PIN:
             return AV_PIN
     except Exception:
@@ -1071,7 +1154,9 @@ def _av_is_compatible() -> bool:
     try:
         proc = subprocess.run(
             [PYTHON_EXE, "-c", probe],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         out = proc.stdout or ""
         return "AV_COMPAT=1" in out
@@ -1111,18 +1196,26 @@ def _repair_av_for_torchvision(progress_cb=None) -> bool:
     env["PIP_CACHE_DIR"] = PORTABLE_CACHE_DIR
 
     cmd = [
-        PYTHON_EXE, "-m", "pip", "install",
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
         av_pin,
-        "--target", SITE_PACKAGES,
+        "--target",
+        SITE_PACKAGES,
         "--upgrade",
         "--force-reinstall",
         "--no-deps",
     ]
     try:
         proc = subprocess.Popen(
-            cmd, cwd=PROJECT_ROOT, env=env,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=0,
+            cmd,
+            cwd=PROJECT_ROOT,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=0,
         )
         output_lines = []
         for line in iter(proc.stdout.readline, ""):
@@ -1137,13 +1230,19 @@ def _repair_av_for_torchvision(progress_cb=None) -> bool:
             or "Access is denied" in output_text
             or "Отказано" in output_text
         ):
-            emit("⚠️ pip не смог перезаписать залоченные файлы av. "
-                 "Повторяю без --force-reinstall/--upgrade...")
+            emit(
+                "⚠️ pip не смог перезаписать залоченные файлы av. "
+                "Повторяю без --force-reinstall/--upgrade..."
+            )
             cmd_retry = [c for c in cmd if c not in ("--force-reinstall", "--upgrade")]
             proc = subprocess.Popen(
-                cmd_retry, cwd=PROJECT_ROOT, env=env,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=0,
+                cmd_retry,
+                cwd=PROJECT_ROOT,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=0,
             )
             for line in iter(proc.stdout.readline, ""):
                 if line:
@@ -1157,8 +1256,10 @@ def _repair_av_for_torchvision(progress_cb=None) -> bool:
     if ok:
         emit(f"✅ PyAV восстановлен и совместим с torchvision ({av_pin}).")
     else:
-        emit(f"❌ После установки {av_pin} probe av.logging всё ещё не проходит. "
-             f"Возможно, файлы залочены — нужен полный перезапуск приложения.")
+        emit(
+            f"❌ После установки {av_pin} probe av.logging всё ещё не проходит. "
+            f"Возможно, файлы залочены — нужен полный перезапуск приложения."
+        )
     return ok
 
 
@@ -1220,7 +1321,9 @@ def run_error_recovery(progress_cb=None) -> list:
 
     try:
         with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"\n===== run_error_recovery запущен: {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n")
+            f.write(
+                f"\n===== run_error_recovery запущен: {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n"
+            )
     except Exception:
         pass
 
@@ -1231,7 +1334,9 @@ def run_error_recovery(progress_cb=None) -> list:
     # каждый раз перед стартом). ──
     cleaned = _clean_dataclasses_backport()
     if cleaned:
-        emit(f"🧹 Удалён теневой бэкпорт dataclasses (мешал импорту torch/torchvision и pip): {cleaned}")
+        emit(
+            f"🧹 Удалён теневой бэкпорт dataclasses (мешал импорту torch/torchvision и pip): {cleaned}"
+        )
 
     cache = load_safe_files_cache()
     deleted = cache.get("deleted_files", [])
@@ -1314,8 +1419,10 @@ def run_error_recovery(progress_cb=None) -> list:
         write_log(f"[Recovery] Не удалось получить живую диагностику для валидации: {e}")
         live = None
 
-    emit(f"Обнаружены удаленные зависимости, требующие восстановления: {', '.join(sorted(set(matched_specs.values())))}")
-    
+    emit(
+        f"Обнаружены удаленные зависимости, требующие восстановления: {', '.join(sorted(set(matched_specs.values())))}"
+    )
+
     restored = []
     # Записи кэша удалений, которые мы либо успешно восстановили, либо
     # признали уже работающими (пропущены) — их убираем из истории удалений,
@@ -1343,13 +1450,16 @@ def run_error_recovery(progress_cb=None) -> list:
         if key == "rvc_python":
             # ВАЛИДАЦИЯ: rvc уже импортируется — не трогаем (устаревшая запись).
             if live is not None and live.get("rvc_python") is True:
-                emit("⏭️ rvc-python уже импортируется — пропускаю восстановление "
-                     "(устаревшая запись в кэше удалений).")
+                emit(
+                    "⏭️ rvc-python уже импортируется — пропускаю восстановление "
+                    "(устаревшая запись в кэше удалений)."
+                )
                 resolved_ids.update(id(f) for f in files)
                 continue
 
             try:
                 from engine.env_core import rvc_setup
+
                 status = rvc_setup.install_rvc(progress_cb=progress_cb)
                 if status and status.get("installed"):
                     emit("✅ RVC (rvc-python + зависимости) успешно восстановлен.")
@@ -1368,8 +1478,10 @@ def run_error_recovery(progress_cb=None) -> list:
         # (пин + probe av.logging), а не общим pip --no-deps без пина.
         if key == "av":
             if _av_is_compatible():
-                emit("⏭️ PyAV уже совместим с torchvision — пропускаю восстановление "
-                     "(устаревшая запись в кэше удалений).")
+                emit(
+                    "⏭️ PyAV уже совместим с torchvision — пропускаю восстановление "
+                    "(устаревшая запись в кэше удалений)."
+                )
                 resolved_ids.update(id(f) for f in files)
                 continue
             if _repair_av_for_torchvision(progress_cb=progress_cb):
@@ -1382,8 +1494,10 @@ def run_error_recovery(progress_cb=None) -> list:
         # torch обрабатывается отдельно ниже (семейство из 3 пакетов,
         # проверяем каждый под-компонент по отдельности).
         if key != "torch" and live is not None and live.get(key) is True:
-            emit(f"⏭️ {key} уже работает в системе — пропускаю восстановление "
-                 f"(устаревшая запись в кэше удалений).")
+            emit(
+                f"⏭️ {key} уже работает в системе — пропускаю восстановление "
+                f"(устаревшая запись в кэше удалений)."
+            )
             resolved_ids.update(id(f) for f in files)
             continue
 
@@ -1414,11 +1528,15 @@ def run_error_recovery(progress_cb=None) -> list:
 
             try:
                 from engine.env_core.torch_setup import (
-                    TORCH_VERSION, TORCHAUDIO_VERSION, TORCHVISION_VERSION,
+                    TORCH_VERSION,
+                    TORCHAUDIO_VERSION,
+                    TORCHVISION_VERSION,
                 )
             except Exception as imp_err:
-                emit(f"⚠️ Не удалось получить версии torch из torch_setup: {imp_err} "
-                     f"— использую значения по умолчанию.")
+                emit(
+                    f"⚠️ Не удалось получить версии torch из torch_setup: {imp_err} "
+                    f"— использую значения по умолчанию."
+                )
                 TORCH_VERSION, TORCHAUDIO_VERSION, TORCHVISION_VERSION = "2.2.2", "2.2.2", "0.17.2"
 
             suffix = "+cu118" if tvariant == "cu118" else "+cpu"
@@ -1441,16 +1559,20 @@ def run_error_recovery(progress_cb=None) -> list:
             tv_live_err = live.get("torchvision") if live is not None else None
             if needs_tv and tv_live_err is not True:
                 if _torchvision_error_is_av_related(tv_live_err) or not _av_is_compatible():
-                    emit("🔎 torchvision не импортируется, причина связана с PyAV "
-                         f"(детали: {tv_live_err!r}). Чиню av ДО torchvision...")
+                    emit(
+                        "🔎 torchvision не импортируется, причина связана с PyAV "
+                        f"(детали: {tv_live_err!r}). Чиню av ДО torchvision..."
+                    )
                     _repair_av_for_torchvision(progress_cb=progress_cb)
                     # Перепроверяем torchvision после починки av — возможно,
                     # сам torchvision-wheel цел и переустанавливать не нужно.
                     try:
                         recheck = run_full_diagnostics(force_refresh=True)
                         if recheck.get("torchvision") is True:
-                            emit("✅ После починки PyAV torchvision снова импортируется — "
-                                 "wheel torchvision не трогаю.")
+                            emit(
+                                "✅ После починки PyAV torchvision снова импортируется — "
+                                "wheel torchvision не трогаю."
+                            )
                             # Обновляем live, чтобы ниже skip torchvision.
                             if live is not None:
                                 live["torchvision"] = True
@@ -1480,8 +1602,10 @@ def run_error_recovery(progress_cb=None) -> list:
             if not new_specs:
                 # torch-семейство целиком уже в норме (напр. в спецификации
                 # только torch и он работает) — пропускаем без скачивания.
-                emit(f"⏭️ torch-семейство ({tvariant}) уже установлено и работает — "
-                     f"пропускаю переустановку (без повторного скачивания).")
+                emit(
+                    f"⏭️ torch-семейство ({tvariant}) уже установлено и работает — "
+                    f"пропускаю переустановку (без повторного скачивания)."
+                )
                 restored.append(pkg)
                 resolved_ids.update(id(f) for f in files)
                 continue
@@ -1501,13 +1625,18 @@ def run_error_recovery(progress_cb=None) -> list:
             # даже без единой блокировки файла команда сама по себе ничего
             # не заменяла.
             cmd = [
-                PYTHON_EXE, "-m", "pip", "install",
+                PYTHON_EXE,
+                "-m",
+                "pip",
+                "install",
                 *new_specs,
-                "--target", SITE_PACKAGES,
+                "--target",
+                SITE_PACKAGES,
                 "--upgrade",
                 "--force-reinstall",
                 "--no-deps",
-                "--extra-index-url", tindex,
+                "--extra-index-url",
+                tindex,
                 # Без --no-cache-dir: --force-reinstall гарантирует
                 # переустановку файлов, но pip возьмёт уже скачанный wheel
                 # (например torch ~2.7 ГБ для cu118) из локального
@@ -1520,9 +1649,13 @@ def run_error_recovery(progress_cb=None) -> list:
             # явно разбить на отдельные элементы, иначе pip получит один
             # невалидный requirement и install провалится.
             cmd = [
-                PYTHON_EXE, "-m", "pip", "install",
+                PYTHON_EXE,
+                "-m",
+                "pip",
+                "install",
                 *pkg_specs,
-                "--target", SITE_PACKAGES,
+                "--target",
+                SITE_PACKAGES,
                 "--upgrade",
                 "--no-deps",
                 "--force-reinstall",
@@ -1549,9 +1682,13 @@ def run_error_recovery(progress_cb=None) -> list:
 
         try:
             proc = subprocess.Popen(
-                cmd, cwd=PROJECT_ROOT, env=env,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=0
+                cmd,
+                cwd=PROJECT_ROOT,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=0,
             )
             output_lines = []
             for line in iter(proc.stdout.readline, ""):
@@ -1575,13 +1712,19 @@ def run_error_recovery(progress_cb=None) -> list:
                 or "Access is denied" in output_text
                 or "Отказано" in output_text
             ):
-                emit("⚠️ pip не смог перезаписать залоченные файлы (процесс запущен). "
-                     "Повторяю без --force-reinstall/--upgrade — уже стоящий пакет будет пропущен.")
+                emit(
+                    "⚠️ pip не смог перезаписать залоченные файлы (процесс запущен). "
+                    "Повторяю без --force-reinstall/--upgrade — уже стоящий пакет будет пропущен."
+                )
                 cmd_retry = [c for c in cmd if c not in ("--force-reinstall", "--upgrade")]
                 proc = subprocess.Popen(
-                    cmd_retry, cwd=PROJECT_ROOT, env=env,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    text=True, bufsize=0
+                    cmd_retry,
+                    cwd=PROJECT_ROOT,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=0,
                 )
                 for line in iter(proc.stdout.readline, ""):
                     if line:
@@ -1600,13 +1743,15 @@ def run_error_recovery(progress_cb=None) -> list:
             try:
                 verify_live = run_full_diagnostics(force_refresh=True)
             except Exception as diag_err:
-                write_log(f"[Recovery] Не удалось проверить результат живой диагностикой: {diag_err}")
+                write_log(
+                    f"[Recovery] Не удалось проверить результат живой диагностикой: {diag_err}"
+                )
 
             if verify_live is not None:
                 confirmed = all(verify_live.get(k) is True for k in verify_keys)
             else:
                 # Живая диагностика недоступна — откатываемся к коду pip.
-                confirmed = (proc.returncode == 0)
+                confirmed = proc.returncode == 0
 
             if confirmed:
                 emit(f"✅ Пакет {pkg} успешно восстановлен (подтверждено импортом).")
@@ -1621,13 +1766,16 @@ def run_error_recovery(progress_cb=None) -> list:
                 # каждому непрошедшему компоненту вместо догадки.
                 if verify_live is not None:
                     details = "; ".join(
-                        f"{k}: {verify_live.get(k)!r}" for k in verify_keys
+                        f"{k}: {verify_live.get(k)!r}"
+                        for k in verify_keys
                         if verify_live.get(k) is not True
                     )
                 else:
                     details = "живая диагностика недоступна"
-                emit(f"❌ pip вернул успех, но живая диагностика не подтвердила импорт "
-                     f"{', '.join(verify_keys)}. Детали: {details}")
+                emit(
+                    f"❌ pip вернул успех, но живая диагностика не подтвердила импорт "
+                    f"{', '.join(verify_keys)}. Детали: {details}"
+                )
 
                 # ── Пост-лечение: torchvision всё ещё падает на av ──
                 # Даже после reinstall torchvision import может падать
@@ -1641,8 +1789,10 @@ def run_error_recovery(progress_cb=None) -> list:
                     and verify_live.get("torchvision") is not True
                     and _torchvision_error_is_av_related(verify_live.get("torchvision"))
                 ):
-                    emit("🔎 Импорт torchvision всё ещё падает на PyAV — "
-                         "запускаю пост-лечение av...")
+                    emit(
+                        "🔎 Импорт torchvision всё ещё падает на PyAV — "
+                        "запускаю пост-лечение av..."
+                    )
                     if _repair_av_for_torchvision(progress_cb=progress_cb):
                         try:
                             post = run_full_diagnostics(force_refresh=True)
@@ -1655,11 +1805,16 @@ def run_error_recovery(progress_cb=None) -> list:
                         else:
                             post_details = (
                                 "; ".join(
-                                    f"{k}: {post.get(k)!r}" for k in verify_keys
+                                    f"{k}: {post.get(k)!r}"
+                                    for k in verify_keys
                                     if post is None or post.get(k) is not True
-                                ) if post is not None else "диагностика недоступна"
+                                )
+                                if post is not None
+                                else "диагностика недоступна"
                             )
-                            emit(f"❌ После починки PyAV импорт всё ещё не подтверждён: {post_details}")
+                            emit(
+                                f"❌ После починки PyAV импорт всё ещё не подтверждён: {post_details}"
+                            )
             else:
                 emit(f"❌ Ошибка восстановления пакета {pkg} (код {proc.returncode}).")
         except Exception as e:

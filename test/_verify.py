@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 _verify.py — Project verification for XTTS Studio.
 Called by run_tests.bat with the project root as first argument.
 
@@ -7,13 +7,11 @@ Usage:
     python _verify.py "C:\XTTS Studio"
 """
 
-import sys
-import os
 import ast
-import json
 import importlib
+import json
 import site
-import tempfile
+import sys
 from pathlib import Path
 
 
@@ -124,11 +122,17 @@ def main() -> int:
     print()
     print("[2/5] JSON configs...")
     json_candidates = [
-        "config.json", "config.yaml", "config.yml",
-        "config/tts_config.json", "config/tts_config.yaml",
-        "config/gui_config.json", "config/gui_config.yaml",
-        "config/presets.json", "config/presets.yaml",
-        "settings.json", "settings.yaml",
+        "config.json",
+        "config.yaml",
+        "config.yml",
+        "config/tts_config.json",
+        "config/tts_config.yaml",
+        "config/gui_config.json",
+        "config/gui_config.yaml",
+        "config/presets.json",
+        "config/presets.yaml",
+        "settings.json",
+        "settings.yaml",
     ]
     found_configs = []
     broken_configs = []
@@ -162,13 +166,17 @@ def main() -> int:
     print()
     print("[3/5] Syntax check of .py files...")
     EXCLUDE = {
-        "__pycache__", ".git", ".venv", "venv",
-        "python", "node_modules", "dist", "build", "test",
+        "__pycache__",
+        ".git",
+        ".venv",
+        "venv",
+        "python",
+        "node_modules",
+        "dist",
+        "build",
+        "test",
     }
-    py_files = [
-        p for p in PROJECT_ROOT.rglob("*.py")
-        if not (set(p.parts) & EXCLUDE)
-    ]
+    py_files = [p for p in PROJECT_ROOT.rglob("*.py") if not (set(p.parts) & EXCLUDE)]
     syntax_errors = 0
     bom_stripped = 0
     for pf in sorted(py_files):
@@ -214,45 +222,229 @@ def main() -> int:
     # 4. Import check
     # ----------------------------------------------------------------
     STDLIB = {
-        "abc", "aifc", "argparse", "array", "ast", "asynchat", "asyncio",
-        "asyncore", "atexit", "audioop", "base64", "bdb", "binascii", "binhex",
-        "bisect", "builtins", "bz2", "calendar", "cgi", "cgitb", "chunk",
-        "cmath", "cmd", "code", "codecs", "codeop", "collections", "colorsys",
-        "compileall", "concurrent", "configparser", "contextlib", "contextvars",
-        "copy", "copyreg", "cProfile", "crypt", "csv", "ctypes", "curses",
-        "dataclasses", "datetime", "dbm", "decimal", "difflib", "dis",
-        "distutils", "doctest", "email", "encodings", "enum", "errno",
-        "faulthandler", "fcntl", "filecmp", "fileinput", "fnmatch", "formatter",
-        "fractions", "ftplib", "functools", "gc", "getopt", "getpass",
-        "gettext", "glob", "grp", "gzip", "hashlib", "heapq", "hmac", "html",
-        "http", "idlelib", "imaplib", "imghdr", "imp", "importlib", "inspect",
-        "io", "ipaddress", "itertools", "json", "keyword", "lib2to3",
-        "linecache", "locale", "logging", "lzma", "mailbox", "mailcap",
-        "marshal", "math", "mimetypes", "mmap", "modulefinder", "multiprocessing",
-        "netrc", "nis", "nntplib", "numbers", "operator", "optparse", "os",
-        "ossaudiodev", "pathlib", "pdb", "pickle", "pickletools", "pipes",
-        "pkgutil", "platform", "plistlib", "poplib", "posix", "posixpath",
-        "pprint", "profile", "pstats", "pty", "pwd", "py_compile", "pyclbr",
-        "pydoc", "queue", "quopri", "random", "re", "readline", "reprlib",
-        "resource", "rlcompleter", "runpy", "sched", "secrets", "select",
-        "selectors", "shelve", "shlex", "shutil", "signal", "site", "smtpd",
-        "smtplib", "sndhdr", "socket", "socketserver", "sqlite3", "ssl",
-        "stat", "statistics", "string", "stringprep", "struct", "subprocess",
-        "sunau", "symtable", "sys", "sysconfig", "tabnanny", "tarfile",
-        "telnetlib", "tempfile", "termios", "test", "textwrap", "threading",
-        "time", "timeit", "tkinter", "token", "tokenize", "trace", "traceback",
-        "tracemalloc", "tty", "turtle", "turtledemo", "types", "typing",
-        "unicodedata", "unittest", "urllib", "uu", "uuid", "venv", "warnings",
-        "wave", "weakref", "webbrowser", "winreg", "winsound", "wsgiref",
-        "xdrlib", "xml", "xmlrpc", "zipapp", "zipfile", "zipimport", "zlib",
-        "graphlib", "zoneinfo", "tomllib",
+        "abc",
+        "aifc",
+        "argparse",
+        "array",
+        "ast",
+        "asynchat",
+        "asyncio",
+        "asyncore",
+        "atexit",
+        "audioop",
+        "base64",
+        "bdb",
+        "binascii",
+        "binhex",
+        "bisect",
+        "builtins",
+        "bz2",
+        "calendar",
+        "cgi",
+        "cgitb",
+        "chunk",
+        "cmath",
+        "cmd",
+        "code",
+        "codecs",
+        "codeop",
+        "collections",
+        "colorsys",
+        "compileall",
+        "concurrent",
+        "configparser",
+        "contextlib",
+        "contextvars",
+        "copy",
+        "copyreg",
+        "cProfile",
+        "crypt",
+        "csv",
+        "ctypes",
+        "curses",
+        "dataclasses",
+        "datetime",
+        "dbm",
+        "decimal",
+        "difflib",
+        "dis",
+        "distutils",
+        "doctest",
+        "email",
+        "encodings",
+        "enum",
+        "errno",
+        "faulthandler",
+        "fcntl",
+        "filecmp",
+        "fileinput",
+        "fnmatch",
+        "formatter",
+        "fractions",
+        "ftplib",
+        "functools",
+        "gc",
+        "getopt",
+        "getpass",
+        "gettext",
+        "glob",
+        "grp",
+        "gzip",
+        "hashlib",
+        "heapq",
+        "hmac",
+        "html",
+        "http",
+        "idlelib",
+        "imaplib",
+        "imghdr",
+        "imp",
+        "importlib",
+        "inspect",
+        "io",
+        "ipaddress",
+        "itertools",
+        "json",
+        "keyword",
+        "lib2to3",
+        "linecache",
+        "locale",
+        "logging",
+        "lzma",
+        "mailbox",
+        "mailcap",
+        "marshal",
+        "math",
+        "mimetypes",
+        "mmap",
+        "modulefinder",
+        "multiprocessing",
+        "netrc",
+        "nis",
+        "nntplib",
+        "numbers",
+        "operator",
+        "optparse",
+        "os",
+        "ossaudiodev",
+        "pathlib",
+        "pdb",
+        "pickle",
+        "pickletools",
+        "pipes",
+        "pkgutil",
+        "platform",
+        "plistlib",
+        "poplib",
+        "posix",
+        "posixpath",
+        "pprint",
+        "profile",
+        "pstats",
+        "pty",
+        "pwd",
+        "py_compile",
+        "pyclbr",
+        "pydoc",
+        "queue",
+        "quopri",
+        "random",
+        "re",
+        "readline",
+        "reprlib",
+        "resource",
+        "rlcompleter",
+        "runpy",
+        "sched",
+        "secrets",
+        "select",
+        "selectors",
+        "shelve",
+        "shlex",
+        "shutil",
+        "signal",
+        "site",
+        "smtpd",
+        "smtplib",
+        "sndhdr",
+        "socket",
+        "socketserver",
+        "sqlite3",
+        "ssl",
+        "stat",
+        "statistics",
+        "string",
+        "stringprep",
+        "struct",
+        "subprocess",
+        "sunau",
+        "symtable",
+        "sys",
+        "sysconfig",
+        "tabnanny",
+        "tarfile",
+        "telnetlib",
+        "tempfile",
+        "termios",
+        "test",
+        "textwrap",
+        "threading",
+        "time",
+        "timeit",
+        "tkinter",
+        "token",
+        "tokenize",
+        "trace",
+        "traceback",
+        "tracemalloc",
+        "tty",
+        "turtle",
+        "turtledemo",
+        "types",
+        "typing",
+        "unicodedata",
+        "unittest",
+        "urllib",
+        "uu",
+        "uuid",
+        "venv",
+        "warnings",
+        "wave",
+        "weakref",
+        "webbrowser",
+        "winreg",
+        "winsound",
+        "wsgiref",
+        "xdrlib",
+        "xml",
+        "xmlrpc",
+        "zipapp",
+        "zipfile",
+        "zipimport",
+        "zlib",
+        "graphlib",
+        "zoneinfo",
+        "tomllib",
     }
     KNOWN_3RD = {
-        "pygame", "numpy", "customtkinter", "pydub",
-        "torch", "torchaudio", "transformers", "TTS",
-        "soundfile", "sounddevice", "librosa", "scipy",
-        "pyaudio", "pydantic", "requests",
-        "PIL", "pandas", "matplotlib",
+        "pygame",
+        "numpy",
+        "customtkinter",
+        "pydub",
+        "torch",
+        "torchaudio",
+        "transformers",
+        "TTS",
+        "soundfile",
+        "sounddevice",
+        "librosa",
+        "scipy",
+        "pyaudio",
+        "pydantic",
+        "requests",
+        "PIL",
+        "pandas",
+        "matplotlib",
     }
 
     print()
@@ -276,10 +468,7 @@ def main() -> int:
             except ModuleNotFoundError as e:
                 mn = e.name or str(e)
                 if mn.startswith("engine."):
-                    print(
-                        f"  [FAIL] Import error in {mod}: "
-                        f'internal module "{mn}" not found'
-                    )
+                    print(f"  [FAIL] Import error in {mod}: " f'internal module "{mn}" not found')
                     critical += 1
                 else:
                     top = mn.split(".")[0]
@@ -288,9 +477,7 @@ def main() -> int:
                 print(f"  [FAIL] Syntax error prevents import of {mod}: {e}")
                 critical += 1
             except Exception as e:
-                missing_deps.setdefault("other", []).append(
-                    f"{mod} ({type(e).__name__})"
-                )
+                missing_deps.setdefault("other", []).append(f"{mod} ({type(e).__name__})")
 
     if missing_deps:
         print()

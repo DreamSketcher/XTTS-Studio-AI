@@ -10,24 +10,39 @@ import tkinter as tk
 import webbrowser
 
 import engine.gui.chat_window.state as state
-from engine.gui.chat_window.custom_widgets import CTK_AVAILABLE, CTkFrame, CTkLabel, CTkButton, TkFrame, TkLabel, TkButton, TkRawFrame
+from engine.gui.chat_window.custom_widgets import (
+    CTK_AVAILABLE,
+    CTkFrame,
+    CTkLabel,
+    CTkButton,
+    TkFrame,
+    TkLabel,
+    TkButton,
+    TkRawFrame,
+)
 from i18n import t
 
 # Убеждаемся, что папка site-packages bundled-окружения доступна для импортов
 try:
     import sys
     from engine import env_setup
+
     if env_setup.SITE_PACKAGES not in sys.path:
         sys.path.insert(0, env_setup.SITE_PACKAGES)
 except Exception:
     pass
+
 
 def open_gpt_settings(event=None):
     try:
         from engine import gpt_client
         from engine import local_llm_client
     except Exception as e:
-        messagebox.showerror(t("chat_settings_title"), t("chat_err_load_gpt", e), parent=_get_app_parent() or state._root)
+        messagebox.showerror(
+            t("chat_settings_title"),
+            t("chat_err_load_gpt", e),
+            parent=_get_app_parent() or state._root,
+        )
         return "break"
 
     if _widget_exists(state._env_settings_window):
@@ -36,13 +51,13 @@ def open_gpt_settings(event=None):
 
     win = tk.Toplevel(_get_app_parent() or state._root)
     _set_dark_titlebar(win)
-    
+
     # Remove default feather icon
     try:
-        win.iconbitmap('blank_icon.ico')
+        win.iconbitmap("blank_icon.ico")
     except Exception:
         pass
-        
+
     state._env_settings_window = win
 
     def _win_report_callback_exception(exc, val, tb):
@@ -50,15 +65,19 @@ def open_gpt_settings(event=None):
         который в portable-сборке без консоли (pythonw) никуда не попадает —
         кнопка визуально просто "не работает". Пишем в файл + показываем."""
         import traceback as _tb
+
         full_trace = "".join(_tb.format_exception(exc, val, tb))
         try:
             from engine.paths import BASE_DIR
+
             log_path = os.path.join(BASE_DIR, "env_error_log.txt")
         except Exception:
             log_path = "env_error_log.txt"
         try:
             with open(log_path, "a", encoding="utf-8") as f:
-                f.write(f"── {datetime.now().isoformat()} — {t('chat_settings_title')} (необработанное) ──\n{full_trace}\n\n")
+                f.write(
+                    f"── {datetime.now().isoformat()} — {t('chat_settings_title')} (необработанное) ──\n{full_trace}\n\n"
+                )
         except Exception:
             pass
         try:
@@ -85,8 +104,10 @@ def open_gpt_settings(event=None):
     sidebar.pack_propagate(False)
 
     TkLabel(
-        sidebar, text=t("chat_settings_title"),
-        bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
+        sidebar,
+        text=t("chat_settings_title"),
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_MAIN"),
         font=("Segoe UI", 15, "bold"),
     ).pack(fill="x", padx=16, pady=(20, 20))
 
@@ -96,7 +117,7 @@ def open_gpt_settings(event=None):
 
     canvas = tk.Canvas(content_outer, bg=_c("BG_CARD"), highlightthickness=0, bd=0)
     scrollbar = tk.Scrollbar(content_outer, orient="vertical", command=canvas.yview)
-    
+
     canvas.configure(yscrollcommand=scrollbar.set)
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
@@ -128,11 +149,14 @@ def open_gpt_settings(event=None):
             # если курсор над дочерним scrollable (лог-консоль) — не скроллим страницу
             if _scroll_over_child["widget"] is not None:
                 return None
-            if getattr(event, "num", None) == 4: units = -3
-            elif getattr(event, "num", None) == 5: units = 3
+            if getattr(event, "num", None) == 4:
+                units = -3
+            elif getattr(event, "num", None) == 5:
+                units = 3
             else:
                 delta = int(getattr(event, "delta", 0) or 0)
-                if delta == 0: return None
+                if delta == 0:
+                    return None
                 units = -3 if delta > 0 else 3
             canvas.yview_scroll(units, "units")
             return "break"
@@ -197,8 +221,11 @@ def open_gpt_settings(event=None):
         container.pack(fill="both", expand=True, padx=20, pady=20)
 
         TkLabel(
-            container, text=t("chat_providers_header"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 17, "bold"),
+            container,
+            text=t("chat_providers_header"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 17, "bold"),
         ).pack(anchor="w", pady=(0, 15))
 
         accordion_state = {"expanded": gpt_client.get_ui_state().get("expanded_provider")}
@@ -209,7 +236,8 @@ def open_gpt_settings(event=None):
             entries = []
             hidden = gpt_client.get_hidden_providers()
             for pid, info in gpt_client.PROVIDERS.items():
-                if pid == "local" or pid in hidden: continue
+                if pid == "local" or pid in hidden:
+                    continue
                 entries.append((pid, info, False))
             for p in gpt_client.list_custom_providers():
                 entries.append((p.get("id"), p, True))
@@ -223,125 +251,307 @@ def open_gpt_settings(event=None):
         def _rebuild_accordion():
             for child in accordion_container.winfo_children():
                 child.destroy()
-            
+
             active_pid = gpt_client.get_provider()
             for pid, info, is_custom in _all_provider_entries():
                 is_expanded = accordion_state["expanded"] == pid
                 is_active = pid == active_pid
-                
+
                 card_outer = tk.Frame(accordion_container, bg=_c("BORDER"))
                 card_outer.pack(fill="x", pady=(0, 6))
-                
+
                 card = tk.Frame(card_outer, bg=_c("BG_CARD"))
                 card.pack(fill="x", padx=1, pady=1)
-                
+
                 header = tk.Frame(card, bg=_c("BG_CARD"), cursor="hand2")
                 header.pack(fill="x", padx=12, pady=10)
-                
+
                 arrow = "▾" if is_expanded else "▸"
                 dot = "🟢" if is_active else ("🔧" if is_custom else "⚪")
-                
-                tk.Label(header, text=arrow, bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), width=2).pack(side="left")
-                tk.Label(header, text=dot, bg=_c("BG_CARD"), font=("Segoe UI", 13)).pack(side="left", padx=(0, 4))
-                
+
+                tk.Label(
+                    header,
+                    text=arrow,
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_DIM"),
+                    font=("Segoe UI", 12),
+                    width=2,
+                ).pack(side="left")
+                tk.Label(header, text=dot, bg=_c("BG_CARD"), font=("Segoe UI", 13)).pack(
+                    side="left", padx=(0, 4)
+                )
+
                 title_box = tk.Frame(header, bg=_c("BG_CARD"))
                 title_box.pack(side="left", fill="x", expand=True)
-                
-                tk.Label(title_box, text=info.get("label", pid), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 13), anchor="w").pack(anchor="w")
-                
+
+                tk.Label(
+                    title_box,
+                    text=info.get("label", pid),
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_MAIN"),
+                    font=("Segoe UI", 13),
+                    anchor="w",
+                ).pack(anchor="w")
+
                 cur_model = gpt_client.get_model(pid)
                 has_key = bool(gpt_client.get_api_key(pid))
                 sub = f"{t('chat_key_set') if has_key else t('chat_key_none')} · {cur_model or '—'}"
-                tk.Label(title_box, text=sub, bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w").pack(anchor="w")
-                
+                tk.Label(
+                    title_box,
+                    text=sub,
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_DIM"),
+                    font=("Segoe UI", 11),
+                    anchor="w",
+                ).pack(anchor="w")
+
                 if is_active:
-                    tk.Label(header, text=t("chat_active_label"), bg=_c("BG_CARD"), fg=_c("TEXT_SUCCESS"), font=("Segoe UI", 11, "bold")).pack(side="right")
-                
+                    tk.Label(
+                        header,
+                        text=t("chat_active_label"),
+                        bg=_c("BG_CARD"),
+                        fg=_c("TEXT_SUCCESS"),
+                        font=("Segoe UI", 11, "bold"),
+                    ).pack(side="right")
+
                 header.bind("<Button-1>", lambda e, p=pid: _toggle_card(p))
                 for w in title_box.winfo_children():
                     w.bind("<Button-1>", lambda e, p=pid: _toggle_card(p))
 
-                if not is_expanded: continue
-                
+                if not is_expanded:
+                    continue
+
                 body = tk.Frame(card, bg=_c("BG_CARD"))
                 body.pack(fill="x", padx=12, pady=(0, 12))
                 tk.Frame(body, bg=_c("BORDER"), height=1).pack(fill="x", pady=(0, 10))
-                
-                TkLabel(body, text=t("chat_field_api_key"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(fill="x", pady=(0, 4))
+
+                TkLabel(
+                    body,
+                    text=t("chat_field_api_key"),
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_MAIN"),
+                    font=("Segoe UI", 12),
+                    anchor="w",
+                ).pack(fill="x", pady=(0, 4))
                 card_key_var = tk.StringVar(value=gpt_client.get_api_key(pid))
                 key_row = tk.Frame(body, bg=_c("BG_CARD"))
                 key_row.pack(fill="x")
-                ke = tk.Entry(key_row, textvariable=card_key_var, show="•", bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"), relief="flat", highlightthickness=1, highlightbackground=_c("BORDER"), highlightcolor=_c("ACCENT"), font=("Consolas", 12))
+                ke = tk.Entry(
+                    key_row,
+                    textvariable=card_key_var,
+                    show="•",
+                    bg=_c("BG_INPUT"),
+                    fg=_c("TEXT_MAIN"),
+                    insertbackground=_c("TEXT_MAIN"),
+                    relief="flat",
+                    highlightthickness=1,
+                    highlightbackground=_c("BORDER"),
+                    highlightcolor=_c("ACCENT"),
+                    font=("Consolas", 12),
+                )
                 ke.pack(side="left", fill="x", expand=True, ipady=5)
                 _bind_text_hotkeys(ke)
-                
+
                 show_v = tk.BooleanVar(value=False)
-                tk.Checkbutton(key_row, text="👁", variable=show_v, command=lambda e=ke, v=show_v: e.config(show="" if v.get() else "•"), bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), selectcolor=_c("BG_INPUT"), activebackground=_c("BG_CARD"), relief="flat", font=("Segoe UI", 11)).pack(side="left", padx=(4, 0))
-                
+                tk.Checkbutton(
+                    key_row,
+                    text="👁",
+                    variable=show_v,
+                    command=lambda e=ke, v=show_v: e.config(show="" if v.get() else "•"),
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_DIM"),
+                    selectcolor=_c("BG_INPUT"),
+                    activebackground=_c("BG_CARD"),
+                    relief="flat",
+                    font=("Segoe UI", 11),
+                ).pack(side="left", padx=(4, 0))
+
                 hint = info.get("key_hint", "")
                 if hint:
                     url = hint if hint.startswith("http") else f"https://{hint}"
-                    link_lbl = tk.Label(body, text=hint, bg=_c("BG_CARD"), fg=_c("ACCENT"), font=("Segoe UI", 12), cursor="hand2", anchor="w")
+                    link_lbl = tk.Label(
+                        body,
+                        text=hint,
+                        bg=_c("BG_CARD"),
+                        fg=_c("ACCENT"),
+                        font=("Segoe UI", 12),
+                        cursor="hand2",
+                        anchor="w",
+                    )
                     link_lbl.pack(fill="x", pady=(3, 8))
                     link_lbl.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
 
-                TkLabel(body, text=t("chat_model_label"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(fill="x", pady=(4, 4))
+                TkLabel(
+                    body,
+                    text=t("chat_model_label"),
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_MAIN"),
+                    font=("Segoe UI", 12),
+                    anchor="w",
+                ).pack(fill="x", pady=(4, 4))
                 models = list(info.get("models", []) or [])
                 card_model_var = tk.StringVar(value=cur_model or (models[0] if models else ""))
                 if models:
                     for m in models:
-                        tk.Radiobutton(body, text=m, variable=card_model_var, value=m, bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), selectcolor=_c("BG_INPUT"), activebackground=_c("BG_CARD"), font=("Segoe UI", 12), anchor="w", cursor="hand2").pack(fill="x", anchor="w")
+                        tk.Radiobutton(
+                            body,
+                            text=m,
+                            variable=card_model_var,
+                            value=m,
+                            bg=_c("BG_CARD"),
+                            fg=_c("TEXT_MAIN"),
+                            selectcolor=_c("BG_INPUT"),
+                            activebackground=_c("BG_CARD"),
+                            font=("Segoe UI", 12),
+                            anchor="w",
+                            cursor="hand2",
+                        ).pack(fill="x", anchor="w")
                 else:
-                    TkLabel(body, text=t("chat_models_empty"), bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12)).pack(anchor="w")
-                
-                card_status = TkLabel(body, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w")
+                    TkLabel(
+                        body,
+                        text=t("chat_models_empty"),
+                        bg=_c("BG_CARD"),
+                        fg=_c("TEXT_DIM"),
+                        font=("Segoe UI", 12),
+                    ).pack(anchor="w")
+
+                card_status = TkLabel(
+                    body,
+                    text="",
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_DIM"),
+                    font=("Segoe UI", 11),
+                    anchor="w",
+                )
                 card_status.pack(fill="x", pady=(8, 4))
-                
+
                 def _save_card(p=pid, kv=card_key_var, mv=card_model_var, st=card_status):
                     try:
                         gpt_client.set_api_key(kv.get().strip(), p)
-                        if mv.get(): gpt_client.set_model(mv.get(), p)
+                        if mv.get():
+                            gpt_client.set_model(mv.get(), p)
                         st.config(text=t("chat_saved"), fg=_c("TEXT_SUCCESS"))
                         _rebuild_accordion()
-                    except Exception as e: st.config(text=str(e), fg=_c("TEXT_ERROR"))
-                
+                    except Exception as e:
+                        st.config(text=str(e), fg=_c("TEXT_ERROR"))
+
                 def _test_card(p=pid, kv=card_key_var, st=card_status):
                     st.config(text=t("chat_checking_key"), fg=_c("TEXT_DIM"))
+
                     def worker():
                         try:
                             ok, msg = gpt_client.validate_key(kv.get().strip(), p)
-                            _safe_after(0, lambda: st.config(text=str(msg), fg=_c("TEXT_SUCCESS") if ok else _c("TEXT_ERROR")))
+                            _safe_after(
+                                0,
+                                lambda: st.config(
+                                    text=str(msg), fg=_c("TEXT_SUCCESS") if ok else _c("TEXT_ERROR")
+                                ),
+                            )
                         except Exception as e:
-                            _safe_after(0, lambda err=e: st.config(text=str(err), fg=_c("TEXT_ERROR")))
+                            _safe_after(
+                                0, lambda err=e: st.config(text=str(err), fg=_c("TEXT_ERROR"))
+                            )
+
                     threading.Thread(target=worker, daemon=True).start()
 
                 def _activate_card(p=pid):
                     try:
                         gpt_client.set_provider(p)
                         _rebuild_accordion()
-                    except Exception as e: print(e)
+                    except Exception as e:
+                        print(e)
 
                 btn_row = TkFrame(body, bg=_c("BG_CARD"))
                 btn_row.pack(fill="x", pady=(2, 0))
-                _make_button(btn_row, t("chat_btn_check"), _test_card, bg=_c("BG_INPUT"), font_size=10, height=1, padx=6, pady=2).pack(side="left", fill="x", expand=True, padx=(0, 4))
-                _make_button(btn_row, t("chat_btn_save"), _save_card, bg=_c("BG_INPUT"), font_size=10, height=1, padx=6, pady=2).pack(side="left", fill="x", expand=True, padx=(0, 4))
+                _make_button(
+                    btn_row,
+                    t("chat_btn_check"),
+                    _test_card,
+                    bg=_c("BG_INPUT"),
+                    font_size=10,
+                    height=1,
+                    padx=6,
+                    pady=2,
+                ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+                _make_button(
+                    btn_row,
+                    t("chat_btn_save"),
+                    _save_card,
+                    bg=_c("BG_INPUT"),
+                    font_size=10,
+                    height=1,
+                    padx=6,
+                    pady=2,
+                ).pack(side="left", fill="x", expand=True, padx=(0, 4))
                 if not is_active:
-                    _make_button(btn_row, t("chat_btn_activate"), _activate_card, bg=_c("BG_ACTIVE"), font_size=10, height=1, padx=6, pady=2).pack(side="left", fill="x", expand=True, padx=(0, 4))
-                
+                    _make_button(
+                        btn_row,
+                        t("chat_btn_activate"),
+                        _activate_card,
+                        bg=_c("BG_ACTIVE"),
+                        font_size=10,
+                        height=1,
+                        padx=6,
+                        pady=2,
+                    ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+
                 if is_custom:
-                    def _edit_this(p=pid): _open_provider_form(edit_pid=p)
+
+                    def _edit_this(p=pid):
+                        _open_provider_form(edit_pid=p)
+
                     def _delete_this(p=pid, lbl=info.get("label", pid)):
-                        if messagebox.askyesno(t("chat_provider_delete_title"), t("chat_provider_delete_msg", lbl), parent=win):
+                        if messagebox.askyesno(
+                            t("chat_provider_delete_title"),
+                            t("chat_provider_delete_msg", lbl),
+                            parent=win,
+                        ):
                             gpt_client.delete_custom_provider(p)
                             _rebuild_accordion()
-                    _make_button(btn_row, "✎", _edit_this, bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=2).pack(side="left", padx=(0, 4))
-                    _make_button(btn_row, "🗑", _delete_this, bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=2).pack(side="left")
+
+                    _make_button(
+                        btn_row,
+                        "✎",
+                        _edit_this,
+                        bg=_c("BG_INPUT"),
+                        font_size=10,
+                        height=1,
+                        width=3,
+                        padx=4,
+                        pady=2,
+                    ).pack(side="left", padx=(0, 4))
+                    _make_button(
+                        btn_row,
+                        "🗑",
+                        _delete_this,
+                        bg=_c("BG_INPUT"),
+                        font_size=10,
+                        height=1,
+                        width=3,
+                        padx=4,
+                        pady=2,
+                    ).pack(side="left")
                 else:
+
                     def _hide_this(p=pid, lbl=info.get("label", pid)):
-                        if messagebox.askyesno(t("chat_provider_hide_title"), t("chat_provider_hide_msg", lbl), parent=win):
+                        if messagebox.askyesno(
+                            t("chat_provider_hide_title"),
+                            t("chat_provider_hide_msg", lbl),
+                            parent=win,
+                        ):
                             gpt_client.hide_provider(p)
                             _rebuild_accordion()
-                    _make_button(btn_row, t("chat_btn_hide"), _hide_this, bg=_c("BG_INPUT"), font_size=10, height=1, padx=6, pady=2).pack(side="left", fill="x", expand=True)
+
+                    _make_button(
+                        btn_row,
+                        t("chat_btn_hide"),
+                        _hide_this,
+                        bg=_c("BG_INPUT"),
+                        font_size=10,
+                        height=1,
+                        padx=6,
+                        pady=2,
+                    ).pack(side="left", fill="x", expand=True)
 
         _rebuild_accordion()
 
@@ -353,7 +563,9 @@ def open_gpt_settings(event=None):
             existing = {}
             if is_edit:
                 for p in gpt_client.list_custom_providers():
-                    if p.get("id") == edit_pid: existing = p; break
+                    if p.get("id") == edit_pid:
+                        existing = p
+                        break
 
             form = tk.Toplevel(win)
             _set_dark_titlebar(form)
@@ -364,15 +576,53 @@ def open_gpt_settings(event=None):
             form.grab_set()
 
             def _f(p, l, i="", h=1):
-                TkLabel(p, text=l, bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(fill="x", padx=16, pady=(10, 3))
+                TkLabel(
+                    p,
+                    text=l,
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_MAIN"),
+                    font=("Segoe UI", 12),
+                    anchor="w",
+                ).pack(fill="x", padx=16, pady=(10, 3))
                 if h == 1:
-                    v = tk.StringVar(value=i); e = tk.Entry(p, textvariable=v, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"), relief="flat", highlightthickness=1, highlightbackground=_c("BORDER"), highlightcolor=_c("ACCENT"), font=("Segoe UI", 12))
-                    e.pack(fill="x", padx=16, ipady=5); _bind_text_hotkeys(e); return v, e
+                    v = tk.StringVar(value=i)
+                    e = tk.Entry(
+                        p,
+                        textvariable=v,
+                        bg=_c("BG_INPUT"),
+                        fg=_c("TEXT_MAIN"),
+                        insertbackground=_c("TEXT_MAIN"),
+                        relief="flat",
+                        highlightthickness=1,
+                        highlightbackground=_c("BORDER"),
+                        highlightcolor=_c("ACCENT"),
+                        font=("Segoe UI", 12),
+                    )
+                    e.pack(fill="x", padx=16, ipady=5)
+                    _bind_text_hotkeys(e)
+                    return v, e
                 else:
-                    fr = TkFrame(p, bg=_c("BORDER"), padx=1, pady=1); fr.pack(fill="x", padx=16)
-                    in_ = TkFrame(fr, bg=_c("BG_INPUT")); in_.pack(fill="x")
-                    t_ = tk.Text(in_, height=h, wrap="word", bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"), relief="flat", highlightthickness=0, font=("Segoe UI", 12), padx=6, pady=6)
-                    t_.insert("1.0", i); t_.pack(fill="x"); _bind_text_hotkeys(t_); return t_, t_
+                    fr = TkFrame(p, bg=_c("BORDER"), padx=1, pady=1)
+                    fr.pack(fill="x", padx=16)
+                    in_ = TkFrame(fr, bg=_c("BG_INPUT"))
+                    in_.pack(fill="x")
+                    t_ = tk.Text(
+                        in_,
+                        height=h,
+                        wrap="word",
+                        bg=_c("BG_INPUT"),
+                        fg=_c("TEXT_MAIN"),
+                        insertbackground=_c("TEXT_MAIN"),
+                        relief="flat",
+                        highlightthickness=0,
+                        font=("Segoe UI", 12),
+                        padx=6,
+                        pady=6,
+                    )
+                    t_.insert("1.0", i)
+                    t_.pack(fill="x")
+                    _bind_text_hotkeys(t_)
+                    return t_, t_
 
             l_v, _ = _f(form, t("chat_field_label"), existing.get("label", ""))
             u_v, _ = _f(form, t("chat_field_url"), existing.get("url", ""))
@@ -382,7 +632,14 @@ def open_gpt_settings(event=None):
             h_i = "\n".join(f"{k}: {v}" for k, v in (existing.get("extra_headers") or {}).items())
             h_t, _ = _f(form, t("chat_field_headers"), h_i, h=3)
 
-            st = TkLabel(form, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w")
+            st = TkLabel(
+                form,
+                text="",
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_DIM"),
+                font=("Segoe UI", 12),
+                anchor="w",
+            )
             st.pack(fill="x", padx=16, pady=(8, 0))
 
             def save():
@@ -392,24 +649,63 @@ def open_gpt_settings(event=None):
                 mods = [m.strip() for m in raw_m.splitlines() if m.strip()]
                 fb = (f_v.get() if isinstance(f_v, tk.StringVar) else f_v).strip()
                 raw_h = h_t.get("1.0", "end-1c") if isinstance(h_t, tk.Text) else ""
-                ext_h = {k.strip(): v.strip() for line in raw_h.splitlines() if ":" in line for k, _, v in [line.partition(":")]}
+                ext_h = {
+                    k.strip(): v.strip()
+                    for line in raw_h.splitlines()
+                    if ":" in line
+                    for k, _, v in [line.partition(":")]
+                }
 
-                if not url: st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR")); return
-                if not mods: st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR")); return
+                if not url:
+                    st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR"))
+                    return
+                if not mods:
+                    st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR"))
+                    return
 
                 try:
-                    if is_edit: gpt_client.update_custom_provider(edit_pid, label=lbl, url=url, models=mods, fallback_model=fb, extra_headers=ext_h)
-                    else: 
+                    if is_edit:
+                        gpt_client.update_custom_provider(
+                            edit_pid,
+                            label=lbl,
+                            url=url,
+                            models=mods,
+                            fallback_model=fb,
+                            extra_headers=ext_h,
+                        )
+                    else:
                         pid = lbl.lower().replace(" ", "_")
-                        import re; pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
+                        import re
+
+                        pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
                         gpt_client.add_custom_provider(pid, lbl, url, mods, fb or mods[0], ext_h)
-                    form.destroy(); build_api_page()
-                except Exception as e: st.config(text=str(e), fg=_c("TEXT_ERROR"))
+                    form.destroy()
+                    build_api_page()
+                except Exception as e:
+                    st.config(text=str(e), fg=_c("TEXT_ERROR"))
 
             br = TkFrame(form, bg=_c("BG_CARD"))
             br.pack(fill="x", padx=16, pady=(6, 16))
-            _make_button(br, t("chat_btn_cancel_x"), lambda: form.destroy(), bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="right", padx=(4, 0))
-            _make_button(br, t("chat_btn_save"), save, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3).pack(side="right")
+            _make_button(
+                br,
+                t("chat_btn_cancel_x"),
+                lambda: form.destroy(),
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="right", padx=(4, 0))
+            _make_button(
+                br,
+                t("chat_btn_save"),
+                save,
+                bg=_c("BG_ACTIVE"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="right")
 
         return container
 
@@ -425,35 +721,70 @@ def open_gpt_settings(event=None):
         #  Установленные модели
         # ═══════════════════════════════════════════════════════════════════════
         TkLabel(
-            local_view, text=t("local_models_header"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 17, "bold"),
+            local_view,
+            text=t("local_models_header"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 17, "bold"),
         ).pack(anchor="w", pady=(0, 10))
 
         TkLabel(
-            local_view, text=t("local_models_desc"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12),
-            anchor="w", wraplength=500,
+            local_view,
+            text=t("local_models_desc"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 12),
+            anchor="w",
+            wraplength=500,
         ).pack(anchor="w", pady=(0, 20))
 
         # Installed models list
         list_frame = TkFrame(local_view, bg=_c("BG_CARD"))
         list_frame.pack(fill="x", pady=(0, 15))
-        TkLabel(list_frame, text=t("local_model_active"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(fill="x", pady=(0, 6))
+        TkLabel(
+            list_frame,
+            text=t("local_model_active"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 12),
+            anchor="w",
+        ).pack(fill="x", pady=(0, 6))
 
         installed = local_llm_client.list_installed_models()
         active_id = local_llm_client.get_active_model_id()
 
-        status_lbl = TkLabel(local_view, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w")
+        status_lbl = TkLabel(
+            local_view,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 12),
+            anchor="w",
+        )
 
         if not installed:
-            TkLabel(list_frame, text=t("local_no_installed_models"), bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w").pack(fill="x")
+            TkLabel(
+                list_frame,
+                text=t("local_no_installed_models"),
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_DIM"),
+                font=("Segoe UI", 12),
+                anchor="w",
+            ).pack(fill="x")
         else:
             for m in installed:
                 row = TkFrame(list_frame, bg=_c("BG_CARD"))
                 row.pack(fill="x", pady=2)
                 is_active = m.get("id") == active_id
                 dot = "🟢" if is_active else "⚪"
-                TkLabel(row, text=f"{dot} {m.get('label', m.get('filename', '?'))}", bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(side="left", fill="x", expand=True)
+                TkLabel(
+                    row,
+                    text=f"{dot} {m.get('label', m.get('filename', '?'))}",
+                    bg=_c("BG_CARD"),
+                    fg=_c("TEXT_MAIN"),
+                    font=("Segoe UI", 12),
+                    anchor="w",
+                ).pack(side="left", fill="x", expand=True)
 
                 def _activate(mid=m.get("id")):
                     local_llm_client.set_active_model_id(mid)
@@ -463,13 +794,35 @@ def open_gpt_settings(event=None):
                     show_page_with_style("local")
 
                 def _remove(mid=m.get("id"), lbl=m.get("label", "")):
-                    if messagebox.askyesno(t("local_model_delete_title"), t("local_model_delete_msg", lbl), parent=win):
+                    if messagebox.askyesno(
+                        t("local_model_delete_title"), t("local_model_delete_msg", lbl), parent=win
+                    ):
                         local_llm_client.remove_model(mid)
                         _invalidate_page("local")
                         show_page_with_style("local")
+
                 if not is_active:
-                    _make_button(row, t("local_model_activate_btn"), _activate, bg=_c("BG_ACTIVE"), font_size=10, height=1, padx=6, pady=2).pack(side="right", padx=(4, 0))
-                _make_button(row, "🗑", _remove, bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=2).pack(side="right")
+                    _make_button(
+                        row,
+                        t("local_model_activate_btn"),
+                        _activate,
+                        bg=_c("BG_ACTIVE"),
+                        font_size=10,
+                        height=1,
+                        padx=6,
+                        pady=2,
+                    ).pack(side="right", padx=(4, 0))
+                _make_button(
+                    row,
+                    "🗑",
+                    _remove,
+                    bg=_c("BG_INPUT"),
+                    font_size=10,
+                    height=1,
+                    width=3,
+                    padx=4,
+                    pady=2,
+                ).pack(side="right")
 
         status_lbl.pack(fill="x", pady=(10, 0))
 
@@ -482,20 +835,37 @@ def open_gpt_settings(event=None):
         #  Каталог моделей
         # ═══════════════════════════════════════════════════════════════════════
         TkLabel(
-            catalog_view, text=t("local_catalog_header"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 17, "bold"),
+            catalog_view,
+            text=t("local_catalog_header"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 17, "bold"),
         ).pack(anchor="w", pady=(0, 10))
 
         # Загружаем каталог с оценкой совместимости
         from engine import env_setup
+
         resolved = env_setup.resolve_backend()
-        catalog_items = local_llm_client.get_compatible_models(vram_gb=resolved["gpu"].get("vram_gb"))
+        catalog_items = local_llm_client.get_compatible_models(
+            vram_gb=resolved["gpu"].get("vram_gb")
+        )
 
         list_outer = TkFrame(catalog_view, bg=_c("BORDER"), padx=1, pady=1)
         list_outer.pack(fill="both", expand=True, pady=(0, 15))
         sc = tk.Scrollbar(list_outer)
         sc.pack(side="right", fill="y")
-        lb = tk.Listbox(list_outer, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), selectbackground=_c("ACCENT"), selectforeground="#ffffff", activestyle="none", relief="flat", highlightthickness=0, font=("Segoe UI", 12), yscrollcommand=sc.set)
+        lb = tk.Listbox(
+            list_outer,
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            selectbackground=_c("ACCENT"),
+            selectforeground="#ffffff",
+            activestyle="none",
+            relief="flat",
+            highlightthickness=0,
+            font=("Segoe UI", 12),
+            yscrollcommand=sc.set,
+        )
         lb.pack(fill="both", expand=True)
         sc.config(command=lb.yview)
 
@@ -505,15 +875,52 @@ def open_gpt_settings(event=None):
 
         info_box = TkFrame(catalog_view, bg=_c("BG_CARD"), pady=10)
         info_box.pack(fill="x")
-        desc_lbl = TkLabel(info_box, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w", wraplength=480)
+        desc_lbl = TkLabel(
+            info_box,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 12),
+            anchor="w",
+            wraplength=480,
+        )
         desc_lbl.pack(anchor="w")
-        mem_lbl = TkLabel(info_box, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w")
+        mem_lbl = TkLabel(
+            info_box,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 11),
+            anchor="w",
+        )
         mem_lbl.pack(anchor="w")
-        status_cat_lbl = TkLabel(info_box, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11, "bold"), anchor="w")
+        status_cat_lbl = TkLabel(
+            info_box,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 11, "bold"),
+            anchor="w",
+        )
         status_cat_lbl.pack(anchor="w")
-        link_lbl = TkLabel(info_box, text="", bg=_c("BG_CARD"), fg=_c("ACCENT"), font=("Segoe UI", 12), cursor="hand2", anchor="w")
+        link_lbl = TkLabel(
+            info_box,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("ACCENT"),
+            font=("Segoe UI", 12),
+            cursor="hand2",
+            anchor="w",
+        )
         link_lbl.pack(anchor="w")
-        action_status_lbl = TkLabel(info_box, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w")
+        action_status_lbl = TkLabel(
+            info_box,
+            text="",
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 11),
+            anchor="w",
+        )
         action_status_lbl.pack(anchor="w")
 
         selected_model = [None]
@@ -537,7 +944,9 @@ def open_gpt_settings(event=None):
                 path = local_llm_client.get_model_file_path(filename)
                 base = path if path else filename
                 for suf in (".part", ".tmp", ".download", ".crdownload", ".partial"):
-                    if os.path.isfile(str(base) + suf) or os.path.isfile(str(base).replace(".gguf", "") + suf):
+                    if os.path.isfile(str(base) + suf) or os.path.isfile(
+                        str(base).replace(".gguf", "") + suf
+                    ):
                         return True
                 # файл существует, но меньше «ожидаемого» из checkpoint total
                 if path and os.path.isfile(path):
@@ -576,6 +985,7 @@ def open_gpt_settings(event=None):
                 pass
             try:
                 from engine.paths import BASE_DIR
+
                 d = os.path.join(str(BASE_DIR), "models")
                 os.makedirs(d, exist_ok=True)
                 return d
@@ -620,9 +1030,13 @@ def open_gpt_settings(event=None):
             if download_in_progress[0]:
                 status_cat_lbl.config(text=t("local_catalog_downloading"), fg=_c("TEXT_DIM"))
                 # если выбрана та же модель, что качается — action disabled; иначе можно смотреть инфо
-                same = (downloading_model_id[0] is not None and m.get("id") == downloading_model_id[0])
+                same = (
+                    downloading_model_id[0] is not None and m.get("id") == downloading_model_id[0]
+                )
                 action_btn.config(
-                    text=t("local_catalog_downloading") if same else t("local_catalog_download_btn"),
+                    text=(
+                        t("local_catalog_downloading") if same else t("local_catalog_download_btn")
+                    ),
                     state="disabled" if same else "disabled",
                     bg=_c("BG_INPUT"),
                 )
@@ -630,27 +1044,38 @@ def open_gpt_settings(event=None):
                 _set_download_ui(True)
             elif m.get("installed"):
                 status_cat_lbl.config(text=t("local_catalog_installed"), fg=_c("TEXT_SUCCESS"))
-                action_btn.config(text=t("local_catalog_activate_btn"), state="normal", bg=_c("BG_ACTIVE"))
+                action_btn.config(
+                    text=t("local_catalog_activate_btn"), state="normal", bg=_c("BG_ACTIVE")
+                )
                 discard_btn.pack_forget()
                 _set_download_ui(False)
             elif not m.get("compatible"):
                 status_cat_lbl.config(text=t("local_catalog_too_large"), fg=_c("TEXT_ERROR"))
-                action_btn.config(text=t("local_model_install_btn"), state="disabled", bg=_c("BG_INPUT"))
+                action_btn.config(
+                    text=t("local_model_install_btn"), state="disabled", bg=_c("BG_INPUT")
+                )
                 discard_btn.pack_forget()
                 _set_download_ui(False)
             elif _has_incomplete_download(m.get("filename", "")):
                 status_cat_lbl.config(text=t("local_catalog_partial"), fg=_c("TEXT_DIM"))
-                action_btn.config(text=t("local_catalog_resume_btn"), state="normal", bg=_c("BG_ACTIVE"))
+                action_btn.config(
+                    text=t("local_catalog_resume_btn"), state="normal", bg=_c("BG_ACTIVE")
+                )
                 discard_btn.pack(side="right", padx=(0, 4))
                 _set_download_ui(False)
             else:
                 status_cat_lbl.config(text=t("local_catalog_compatible"), fg=_c("TEXT_SUCCESS"))
-                action_btn.config(text=t("local_catalog_download_btn"), state="normal", bg=_c("BG_ACTIVE"))
+                action_btn.config(
+                    text=t("local_catalog_download_btn"), state="normal", bg=_c("BG_ACTIVE")
+                )
                 discard_btn.pack_forget()
                 _set_download_ui(False)
 
             link_lbl.config(text=t("local_model_meta_link"))
-            link_lbl.bind("<Button-1>", lambda e, u=m.get("download_link", ""): webbrowser.open(u) if u else None)
+            link_lbl.bind(
+                "<Button-1>",
+                lambda e, u=m.get("download_link", ""): webbrowser.open(u) if u else None,
+            )
             if not download_in_progress[0]:
                 # не затираем progress-строку во время загрузки
                 pass
@@ -665,8 +1090,12 @@ def open_gpt_settings(event=None):
                     lb.insert(sel[0], f"✅ {m['label']}")
                 except Exception:
                     pass
-            action_status_lbl.config(text=t("local_model_added_msg", entry["label"]), fg=_c("TEXT_SUCCESS"))
-            action_btn.config(text=t("local_catalog_activate_btn"), state="normal", bg=_c("BG_ACTIVE"))
+            action_status_lbl.config(
+                text=t("local_model_added_msg", entry["label"]), fg=_c("TEXT_SUCCESS")
+            )
+            action_btn.config(
+                text=t("local_catalog_activate_btn"), state="normal", bg=_c("BG_ACTIVE")
+            )
             local_llm_client.set_active_model_id(entry["id"])
             gpt_client.set_model(entry["id"], "local")
             gpt_client.set_provider("local")
@@ -708,13 +1137,18 @@ def open_gpt_settings(event=None):
                 return
             if m.get("installed"):
                 path = local_llm_client.get_model_file_path(m["filename"])
-                entry = next((x for x in local_llm_client.list_installed_models() if x.get("path") == path), None)
+                entry = next(
+                    (x for x in local_llm_client.list_installed_models() if x.get("path") == path),
+                    None,
+                )
                 if not entry:
                     entry = local_llm_client.register_model(path, label=m.get("label"))
                 local_llm_client.set_active_model_id(entry["id"])
                 gpt_client.set_model(entry["id"], "local")
                 gpt_client.set_provider("local")
-                action_status_lbl.config(text=t("local_model_activated_status"), fg=_c("TEXT_SUCCESS"))
+                action_status_lbl.config(
+                    text=t("local_model_activated_status"), fg=_c("TEXT_SUCCESS")
+                )
                 _invalidate_page("local")
                 _safe_after(900, lambda: show_page_with_style("local"))
                 return
@@ -726,7 +1160,9 @@ def open_gpt_settings(event=None):
             download_cancelled[0] = False
             download_in_progress[0] = True
             downloading_model_id[0] = m.get("id")
-            action_btn.config(text=t("local_catalog_downloading"), state="disabled", bg=_c("BG_INPUT"))
+            action_btn.config(
+                text=t("local_catalog_downloading"), state="disabled", bg=_c("BG_INPUT")
+            )
             try:
                 stop_btn.config(state="normal", text=t("local_catalog_stop_btn"))
             except Exception:
@@ -749,11 +1185,14 @@ def open_gpt_settings(event=None):
                     )
                     _safe_after(0, lambda: _finish_download(entry, m))
                 except InterruptedError:
+
                     def _on_pause():
                         download_in_progress[0] = False
                         downloading_model_id[0] = None
                         action_status_lbl.config(text=t("local_catalog_paused"), fg=_c("TEXT_DIM"))
-                        action_btn.config(text=t("local_catalog_resume_btn"), state="normal", bg=_c("BG_ACTIVE"))
+                        action_btn.config(
+                            text=t("local_catalog_resume_btn"), state="normal", bg=_c("BG_ACTIVE")
+                        )
                         try:
                             stop_btn.config(state="normal", text=t("local_catalog_stop_btn"))
                         except Exception:
@@ -764,16 +1203,22 @@ def open_gpt_settings(event=None):
                             discard_btn.pack(side="right", padx=(0, 4))
                         except Exception:
                             pass
+
                     _safe_after(0, _on_pause)
                 except Exception as e:
                     err_msg = str(e)
+
                     def _on_err(msg=err_msg):
                         download_in_progress[0] = False
                         downloading_model_id[0] = None
                         action_status_lbl.config(text=msg, fg=_c("TEXT_ERROR"))
                         has_part = _has_incomplete_download(m.get("filename", ""))
                         action_btn.config(
-                            text=t("local_catalog_resume_btn") if has_part else t("local_catalog_download_btn"),
+                            text=(
+                                t("local_catalog_resume_btn")
+                                if has_part
+                                else t("local_catalog_download_btn")
+                            ),
                             state="normal",
                             bg=_c("BG_ACTIVE"),
                         )
@@ -783,6 +1228,7 @@ def open_gpt_settings(event=None):
                                 discard_btn.pack(side="right", padx=(0, 4))
                             except Exception:
                                 pass
+
                     _safe_after(0, _on_err)
 
             download_thread[0] = threading.Thread(target=worker, daemon=True)
@@ -814,7 +1260,10 @@ def open_gpt_settings(event=None):
             file_path = filedialog.askopenfilename(
                 title=t("local_select_model_file_title"),
                 filetypes=[
-                    ("Models & partial", "*.gguf *.bin *.pt *.safetensors *.part *.tmp *.download *.partial"),
+                    (
+                        "Models & partial",
+                        "*.gguf *.bin *.pt *.safetensors *.part *.tmp *.download *.partial",
+                    ),
                     ("GGUF models", "*.gguf"),
                     ("Partial / incomplete", "*.part *.tmp *.download *.partial *.crdownload"),
                     ("All files", "*.*"),
@@ -873,14 +1322,18 @@ def open_gpt_settings(event=None):
                             t("local_partial_deleted_msg", os.path.basename(file_path)),
                             parent=win,
                         )
-                        action_status_lbl.config(text=t("local_catalog_discard_done"), fg=_c("TEXT_DIM"))
+                        action_status_lbl.config(
+                            text=t("local_catalog_discard_done"), fg=_c("TEXT_DIM")
+                        )
                         _update_catalog_info()
                     except Exception as e:
                         messagebox.showerror(t("chat_err_title"), str(e), parent=win)
                 return
 
             # Обычный полный файл модели — как раньше: перенос в /models/
-            if messagebox.askyesno(t("local_move_model_title"), t("local_move_model_msg"), parent=win):
+            if messagebox.askyesno(
+                t("local_move_model_title"), t("local_move_model_msg"), parent=win
+            ):
                 try:
                     entry = local_llm_client.move_model_file(file_path)
                     local_llm_client.set_active_model_id(entry["id"])
@@ -911,9 +1364,14 @@ def open_gpt_settings(event=None):
             dlg.grab_set()
 
             TkLabel(
-                dlg, text=t("local_models_folder_desc", models_dir),
-                bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11),
-                anchor="w", wraplength=520, justify="left",
+                dlg,
+                text=t("local_models_folder_desc", models_dir),
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_DIM"),
+                font=("Segoe UI", 11),
+                anchor="w",
+                wraplength=520,
+                justify="left",
             ).pack(fill="x", padx=14, pady=(12, 6))
 
             list_outer = TkFrame(dlg, bg=_c("BORDER"), padx=1, pady=1)
@@ -921,10 +1379,16 @@ def open_gpt_settings(event=None):
             sc2 = tk.Scrollbar(list_outer)
             sc2.pack(side="right", fill="y")
             lb2 = tk.Listbox(
-                list_outer, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-                selectbackground=_c("ACCENT"), selectforeground="#ffffff",
-                activestyle="none", relief="flat", highlightthickness=0,
-                font=("Consolas", 11), yscrollcommand=sc2.set,
+                list_outer,
+                bg=_c("BG_INPUT"),
+                fg=_c("TEXT_MAIN"),
+                selectbackground=_c("ACCENT"),
+                selectforeground="#ffffff",
+                activestyle="none",
+                relief="flat",
+                highlightthickness=0,
+                font=("Consolas", 11),
+                yscrollcommand=sc2.set,
             )
             lb2.pack(fill="both", expand=True)
             sc2.config(command=lb2.yview)
@@ -946,23 +1410,47 @@ def open_gpt_settings(event=None):
                         continue
                     low = name.lower()
                     # показываем модели + partial + checkpoint-мусор
-                    interesting = low.endswith((
-                        ".gguf", ".bin", ".pt", ".safetensors",
-                        ".part", ".tmp", ".download", ".partial", ".crdownload",
-                        ".ckpt", ".checkpoint",
-                    )) or ".download" in low or low.startswith(".")
+                    interesting = (
+                        low.endswith(
+                            (
+                                ".gguf",
+                                ".bin",
+                                ".pt",
+                                ".safetensors",
+                                ".part",
+                                ".tmp",
+                                ".download",
+                                ".partial",
+                                ".crdownload",
+                                ".ckpt",
+                                ".checkpoint",
+                            )
+                        )
+                        or ".download" in low
+                        or low.startswith(".")
+                    )
                     if not interesting:
                         # json checkpoint рядом
                         if not (low.endswith(".json") and ("download" in low or "ckpt" in low)):
                             continue
                     try:
                         sz = os.path.getsize(full)
-                        size_s = f"{sz/1024/1024:.1f} MB" if sz >= 1024*1024 else f"{sz/1024:.1f} KB"
+                        size_s = (
+                            f"{sz/1024/1024:.1f} MB" if sz >= 1024 * 1024 else f"{sz/1024:.1f} KB"
+                        )
                     except Exception:
                         size_s = "?"
-                    if _is_partial_model_file(full) or low.endswith((
-                        ".part", ".tmp", ".download", ".partial", ".crdownload", ".ckpt", ".checkpoint"
-                    )):
+                    if _is_partial_model_file(full) or low.endswith(
+                        (
+                            ".part",
+                            ".tmp",
+                            ".download",
+                            ".partial",
+                            ".crdownload",
+                            ".ckpt",
+                            ".checkpoint",
+                        )
+                    ):
                         kind = "partial"
                         mark = "⚠"
                     else:
@@ -1013,24 +1501,57 @@ def open_gpt_settings(event=None):
                         os.startfile(models_dir)  # type: ignore[attr-defined]
                     elif sys.platform == "darwin":
                         import subprocess
+
                         subprocess.Popen(["open", models_dir])
                     else:
                         import subprocess
+
                         subprocess.Popen(["xdg-open", models_dir])
                 except Exception as e:
                     messagebox.showerror(t("chat_err_title"), str(e), parent=dlg)
 
             btn_row = TkFrame(dlg, bg=_c("BG_CARD"))
             btn_row.pack(fill="x", padx=14, pady=(0, 12))
-            _make_button(btn_row, t("local_models_folder_refresh"), _refresh_folder_list,
-                         bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="left")
-            _make_button(btn_row, t("local_models_folder_open"), _open_dir,
-                         bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="left", padx=(6, 0))
-            _make_button(btn_row, t("local_models_folder_delete"), _delete_selected,
-                         bg=_c("BG_INPUT"),
-                         font_size=11, height=1, padx=6, pady=3).pack(side="right")
-            _make_button(btn_row, t("chat_btn_cancel_x"), lambda: dlg.destroy(),
-                         bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="right", padx=(0, 6))
+            _make_button(
+                btn_row,
+                t("local_models_folder_refresh"),
+                _refresh_folder_list,
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="left")
+            _make_button(
+                btn_row,
+                t("local_models_folder_open"),
+                _open_dir,
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="left", padx=(6, 0))
+            _make_button(
+                btn_row,
+                t("local_models_folder_delete"),
+                _delete_selected,
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="right")
+            _make_button(
+                btn_row,
+                t("chat_btn_cancel_x"),
+                lambda: dlg.destroy(),
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=6,
+                pady=3,
+            ).pack(side="right", padx=(0, 6))
 
             _refresh_folder_list()
 
@@ -1071,31 +1592,60 @@ def open_gpt_settings(event=None):
         br = TkFrame(catalog_view, bg=_c("BG_CARD"))
         br.pack(fill="x", pady=(0, 15))
         from_folder_btn = _make_button(
-            br, t("chat_btn_from_folder"), _select_from_folder,
-            bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3,
+            br,
+            t("chat_btn_from_folder"),
+            _select_from_folder,
+            bg=_c("BG_INPUT"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
         )
         from_folder_btn.pack(side="right", padx=(0, 4))
         # Обзор /models/ — видны partial и мусор
         manage_btn = _make_button(
-            br, t("local_models_folder_btn"), _browse_models_folder_trash,
-            bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3,
+            br,
+            t("local_models_folder_btn"),
+            _browse_models_folder_trash,
+            bg=_c("BG_INPUT"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
         )
         manage_btn.pack(side="right", padx=(0, 4))
         action_btn = _make_button(
-            br, t("local_model_install_btn"), _action_model,
-            bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3,
+            br,
+            t("local_model_install_btn"),
+            _action_model,
+            bg=_c("BG_ACTIVE"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
         )
         action_btn.pack(side="right")
         # Стоп — видна только во время загрузки
         stop_btn = _make_button(
-            br, t("local_catalog_stop_btn"), _stop_download,
+            br,
+            t("local_catalog_stop_btn"),
+            _stop_download,
             bg="#c0392b",
-            font_size=11, height=1, padx=6, pady=3,
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
         )
         # изначально скрыта
         discard_btn = _make_button(
-            br, "🗑 " + t("local_catalog_discard_btn"), _discard_cached_download,
-            bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3,
+            br,
+            "🗑 " + t("local_catalog_discard_btn"),
+            _discard_cached_download,
+            bg=_c("BG_INPUT"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
         )
         # discard_btn / stop_btn изначально скрыты — pack через _update_catalog_info / _set_download_ui
         lb.bind("<Double-Button-1>", _action_model)
@@ -1106,12 +1656,18 @@ def open_gpt_settings(event=None):
         container = TkFrame(canvas_frame, bg=_c("BG_CARD"))
         container.pack(fill="both", expand=True, padx=20, pady=20)
         TkLabel(
-            container, text=t("settings_general_title"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 17, "bold"),
+            container,
+            text=t("settings_general_title"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 17, "bold"),
         ).pack(anchor="w", pady=(0, 15))
         TkLabel(
-            container, text=t("settings_general_placeholder"),
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12),
+            container,
+            text=t("settings_general_placeholder"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 12),
             anchor="w",
         ).pack(anchor="w")
 
@@ -1123,7 +1679,9 @@ def open_gpt_settings(event=None):
         existing = {}
         if is_edit:
             for p in gpt_client.list_custom_providers():
-                if p.get("id") == edit_pid: existing = p; break
+                if p.get("id") == edit_pid:
+                    existing = p
+                    break
 
         form = tk.Toplevel(parent)
         _set_dark_titlebar(form)
@@ -1134,15 +1692,48 @@ def open_gpt_settings(event=None):
         form.grab_set()
 
         def _f(p, l, i="", h=1):
-            TkLabel(p, text=l, bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w").pack(fill="x", padx=16, pady=(10, 3))
+            TkLabel(
+                p, text=l, bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 12), anchor="w"
+            ).pack(fill="x", padx=16, pady=(10, 3))
             if h == 1:
-                v = tk.StringVar(value=i); e = tk.Entry(p, textvariable=v, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"), relief="flat", highlightthickness=1, highlightbackground=_c("BORDER"), highlightcolor=_c("ACCENT"), font=("Segoe UI", 12))
-                e.pack(fill="x", padx=16, ipady=5); _bind_text_hotkeys(e); return v, e
+                v = tk.StringVar(value=i)
+                e = tk.Entry(
+                    p,
+                    textvariable=v,
+                    bg=_c("BG_INPUT"),
+                    fg=_c("TEXT_MAIN"),
+                    insertbackground=_c("TEXT_MAIN"),
+                    relief="flat",
+                    highlightthickness=1,
+                    highlightbackground=_c("BORDER"),
+                    highlightcolor=_c("ACCENT"),
+                    font=("Segoe UI", 12),
+                )
+                e.pack(fill="x", padx=16, ipady=5)
+                _bind_text_hotkeys(e)
+                return v, e
             else:
-                fr = TkFrame(p, bg=_c("BORDER"), padx=1, pady=1); fr.pack(fill="x", padx=16)
-                in_ = TkFrame(fr, bg=_c("BG_INPUT")); in_.pack(fill="x")
-                t_ = tk.Text(in_, height=h, wrap="word", bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"), relief="flat", highlightthickness=0, font=("Segoe UI", 12), padx=6, pady=6)
-                t_.insert("1.0", i); t_.pack(fill="x"); _bind_text_hotkeys(t_); return t_, t_
+                fr = TkFrame(p, bg=_c("BORDER"), padx=1, pady=1)
+                fr.pack(fill="x", padx=16)
+                in_ = TkFrame(fr, bg=_c("BG_INPUT"))
+                in_.pack(fill="x")
+                t_ = tk.Text(
+                    in_,
+                    height=h,
+                    wrap="word",
+                    bg=_c("BG_INPUT"),
+                    fg=_c("TEXT_MAIN"),
+                    insertbackground=_c("TEXT_MAIN"),
+                    relief="flat",
+                    highlightthickness=0,
+                    font=("Segoe UI", 12),
+                    padx=6,
+                    pady=6,
+                )
+                t_.insert("1.0", i)
+                t_.pack(fill="x")
+                _bind_text_hotkeys(t_)
+                return t_, t_
 
         l_v, _ = _f(form, t("chat_field_label"), existing.get("label", ""))
         u_v, _ = _f(form, t("chat_field_url"), existing.get("url", ""))
@@ -1152,7 +1743,9 @@ def open_gpt_settings(event=None):
         h_i = "\n".join(f"{k}: {v}" for k, v in (existing.get("extra_headers") or {}).items())
         h_t, _ = _f(form, t("chat_field_headers"), h_i, h=3)
 
-        st = TkLabel(form, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w")
+        st = TkLabel(
+            form, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w"
+        )
         st.pack(fill="x", padx=16, pady=(8, 0))
 
         def save():
@@ -1162,45 +1755,132 @@ def open_gpt_settings(event=None):
             mods = [m.strip() for m in raw_m.splitlines() if m.strip()]
             fb = (f_v.get() if isinstance(f_v, tk.StringVar) else f_v).strip()
             raw_h = h_t.get("1.0", "end-1c") if isinstance(h_t, tk.Text) else ""
-            ext_h = {k.strip(): v.strip() for line in raw_h.splitlines() if ":" in line for k, _, v in [line.partition(":")]}
+            ext_h = {
+                k.strip(): v.strip()
+                for line in raw_h.splitlines()
+                if ":" in line
+                for k, _, v in [line.partition(":")]
+            }
 
-            if not url: st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR")); return
-            if not mods: st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR")); return
+            if not url:
+                st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR"))
+                return
+            if not mods:
+                st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR"))
+                return
 
             try:
-                if is_edit: gpt_client.update_custom_provider(edit_pid, label=lbl, url=url, models=mods, fallback_model=fb, extra_headers=ext_h)
-                else: 
+                if is_edit:
+                    gpt_client.update_custom_provider(
+                        edit_pid,
+                        label=lbl,
+                        url=url,
+                        models=mods,
+                        fallback_model=fb,
+                        extra_headers=ext_h,
+                    )
+                else:
                     pid = lbl.lower().replace(" ", "_")
-                    import re; pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
+                    import re
+
+                    pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
                     gpt_client.add_custom_provider(pid, lbl, url, mods, fb or mods[0], ext_h)
-                form.destroy(); build_api_page()
-            except Exception as e: st.config(text=str(e), fg=_c("TEXT_ERROR"))
+                form.destroy()
+                build_api_page()
+            except Exception as e:
+                st.config(text=str(e), fg=_c("TEXT_ERROR"))
 
         br = TkFrame(form, bg=_c("BG_CARD"))
         br.pack(fill="x", padx=16, pady=(6, 16))
-        _make_button(br, t("chat_btn_cancel_x"), lambda: form.destroy(), bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="right", padx=(4, 0))
-        _make_button(br, t("chat_btn_save"), save, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3).pack(side="right")
+        _make_button(
+            br,
+            t("chat_btn_cancel_x"),
+            lambda: form.destroy(),
+            bg=_c("BG_INPUT"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
+        ).pack(side="right", padx=(4, 0))
+        _make_button(
+            br, t("chat_btn_save"), save, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3
+        ).pack(side="right")
 
     def _open_catalogue_internal(parent):
         cat = gpt_client.PROVIDER_CATALOGUE
-        dlg = tk.Toplevel(parent); _set_dark_titlebar(dlg); dlg.title(t("chat_catalogue_win")); dlg.geometry("560x520"); dlg.configure(bg=_c("BG_CARD")); dlg.transient(parent); dlg.grab_set()
-        TkLabel(dlg, text=t("chat_catalogue_header"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"), font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=16, pady=(14, 6))
-        lo = TkFrame(dlg, bg=_c("BORDER"), padx=1, pady=1); lo.pack(fill="both", expand=True, padx=16)
-        sc = tk.Scrollbar(lo); sc.pack(side="right", fill="y")
-        lb = tk.Listbox(lo, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), selectbackground=_c("ACCENT"), selectforeground="#ffffff", activestyle="none", relief="flat", highlightthickness=0, font=("Segoe UI", 12), yscrollcommand=sc.set); lb.pack(fill="both", expand=True); sc.config(command=lb.yview)
-        already = set(pid for pid, _, _ in _all_provider_entries())
-        for e in cat: lb.insert(tk.END, f"{e['label']}{'  ✓' if e['id'] in already else ''}  —  {e['notes']}")
-        
+        dlg = tk.Toplevel(parent)
+        _set_dark_titlebar(dlg)
+        dlg.title(t("chat_catalogue_win"))
+        dlg.geometry("560x520")
+        dlg.configure(bg=_c("BG_CARD"))
+        dlg.transient(parent)
+        dlg.grab_set()
+        TkLabel(
+            dlg,
+            text=t("chat_catalogue_header"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 13, "bold"),
+        ).pack(anchor="w", padx=16, pady=(14, 6))
+        lo = TkFrame(dlg, bg=_c("BORDER"), padx=1, pady=1)
+        lo.pack(fill="both", expand=True, padx=16)
+        sc = tk.Scrollbar(lo)
+        sc.pack(side="right", fill="y")
+        lb = tk.Listbox(
+            lo,
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            selectbackground=_c("ACCENT"),
+            selectforeground="#ffffff",
+            activestyle="none",
+            relief="flat",
+            highlightthickness=0,
+            font=("Segoe UI", 12),
+            yscrollcommand=sc.set,
+        )
+        lb.pack(fill="both", expand=True)
+        sc.config(command=lb.yview)
+        # id уже добавленных провайдеров (кроме "local" и скрытых) + кастомные.
+        # Раньше здесь вызывалась вложенная _all_provider_entries() из другой
+        # функции — она недоступна в этой области видимости, поэтому набор
+        # собирается напрямую через gpt_client.
+        _hidden = gpt_client.get_hidden_providers()
+        already = {pid for pid in gpt_client.PROVIDERS if pid != "local" and pid not in _hidden}
+        already.update(p.get("id") for p in gpt_client.list_custom_providers())
+        for e in cat:
+            lb.insert(tk.END, f"{e['label']}{'  ✓' if e['id'] in already else ''}  —  {e['notes']}")
+
         def add():
             sel = lb.curselection()
-            if not sel: return
+            if not sel:
+                return
             e = cat[sel[0]]
-            gpt_client.add_custom_provider(e['id'], e['label'], e['url'], e['models'], e['models'][0] if e['models'] else "", e.get('extra_headers', {}))
-            dlg.destroy(); build_api_page()
-        
-        br = TkFrame(dlg, bg=_c("BG_CARD")); br.pack(fill="x", padx=16, pady=(8, 16))
-        _make_button(br, t("chat_btn_close_x"), lambda: dlg.destroy(), bg=_c("BG_INPUT"), font_size=11, height=1, padx=6, pady=3).pack(side="right", padx=(4, 0))
-        _make_button(br, t("chat_btn_add"), add, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3).pack(side="right")
+            gpt_client.add_custom_provider(
+                e["id"],
+                e["label"],
+                e["url"],
+                e["models"],
+                e["models"][0] if e["models"] else "",
+                e.get("extra_headers", {}),
+            )
+            dlg.destroy()
+            build_api_page()
+
+        br = TkFrame(dlg, bg=_c("BG_CARD"))
+        br.pack(fill="x", padx=16, pady=(8, 16))
+        _make_button(
+            br,
+            t("chat_btn_close_x"),
+            lambda: dlg.destroy(),
+            bg=_c("BG_INPUT"),
+            font_size=11,
+            height=1,
+            padx=6,
+            pady=3,
+        ).pack(side="right", padx=(4, 0))
+        _make_button(
+            br, t("chat_btn_add"), add, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3
+        ).pack(side="right")
         lb.bind("<Double-Button-1>", add)
 
     # ── Environment Section (карточка «Системное окружение» в Local Page) ──────
@@ -1209,6 +1889,7 @@ def open_gpt_settings(event=None):
         увидеть, если приложение запущено без консоли (pythonw/portable)."""
         try:
             from engine.paths import BASE_DIR
+
             log_path = os.path.join(BASE_DIR, "env_error_log.txt")
         except Exception:
             log_path = "env_error_log.txt"
@@ -1245,15 +1926,28 @@ def open_gpt_settings(event=None):
 
         header = TkFrame(card, bg=_c("BG_CARD"))
         header.pack(fill="x", padx=14, pady=(12, 6))
-        TkLabel(header, text=t("env_section_title"), bg=_c("BG_CARD"), fg=_c("TEXT_MAIN"),
-                font=("Segoe UI", 13, "bold"), anchor="w").pack(side="left")
+        TkLabel(
+            header,
+            text=t("env_section_title"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_MAIN"),
+            font=("Segoe UI", 13, "bold"),
+            anchor="w",
+        ).pack(side="left")
 
         body = TkFrame(card, bg=_c("BG_CARD"))
         body.pack(fill="x", padx=14, pady=(0, 14))
 
-        status_lbl = TkLabel(body, text=t("env_status_hint"),
-                              bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12),
-                              anchor="w", wraplength=480, justify="left")
+        status_lbl = TkLabel(
+            body,
+            text=t("env_status_hint"),
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            font=("Segoe UI", 12),
+            anchor="w",
+            wraplength=480,
+            justify="left",
+        )
         status_lbl.pack(fill="x", pady=(4, 10))
 
         btn_row = TkFrame(body, bg=_c("BG_CARD"))
@@ -1267,9 +1961,17 @@ def open_gpt_settings(event=None):
         log_sc = tk.Scrollbar(log_inner)
         log_sc.pack(side="right", fill="y")
         log_txt = tk.Text(
-            log_inner, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"),
-            relief="flat", highlightthickness=0, font=("Consolas", 11), wrap="word",
-            state="disabled", yscrollcommand=log_sc.set, height=8,
+            log_inner,
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            insertbackground=_c("TEXT_MAIN"),
+            relief="flat",
+            highlightthickness=0,
+            font=("Consolas", 11),
+            wrap="word",
+            state="disabled",
+            yscrollcommand=log_sc.set,
+            height=8,
         )
         log_txt.pack(fill="both", expand=True, padx=6, pady=6)
         log_sc.config(command=log_txt.yview)
@@ -1362,6 +2064,7 @@ def open_gpt_settings(event=None):
                     log_txt.insert("end", line + "\n")
                 log_txt.see("end")
                 log_txt.config(state="disabled")
+
             _safe_after(0, _do)
 
         def _show_log(visible=True):
@@ -1418,8 +2121,14 @@ def open_gpt_settings(event=None):
             sc = tk.Scrollbar(inner)
             sc.pack(side="right", fill="y")
             txt = tk.Text(
-                inner, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"), insertbackground=_c("TEXT_MAIN"),
-                relief="flat", highlightthickness=0, font=("Consolas", 11), wrap="word",
+                inner,
+                bg=_c("BG_INPUT"),
+                fg=_c("TEXT_MAIN"),
+                insertbackground=_c("TEXT_MAIN"),
+                relief="flat",
+                highlightthickness=0,
+                font=("Consolas", 11),
+                wrap="word",
                 yscrollcommand=sc.set,
             )
             txt.pack(fill="both", expand=True, padx=6, pady=6)
@@ -1440,6 +2149,7 @@ def open_gpt_settings(event=None):
                     return "break"
                 except Exception:
                     return "break"
+
             txt.bind("<MouseWheel>", _full_wheel, add="+")
             txt.bind("<Button-4>", _full_wheel, add="+")
             txt.bind("<Button-5>", _full_wheel, add="+")
@@ -1458,14 +2168,28 @@ def open_gpt_settings(event=None):
             dlg.protocol("WM_DELETE_WINDOW", _on_full_log_close)
 
             # Контекстное меню: копировать всё / выделенное
-            ctx = tk.Menu(txt, tearoff=0, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-                          activebackground=_c("ACCENT"), activeforeground="#ffffff")
-            ctx.add_command(label=t("ctx_select_all"), command=lambda: txt.tag_add("sel", "1.0", "end"))
-            ctx.add_command(label=t("env_log_copy_selection"),
-                            command=lambda: dlg.clipboard_append(txt.selection_get()))
-            ctx.add_command(label=t("env_log_copy_all"),
-                            command=lambda: (txt.tag_add("sel", "1.0", "end"),
-                                             dlg.clipboard_append(txt.get("1.0", "end-1c"))))
+            ctx = tk.Menu(
+                txt,
+                tearoff=0,
+                bg=_c("BG_INPUT"),
+                fg=_c("TEXT_MAIN"),
+                activebackground=_c("ACCENT"),
+                activeforeground="#ffffff",
+            )
+            ctx.add_command(
+                label=t("ctx_select_all"), command=lambda: txt.tag_add("sel", "1.0", "end")
+            )
+            ctx.add_command(
+                label=t("env_log_copy_selection"),
+                command=lambda: dlg.clipboard_append(txt.selection_get()),
+            )
+            ctx.add_command(
+                label=t("env_log_copy_all"),
+                command=lambda: (
+                    txt.tag_add("sel", "1.0", "end"),
+                    dlg.clipboard_append(txt.get("1.0", "end-1c")),
+                ),
+            )
             txt.bind("<Button-3>", lambda e: ctx.post(e.x_root, e.y_root))
             txt.bind("<Control-Button-1>", lambda e: ctx.post(e.x_root, e.y_root))
 
@@ -1483,12 +2207,36 @@ def open_gpt_settings(event=None):
 
             br = TkFrame(dlg, bg=_c("BG_CARD"))
             br.pack(fill="x", padx=16, pady=(0, 16))
-            _make_button(br, t("env_log_copy_all"), _copy_all,
-                         bg=_c("BG_INPUT"), font_size=11, height=1, padx=8, pady=3).pack(side="left", padx=(0, 6))
-            _make_button(br, t("env_log_copy_selection"), _copy_selection,
-                         bg=_c("BG_INPUT"), font_size=11, height=1, padx=8, pady=3).pack(side="left")
-            _make_button(br, t("chat_btn_close_x"), _on_full_log_close,
-                         bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=8, pady=3).pack(side="right")
+            _make_button(
+                br,
+                t("env_log_copy_all"),
+                _copy_all,
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=8,
+                pady=3,
+            ).pack(side="left", padx=(0, 6))
+            _make_button(
+                br,
+                t("env_log_copy_selection"),
+                _copy_selection,
+                bg=_c("BG_INPUT"),
+                font_size=11,
+                height=1,
+                padx=8,
+                pady=3,
+            ).pack(side="left")
+            _make_button(
+                br,
+                t("chat_btn_close_x"),
+                _on_full_log_close,
+                bg=_c("BG_ACTIVE"),
+                font_size=11,
+                height=1,
+                padx=8,
+                pady=3,
+            ).pack(side="right")
 
         def _set_buttons(checking=False, installing=False):
             if checking:
@@ -1563,7 +2311,9 @@ def open_gpt_settings(event=None):
             controller.install(resume=resume)
 
         def _run_uninstall():
-            if not messagebox.askyesno(t("env_uninstall_title"), t("env_uninstall_msg"), parent=win):
+            if not messagebox.askyesno(
+                t("env_uninstall_title"), t("env_uninstall_msg"), parent=win
+            ):
                 return
             _show_log(True)
             controller.uninstall()
@@ -1601,9 +2351,16 @@ def open_gpt_settings(event=None):
                 pass
 
         # ── Контекстное меню ───────────────────────────────────────────────────
-        menu = tk.Menu(body, tearoff=0, bg=_c("BG_INPUT"), fg=_c("TEXT_MAIN"),
-                       activebackground=_c("ACCENT"), activeforeground="#ffffff",
-                       relief="flat", bd=0)
+        menu = tk.Menu(
+            body,
+            tearoff=0,
+            bg=_c("BG_INPUT"),
+            fg=_c("TEXT_MAIN"),
+            activebackground=_c("ACCENT"),
+            activeforeground="#ffffff",
+            relief="flat",
+            bd=0,
+        )
         menu.add_command(label=t("env_ctx_copy_log"), command=_copy_log)
         menu.add_command(label=t("env_ctx_clear_log"), command=_clear_log)
         menu.add_separator()
@@ -1625,25 +2382,64 @@ def open_gpt_settings(event=None):
             widget.bind("<Button-3>", _show_context_menu)
             widget.bind("<Control-Button-1>", _show_context_menu)
 
-        check_btn = _make_button(btn_row, t("env_btn_check_short"), _run_check,
-                                 bg=_c("BG_INPUT"), font_size=10, height=1, padx=6, pady=3)
+        check_btn = _make_button(
+            btn_row,
+            t("env_btn_check_short"),
+            _run_check,
+            bg=_c("BG_INPUT"),
+            font_size=10,
+            height=1,
+            padx=6,
+            pady=3,
+        )
         check_btn.pack(side="left", padx=(0, 4))
-        install_btn = _make_button(btn_row, t("env_btn_install_short"), _prompt_resume_and_install,
-                                   bg=_c("BG_ACTIVE"), font_size=10, height=1, padx=6, pady=3)
+        install_btn = _make_button(
+            btn_row,
+            t("env_btn_install_short"),
+            _prompt_resume_and_install,
+            bg=_c("BG_ACTIVE"),
+            font_size=10,
+            height=1,
+            padx=6,
+            pady=3,
+        )
         install_btn.pack(side="left")
-        remove_btn = _make_button(btn_row, "🗑", _run_uninstall,
-                                  bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=3)
+        remove_btn = _make_button(
+            btn_row,
+            "🗑",
+            _run_uninstall,
+            bg=_c("BG_INPUT"),
+            font_size=10,
+            height=1,
+            width=3,
+            padx=4,
+            pady=3,
+        )
         remove_btn.pack(side="left", padx=(4, 0))
 
         # Стрелка сворачивания лога (изначально скрыта, появляется вместе с логом)
         log_toggle_btn = _make_button(
-            btn_row, "▲", _toggle_log,
-            bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=3,
+            btn_row,
+            "▲",
+            _toggle_log,
+            bg=_c("BG_INPUT"),
+            font_size=10,
+            height=1,
+            width=3,
+            padx=4,
+            pady=3,
         )
         # Кнопка открытия полного лога в отдельном окне
         log_full_btn = _make_button(
-            btn_row, t("env_log_full_btn"), _show_full_log,
-            bg=_c("BG_INPUT"), font_size=10, height=1, width=3, padx=4, pady=3,
+            btn_row,
+            t("env_log_full_btn"),
+            _show_full_log,
+            bg=_c("BG_INPUT"),
+            font_size=10,
+            height=1,
+            width=3,
+            padx=4,
+            pady=3,
         )
 
         # Проверка не запускается автоматически — только по кнопке "Проверить"
@@ -1652,12 +2448,18 @@ def open_gpt_settings(event=None):
     # ── Sidebar Menu Buttons ──────────────────────────────────────────────────
     def create_menu_btn(text, page_id):
         btn = TkButton(
-            sidebar, text=text,
-            bg=_c("BG_CARD"), fg=_c("TEXT_DIM"),
-            activebackground=_c("BG_INPUT"), activeforeground=_c("TEXT_MAIN"),
-            relief="flat", bd=0, font=("Segoe UI", 13),
-            anchor="w", cursor="hand2",
-            command=lambda: show_page(page_id)
+            sidebar,
+            text=text,
+            bg=_c("BG_CARD"),
+            fg=_c("TEXT_DIM"),
+            activebackground=_c("BG_INPUT"),
+            activeforeground=_c("TEXT_MAIN"),
+            relief="flat",
+            bd=0,
+            font=("Segoe UI", 13),
+            anchor="w",
+            cursor="hand2",
+            command=lambda: show_page(page_id),
         )
         btn.pack(fill="x", padx=10, pady=2)
         return btn
@@ -1674,22 +2476,27 @@ def open_gpt_settings(event=None):
                 b.config(fg=_c("TEXT_DIM"), bg=_c("BG_CARD"))
 
     old_show_page = show_page
+
     def show_page_with_style(pid):
         old_show_page(pid)
         refresh_menu_style()
-    
+
     btn_gen.config(command=lambda: show_page_with_style("general"))
     btn_api.config(command=lambda: show_page_with_style("api"))
     btn_loc.config(command=lambda: show_page_with_style("local"))
 
     show_page_with_style("api")
-    
+
     def close_settings(event=None):
         state._env_settings_window = None
-        try: win.grab_release()
-        except Exception: pass
-        try: win.destroy()
-        except Exception: pass
+        try:
+            win.grab_release()
+        except Exception:
+            pass
+        try:
+            win.destroy()
+        except Exception:
+            pass
         return "break"
 
     win.bind("<Escape>", close_settings)
@@ -1697,20 +2504,126 @@ def open_gpt_settings(event=None):
     win.focus_set()
     return "break"
 
+
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import _now_ts, _now_full, _approx_tokens, _ai_display_name, _build_editor_compose_prompt
-from engine.gui.chat_window.engine.sessions import _load_sessions, _save_sessions, _enforce_limits, _create_session_dict, _get_current_session, _update_session_title_if_needed, _messages_for_api
+from engine.gui.chat_window.engine.utils import (
+    _now_ts,
+    _now_full,
+    _approx_tokens,
+    _ai_display_name,
+    _build_editor_compose_prompt,
+)
+from engine.gui.chat_window.engine.sessions import (
+    _load_sessions,
+    _save_sessions,
+    _enforce_limits,
+    _create_session_dict,
+    _get_current_session,
+    _update_session_title_if_needed,
+    _messages_for_api,
+)
 from engine.gui.chat_window.engine.generation import _run_generation
-from engine.gui.chat_window.ui_utils import _c, _safe_after, _widget_exists, _set_dark_titlebar, _get_app_parent, _show_window, _call_and_break, _ask_simple_text, _make_button, _set_button_text, _set_button_state, _is_descendant, _get_widget_text, _select_all_widget, _paste_clipboard_into_widget, _copy_to_clipboard
-from engine.gui.chat_window.hotkeys import _event_has_ctrl, _event_has_shift, _match_hotkey, _on_ctrl_keypress, _handle_text_ctrl, _handle_window_ctrl, _bind_window_hotkeys, _bind_text_hotkeys
-from engine.gui.chat_window.placeholders import _create_placeholder_overlay, _sync_text_placeholder, _refresh_placeholder_state, _update_input_placeholder_text
-from engine.gui.chat_window.chat_scroll import _is_chat_near_bottom, _scroll_chat_to_bottom, _show_new_message_indicator, _hide_new_message_indicator, _scroll_to_new_message, _chat_mousewheel
-from engine.gui.chat_window.chat_history import _refresh_session_list, _on_session_select, new_chat, delete_current_chat, clear_chat_history
-from engine.gui.chat_window.chat_messages import _add_message_bubble, _add_system_message, _resize_bubble_text, content_lines_estimate, _lighten_color, _selected_bubble_frame_get, _select_bubble, _on_bubble_text_click, _show_bubble_context_menu, _update_wraplengths, _render_current_session, _add_empty_state, _destroy_empty_state_if_any, _clear_messages_ui
-from engine.gui.chat_window.chat_input import _focus_chat_input, _reset_editor_mode, _input_has_placeholder, _set_input_placeholder, _clear_input_placeholder, _get_input_text, _clear_input_text, _resize_input, _update_token_counter, _paste_into_input, _on_input_focus_in, _on_input_focus_out, _on_input_key_release, _on_enter, _submit_prompt, send_chat_message, _insert_prompt_into_chat_input
+from engine.gui.chat_window.ui_utils import (
+    _c,
+    _safe_after,
+    _widget_exists,
+    _set_dark_titlebar,
+    _get_app_parent,
+    _show_window,
+    _call_and_break,
+    _ask_simple_text,
+    _make_button,
+    _set_button_text,
+    _set_button_state,
+    _is_descendant,
+    _get_widget_text,
+    _select_all_widget,
+    _paste_clipboard_into_widget,
+    _copy_to_clipboard,
+)
+from engine.gui.chat_window.hotkeys import (
+    _event_has_ctrl,
+    _event_has_shift,
+    _match_hotkey,
+    _on_ctrl_keypress,
+    _handle_text_ctrl,
+    _handle_window_ctrl,
+    _bind_window_hotkeys,
+    _bind_text_hotkeys,
+)
+from engine.gui.chat_window.placeholders import (
+    _create_placeholder_overlay,
+    _sync_text_placeholder,
+    _refresh_placeholder_state,
+    _update_input_placeholder_text,
+)
+from engine.gui.chat_window.chat_scroll import (
+    _is_chat_near_bottom,
+    _scroll_chat_to_bottom,
+    _show_new_message_indicator,
+    _hide_new_message_indicator,
+    _scroll_to_new_message,
+    _chat_mousewheel,
+)
+from engine.gui.chat_window.chat_history import (
+    _refresh_session_list,
+    _on_session_select,
+    new_chat,
+    delete_current_chat,
+    clear_chat_history,
+)
+from engine.gui.chat_window.chat_messages import (
+    _add_message_bubble,
+    _add_system_message,
+    _resize_bubble_text,
+    content_lines_estimate,
+    _lighten_color,
+    _selected_bubble_frame_get,
+    _select_bubble,
+    _on_bubble_text_click,
+    _show_bubble_context_menu,
+    _update_wraplengths,
+    _render_current_session,
+    _add_empty_state,
+    _destroy_empty_state_if_any,
+    _clear_messages_ui,
+)
+from engine.gui.chat_window.chat_input import (
+    _focus_chat_input,
+    _reset_editor_mode,
+    _input_has_placeholder,
+    _set_input_placeholder,
+    _clear_input_placeholder,
+    _get_input_text,
+    _clear_input_text,
+    _resize_input,
+    _update_token_counter,
+    _paste_into_input,
+    _on_input_focus_in,
+    _on_input_focus_out,
+    _on_input_key_release,
+    _on_enter,
+    _submit_prompt,
+    send_chat_message,
+    _insert_prompt_into_chat_input,
+)
 from engine.gui.chat_window.chat_typing import _show_typing, _animate_typing, _hide_typing
-from engine.gui.chat_window.chat_actions import _send_to_main_editor, _stop_generation, _set_generation_ui, improve_text_with_gpt, paste_from_editor, set_chat_status, append_chat_message
+from engine.gui.chat_window.chat_actions import (
+    _send_to_main_editor,
+    _stop_generation,
+    _set_generation_ui,
+    improve_text_with_gpt,
+    paste_from_editor,
+    set_chat_status,
+    append_chat_message,
+)
 from engine.gui.chat_window.chat_export import export_current_chat
 from engine.gui.chat_window.chat_search import open_search
-from engine.gui.chat_window.chat_editor import _show_editor_preview, _hide_editor_preview, open_editor_text_window, _get_selected_or_all_text, _show_editor_window
+from engine.gui.chat_window.chat_editor import (
+    _show_editor_preview,
+    _hide_editor_preview,
+    open_editor_text_window,
+    _get_selected_or_all_text,
+    _show_editor_window,
+)
 from engine.gui.chat_window import init, open_chat_window

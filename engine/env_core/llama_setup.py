@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import subprocess
+import threading
 import time
 import shutil
 from typing import Optional
@@ -108,9 +109,10 @@ def llama_cpp_status() -> dict:
     if integrity["present"] and not integrity["complete"]:
         missing_str = ", ".join(integrity["missing"])
         return {
-            "installed": False, "path": None,
+            "installed": False,
+            "path": None,
             "error": f"пакет установлен не полностью — отсутствуют файлы: {missing_str} "
-                     f"(похоже, установка была прервана; нужно удалить и поставить заново)",
+            f"(похоже, установка была прервана; нужно удалить и поставить заново)",
         }
 
     probes = [
@@ -125,7 +127,9 @@ def llama_cpp_status() -> dict:
         try:
             proc = subprocess.run(
                 [PYTHON_EXE, "-c", probe],
-                capture_output=True, text=True, timeout=15,
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 line = proc.stdout.strip().splitlines()[0]
@@ -172,8 +176,14 @@ def _pick_llama_backend(gpu_info: dict) -> tuple:
 
 def _build_install_cmd(backend: str, extra_index: str, site_packages: str) -> list:
     cmd = [
-        PYTHON_EXE, "-m", "pip", "install", "llama-cpp-python",
-        "--no-deps", "--target", site_packages,
+        PYTHON_EXE,
+        "-m",
+        "pip",
+        "install",
+        "llama-cpp-python",
+        "--no-deps",
+        "--target",
+        site_packages,
         "--upgrade",
     ]
     if backend in ("cuda", "vulkan"):
@@ -215,15 +225,24 @@ def smoke_test_gpu_init(backend: str, model_path: str = None, timeout: float = 6
     try:
         proc = subprocess.run(
             [PYTHON_EXE, "-c", probe],
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         out = (proc.stdout or "") + (proc.stderr or "")
         if proc.returncode == 0 and "SMOKE_OK" in out:
             return {"ok": True, "skipped": False, "error": None}
         if proc.returncode < 0:
-            return {"ok": False, "skipped": False,
-                     "error": f"процесс завершён аварийно (код {proc.returncode})"}
-        return {"ok": False, "skipped": False, "error": out.strip()[-500:] or f"exit code {proc.returncode}"}
+            return {
+                "ok": False,
+                "skipped": False,
+                "error": f"процесс завершён аварийно (код {proc.returncode})",
+            }
+        return {
+            "ok": False,
+            "skipped": False,
+            "error": out.strip()[-500:] or f"exit code {proc.returncode}",
+        }
     except subprocess.TimeoutExpired:
         return {"ok": False, "skipped": False, "error": "smoke-тест не уложился в таймаут"}
     except Exception as e:
@@ -259,10 +278,14 @@ def cleanup_orphaned_checkpoint():
 
 def build_cmake_args(cpu: dict) -> str:
     flags = []
-    if not cpu.get("avx2"): flags.append("-DGGML_AVX2=OFF")
-    if not cpu.get("fma"): flags.append("-DGGML_FMA=OFF")
-    if not cpu.get("f16c"): flags.append("-DGGML_F16C=OFF")
-    if not cpu.get("avx"): flags.append("-DGGML_AVX=OFF")
+    if not cpu.get("avx2"):
+        flags.append("-DGGML_AVX2=OFF")
+    if not cpu.get("fma"):
+        flags.append("-DGGML_FMA=OFF")
+    if not cpu.get("f16c"):
+        flags.append("-DGGML_F16C=OFF")
+    if not cpu.get("avx"):
+        flags.append("-DGGML_AVX=OFF")
     return " ".join(flags)
 
 
@@ -272,8 +295,11 @@ def _clean_previous_install():
     for name in os.listdir(SITE_PACKAGES):
         if name.startswith("llama_cpp"):
             full = os.path.join(SITE_PACKAGES, name)
-            shutil.rmtree(full, ignore_errors=True) if os.path.isdir(full) else \
-                (os.remove(full) if os.path.isfile(full) else None)
+            (
+                shutil.rmtree(full, ignore_errors=True)
+                if os.path.isdir(full)
+                else (os.remove(full) if os.path.isfile(full) else None)
+            )
     for name in ("bin", "include", "lib"):
         full = os.path.join(SITE_PACKAGES, name)
         if os.path.isdir(full):
@@ -301,6 +327,7 @@ def get_startup_install_state() -> dict:
         age = max(0.0, time.time() - ts)
 
     from engine.env_core.diagnostics import get_install_activity_status
+
     activity = get_install_activity_status()
     return {
         "state": "interrupted",
@@ -311,8 +338,16 @@ def get_startup_install_state() -> dict:
     }
 
 
-def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = None, model_path: str = None) -> dict:
-    from engine.env_core.diagnostics import _read_pip_output, _install_watchdog, _extract_missing_module, _install_single_dependency
+def install_llama_cpp(
+    progress_cb=None, resume: bool = False, backend: str = None, model_path: str = None
+) -> dict:
+    from engine.env_core.diagnostics import (
+        _read_pip_output,
+        _install_watchdog,
+        _extract_missing_module,
+        _install_single_dependency,
+    )
+
     def emit(line):
         if progress_cb:
             progress_cb(line)
@@ -328,14 +363,23 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     if backend is None:
         backend, extra_index = _pick_llama_backend(gpu)
     else:
-        _, extra_index = _pick_llama_backend(gpu) if backend == "cpu" else (backend, {
-            "cuda": f"https://abetlen.github.io/llama-cpp-python/whl/{_cuda_index_from_version(gpu.get('cuda_version'))}",
-            "vulkan": "https://abetlen.github.io/llama-cpp-python/whl/vulkan",
-        }.get(backend, ""))
+        _, extra_index = (
+            _pick_llama_backend(gpu)
+            if backend == "cpu"
+            else (
+                backend,
+                {
+                    "cuda": f"https://abetlen.github.io/llama-cpp-python/whl/{_cuda_index_from_version(gpu.get('cuda_version'))}",
+                    "vulkan": "https://abetlen.github.io/llama-cpp-python/whl/vulkan",
+                }.get(backend, ""),
+            )
+        )
 
     emit(f"CPU: {cpu['name']}")
     if gpu.get("vendor") != "unknown":
-        emit(f"GPU: {gpu.get('vendor', 'unknown').upper()} {gpu.get('name', '')} (VRAM: {gpu.get('vram_gb') or '?'} GB)")
+        emit(
+            f"GPU: {gpu.get('vendor', 'unknown').upper()} {gpu.get('name', '')} (VRAM: {gpu.get('vram_gb') or '?'} GB)"
+        )
 
     if backend == "cpu":
         emit("Backend: CPU (сборка из исходников)")
@@ -345,6 +389,7 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
         emit("Backend: Vulkan → prebuilt wheel")
 
     from engine.env_core.diagnostics import get_python_env_info, format_env_info
+
     emit(format_env_info(get_python_env_info()))
 
     if is_resume:
@@ -367,7 +412,9 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
 
     if backend == "cpu":
         cmake_args = build_cmake_args(cpu)
-        emit(f"Отключаемые наборы инструкций: {cmake_args or '(нет — CPU поддерживает всё нужное)'}")
+        emit(
+            f"Отключаемые наборы инструкций: {cmake_args or '(нет — CPU поддерживает всё нужное)'}"
+        )
         if cmake_args:
             env["CMAKE_ARGS"] = cmake_args
         env["CMAKE_BUILD_PARALLEL_LEVEL"] = str(os.cpu_count() or 4)
@@ -381,8 +428,11 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     _save_checkpoint("downloading", {"backend": backend, "cpu": cpu, "gpu": gpu})
 
     proc = subprocess.Popen(
-        cmd, cwd=PROJECT_ROOT, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        cmd,
+        cwd=PROJECT_ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         stdin=subprocess.PIPE,
         bufsize=0,
     )
@@ -391,7 +441,9 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     watchdog_thread = None
     if backend == "cpu":
         watchdog_thread = threading.Thread(
-            target=_install_watchdog, args=(watchdog_stop, progress_cb), daemon=True,
+            target=_install_watchdog,
+            args=(watchdog_stop, progress_cb),
+            daemon=True,
         )
         watchdog_thread.start()
 
@@ -406,8 +458,12 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     if proc.returncode != 0:
         _save_checkpoint("failed", {"returncode": proc.returncode, "backend": backend})
         if backend != "cpu":
-            emit(f"❌ {backend}-сборка не установилась (код {proc.returncode}). Перехожу на CPU-fallback...")
-            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
+            emit(
+                f"❌ {backend}-сборка не установилась (код {proc.returncode}). Перехожу на CPU-fallback..."
+            )
+            return install_llama_cpp(
+                progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path
+            )
         raise RuntimeError(f"pip завершился с кодом {proc.returncode}")
 
     _save_checkpoint("building", {"backend": backend, "cpu": cpu, "gpu": gpu})
@@ -430,25 +486,35 @@ def install_llama_cpp(progress_cb=None, resume: bool = False, backend: str = Non
     if not status["installed"]:
         _save_checkpoint("failed", {"error": status.get("error"), "backend": backend})
         if backend != "cpu":
-            emit(f"❌ {backend}-сборка установилась, но не импортируется. Перехожу на CPU-fallback...")
-            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
+            emit(
+                f"❌ {backend}-сборка установилась, но не импортируется. Перехожу на CPU-fallback..."
+            )
+            return install_llama_cpp(
+                progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path
+            )
         raise RuntimeError(f"Установка прошла, но импорт не удался: {status['error']}")
 
     _clear_checkpoint()
 
     if backend != "cpu":
         if model_path:
-            emit(f"Проверяю реальную GPU-инициализацию на выбранной модели ({os.path.basename(model_path)})...")
+            emit(
+                f"Проверяю реальную GPU-инициализацию на выбранной модели ({os.path.basename(model_path)})..."
+            )
         else:
             emit("Проверяю реальную GPU-инициализацию...")
         smoke = smoke_test_gpu_init(backend, model_path=model_path)
         if smoke["skipped"]:
-            emit("⚠️ Нет модели для проверки — GPU-инициализация будет проверена при первой загрузке модели.")
+            emit(
+                "⚠️ Нет модели для проверки — GPU-инициализация будет проверена при первой загрузке модели."
+            )
         elif not smoke["ok"]:
             emit(f"❌ {backend}-backend не проходит реальную GPU-инициализацию: {smoke['error']}")
             mark_backend_broken(backend)
             emit("Перехожу на CPU-fallback...")
-            return install_llama_cpp(progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path)
+            return install_llama_cpp(
+                progress_cb=progress_cb, resume=False, backend="cpu", model_path=model_path
+            )
         else:
             emit(f"✅ GPU-инициализация ({backend}) подтверждена на реальной модели.")
 

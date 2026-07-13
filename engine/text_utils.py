@@ -4,8 +4,8 @@ import re
 # LIST DETECTION (shared)
 # =========================
 LIST_PATTERNS = [
-    r'^\s*[\-•–—]\s',
-    r'^\s*\d+[.)]\s',
+    r"^\s*[\-•–—]\s",
+    r"^\s*\d+[.)]\s",
 ]
 
 _LIST_ITEM_RE = re.compile("|".join(LIST_PATTERNS))
@@ -18,4 +18,4 @@ def is_list_item(text: str) -> bool:
 
 def has_inline_list(text: str) -> bool:
     """True, если внутри строки похоже на перечисление через запятые (2+ запятых)."""
-    return (text or "").count(',') >= 2
+    return (text or "").count(",") >= 2

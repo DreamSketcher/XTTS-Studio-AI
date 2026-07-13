@@ -8,11 +8,20 @@ from tkinter import filedialog, messagebox
 import tkinter as tk
 
 import engine.gui.chat_window.state as state
-from engine.gui.chat_window.custom_widgets import CTK_AVAILABLE, CTkFrame, CTkLabel, CTkButton, TkFrame, TkLabel, TkButton, TkRawFrame
+from engine.gui.chat_window.custom_widgets import (
+    CTK_AVAILABLE,
+    CTkFrame,
+    CTkLabel,
+    CTkButton,
+    TkFrame,
+    TkLabel,
+    TkButton,
+    TkRawFrame,
+)
 from i18n import t
 
-def _show_editor_preview(text: str):
 
+def _show_editor_preview(text: str):
 
     if not _widget_exists(state.composer_outer_ref[0]):
         state._editor_preview_content = text
@@ -56,10 +65,12 @@ def _show_editor_preview(text: str):
         fg=_c("TEXT_DIM"),
         activebackground=_c("BG_CARD"),
         activeforeground=_c("TEXT_MAIN"),
-        relief="flat", bd=0,
+        relief="flat",
+        bd=0,
         font=("Segoe UI", 8),
         cursor="hand2",
-        padx=4, pady=0,
+        padx=4,
+        pady=0,
     ).pack(side="right")
 
     preview_border = tk.Frame(
@@ -90,7 +101,8 @@ def _show_editor_preview(text: str):
         relief="flat",
         highlightthickness=0,
         font=("Segoe UI", 9),
-        padx=8, pady=6,
+        padx=8,
+        pady=6,
         undo=True,
     )
     state._editor_preview_text.insert("1.0", text)
@@ -116,8 +128,6 @@ def _hide_editor_preview():
 
 def open_editor_text_window(event=None):
 
-
-
     if state._get_text is None or state._set_text is None:
         messagebox.showerror(
             t("chat_err_title"),
@@ -133,11 +143,17 @@ def open_editor_text_window(event=None):
     try:
         text = state._get_text()
     except Exception as e:
-        messagebox.showerror(t("chat_err_title"), t("chat_err_get_text", e), parent=_get_app_parent() or state._root)
+        messagebox.showerror(
+            t("chat_err_title"), t("chat_err_get_text", e), parent=_get_app_parent() or state._root
+        )
         return "break"
 
     if not text or text == state._placeholder or not text.strip():
-        messagebox.showwarning(t("chat_empty_title"), t("chat_no_text_in_editor"), parent=_get_app_parent() or state._root)
+        messagebox.showwarning(
+            t("chat_empty_title"),
+            t("chat_no_text_in_editor"),
+            parent=_get_app_parent() or state._root,
+        )
         return "break"
 
     win = tk.Toplevel(_get_app_parent() or state._root)
@@ -218,7 +234,9 @@ def open_editor_text_window(event=None):
         try:
             src = state._get_text()
             if not src or src == state._placeholder or not src.strip():
-                messagebox.showwarning(t("chat_empty_title"), t("chat_no_text_in_editor"), parent=win)
+                messagebox.showwarning(
+                    t("chat_empty_title"), t("chat_no_text_in_editor"), parent=win
+                )
                 return
             state.editor_source_text.delete("1.0", tk.END)
             state.editor_source_text.insert("1.0", src)
@@ -238,7 +256,9 @@ def open_editor_text_window(event=None):
             return
         selected = _get_selected_or_all_text(state.editor_source_text).strip()
         if not selected:
-            messagebox.showwarning(t("chat_empty_selection_title"), t("chat_empty_selection_msg"), parent=win)
+            messagebox.showwarning(
+                t("chat_empty_selection_title"), t("chat_empty_selection_msg"), parent=win
+            )
             return
         try:
             state._set_text(selected)
@@ -308,7 +328,7 @@ def open_editor_text_window(event=None):
         yscrollcommand=src_scroll.set,
     )
     state.editor_source_text.pack(fill="both", expand=True)
-    state.editor_source_text.lift() 
+    state.editor_source_text.lift()
     src_scroll.config(command=state.editor_source_text.yview)
 
     state.editor_source_text.insert("1.0", text)
@@ -436,7 +456,9 @@ def open_editor_text_window(event=None):
     def insert_into_chat_input():
         prompt = build_prompt()
         if not prompt.strip():
-            messagebox.showwarning(t("chat_empty_title"), t("chat_source_comment_empty"), parent=win)
+            messagebox.showwarning(
+                t("chat_empty_title"), t("chat_source_comment_empty"), parent=win
+            )
             return "break"
         _insert_prompt_into_chat_input(prompt)
         set_chat_status(t("chat_inserted_to_input"))
@@ -445,7 +467,9 @@ def open_editor_text_window(event=None):
     def send_to_chat(close_after: bool = True):
         prompt = build_prompt()
         if not prompt.strip():
-            messagebox.showwarning(t("chat_empty_title"), t("chat_source_comment_empty"), parent=win)
+            messagebox.showwarning(
+                t("chat_empty_title"), t("chat_source_comment_empty"), parent=win
+            )
             return "break"
         send_chat_message(prompt)
         set_chat_status(t("chat_sent_to_chat"))
@@ -482,6 +506,7 @@ def open_editor_text_window(event=None):
         def _worker():
             try:
                 import engine.gpt_client as _gpt
+
                 result = _gpt.improve_for_tts(src)
 
                 def _apply():
@@ -493,7 +518,7 @@ def open_editor_text_window(event=None):
                     if _widget_exists(state.editor_status_label):
                         try:
                             state.editor_status_label.config(
-                                text=t("chat_done_chars", len(src), len(result or ''))
+                                text=t("chat_done_chars", len(src), len(result or ""))
                             )
                         except Exception:
                             pass
@@ -570,9 +595,7 @@ def open_editor_text_window(event=None):
         try:
             # Формат вынесен в i18n (chat_stats_format), т.к. строка целиком
             # показывается пользователю и должна переключаться вместе с языком.
-            state.editor_stats_label.config(
-                text=t("chat_stats_format", len(src), len(cmt), total)
-            )
+            state.editor_stats_label.config(text=t("chat_stats_format", len(src), len(cmt), total))
         except Exception:
             pass
         _sync_text_placeholder(state.editor_comment_text)
@@ -607,8 +630,12 @@ def open_editor_text_window(event=None):
     }
 
     state.editor_source_text.bind("<KeyRelease>", lambda e: _update_editor_stats())
-    state.editor_comment_text.bind("<FocusIn>", lambda e: _sync_text_placeholder(state.editor_comment_text))
-    state.editor_comment_text.bind("<FocusOut>", lambda e: _sync_text_placeholder(state.editor_comment_text))
+    state.editor_comment_text.bind(
+        "<FocusIn>", lambda e: _sync_text_placeholder(state.editor_comment_text)
+    )
+    state.editor_comment_text.bind(
+        "<FocusOut>", lambda e: _sync_text_placeholder(state.editor_comment_text)
+    )
     state.editor_comment_text.bind("<KeyRelease>", lambda e: _update_editor_stats())
     state.editor_comment_text.bind("<Return>", _comment_enter)
 
@@ -619,10 +646,13 @@ def open_editor_text_window(event=None):
     win.bind("<Control-Shift-Return>", _ctrl_shift_insert)
     win.bind("<Escape>", _escape)
 
-    _bind_window_hotkeys(win, {
-        "f": _ctrl_search,
-        "r": _ctrl_overwrite,
-    })
+    _bind_window_hotkeys(
+        win,
+        {
+            "f": _ctrl_search,
+            "r": _ctrl_overwrite,
+        },
+    )
 
     win.protocol("WM_DELETE_WINDOW", close_editor)
 
@@ -653,18 +683,117 @@ def _show_editor_window():
 
 
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import _now_ts, _now_full, _approx_tokens, _ai_display_name, _build_editor_compose_prompt
-from engine.gui.chat_window.engine.sessions import _load_sessions, _save_sessions, _enforce_limits, _create_session_dict, _get_current_session, _update_session_title_if_needed, _messages_for_api
+from engine.gui.chat_window.engine.utils import (
+    _now_ts,
+    _now_full,
+    _approx_tokens,
+    _ai_display_name,
+    _build_editor_compose_prompt,
+)
+from engine.gui.chat_window.engine.sessions import (
+    _load_sessions,
+    _save_sessions,
+    _enforce_limits,
+    _create_session_dict,
+    _get_current_session,
+    _update_session_title_if_needed,
+    _messages_for_api,
+)
 from engine.gui.chat_window.engine.generation import _run_generation
-from engine.gui.chat_window.ui_utils import _c, _safe_after, _widget_exists, _set_dark_titlebar, _get_app_parent, _show_window, _call_and_break, _ask_simple_text, _make_button, _set_button_text, _set_button_state, _is_descendant, _get_widget_text, _select_all_widget, _paste_clipboard_into_widget, _copy_to_clipboard
-from engine.gui.chat_window.hotkeys import _event_has_ctrl, _event_has_shift, _match_hotkey, _on_ctrl_keypress, _handle_text_ctrl, _handle_window_ctrl, _bind_window_hotkeys, _bind_text_hotkeys
-from engine.gui.chat_window.placeholders import _create_placeholder_overlay, _sync_text_placeholder, _refresh_placeholder_state, _update_input_placeholder_text
-from engine.gui.chat_window.chat_scroll import _is_chat_near_bottom, _scroll_chat_to_bottom, _show_new_message_indicator, _hide_new_message_indicator, _scroll_to_new_message, _chat_mousewheel
-from engine.gui.chat_window.chat_history import _refresh_session_list, _on_session_select, new_chat, delete_current_chat, clear_chat_history
-from engine.gui.chat_window.chat_messages import _add_message_bubble, _add_system_message, _resize_bubble_text, content_lines_estimate, _lighten_color, _selected_bubble_frame_get, _select_bubble, _on_bubble_text_click, _show_bubble_context_menu, _update_wraplengths, _render_current_session, _add_empty_state, _destroy_empty_state_if_any, _clear_messages_ui
-from engine.gui.chat_window.chat_input import _focus_chat_input, _reset_editor_mode, _input_has_placeholder, _set_input_placeholder, _clear_input_placeholder, _get_input_text, _clear_input_text, _resize_input, _update_token_counter, _paste_into_input, _on_input_focus_in, _on_input_focus_out, _on_input_key_release, _on_enter, _submit_prompt, send_chat_message, _insert_prompt_into_chat_input
+from engine.gui.chat_window.ui_utils import (
+    _c,
+    _safe_after,
+    _widget_exists,
+    _set_dark_titlebar,
+    _get_app_parent,
+    _show_window,
+    _call_and_break,
+    _ask_simple_text,
+    _make_button,
+    _set_button_text,
+    _set_button_state,
+    _is_descendant,
+    _get_widget_text,
+    _select_all_widget,
+    _paste_clipboard_into_widget,
+    _copy_to_clipboard,
+)
+from engine.gui.chat_window.hotkeys import (
+    _event_has_ctrl,
+    _event_has_shift,
+    _match_hotkey,
+    _on_ctrl_keypress,
+    _handle_text_ctrl,
+    _handle_window_ctrl,
+    _bind_window_hotkeys,
+    _bind_text_hotkeys,
+)
+from engine.gui.chat_window.placeholders import (
+    _create_placeholder_overlay,
+    _sync_text_placeholder,
+    _refresh_placeholder_state,
+    _update_input_placeholder_text,
+)
+from engine.gui.chat_window.chat_scroll import (
+    _is_chat_near_bottom,
+    _scroll_chat_to_bottom,
+    _show_new_message_indicator,
+    _hide_new_message_indicator,
+    _scroll_to_new_message,
+    _chat_mousewheel,
+)
+from engine.gui.chat_window.chat_history import (
+    _refresh_session_list,
+    _on_session_select,
+    new_chat,
+    delete_current_chat,
+    clear_chat_history,
+)
+from engine.gui.chat_window.chat_messages import (
+    _add_message_bubble,
+    _add_system_message,
+    _resize_bubble_text,
+    content_lines_estimate,
+    _lighten_color,
+    _selected_bubble_frame_get,
+    _select_bubble,
+    _on_bubble_text_click,
+    _show_bubble_context_menu,
+    _update_wraplengths,
+    _render_current_session,
+    _add_empty_state,
+    _destroy_empty_state_if_any,
+    _clear_messages_ui,
+)
+from engine.gui.chat_window.chat_input import (
+    _focus_chat_input,
+    _reset_editor_mode,
+    _input_has_placeholder,
+    _set_input_placeholder,
+    _clear_input_placeholder,
+    _get_input_text,
+    _clear_input_text,
+    _resize_input,
+    _update_token_counter,
+    _paste_into_input,
+    _on_input_focus_in,
+    _on_input_focus_out,
+    _on_input_key_release,
+    _on_enter,
+    _submit_prompt,
+    send_chat_message,
+    _insert_prompt_into_chat_input,
+)
 from engine.gui.chat_window.chat_typing import _show_typing, _animate_typing, _hide_typing
-from engine.gui.chat_window.chat_actions import _send_to_main_editor, _stop_generation, _set_generation_ui, improve_text_with_gpt, paste_from_editor, set_chat_status, append_chat_message
+from engine.gui.chat_window.chat_actions import (
+    _send_to_main_editor,
+    _stop_generation,
+    _set_generation_ui,
+    improve_text_with_gpt,
+    paste_from_editor,
+    set_chat_status,
+    append_chat_message,
+)
 from engine.gui.chat_window.chat_export import export_current_chat
 from engine.gui.chat_window.chat_search import open_search
 from engine.gui.chat_window.chat_settings import open_gpt_settings

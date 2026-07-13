@@ -1,71 +1,69 @@
 @echo off
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
-
 title XTTS Studio - Tests (pytest)
 
 cd /d "%~dp0"
 
 REM =============================================
+REM  SELF = folder of this .bat WITHOUT trailing backslash
+REM  (: %~dp0   "\",  pytest "path\" 
+REM   -  \"  )
+REM =============================================
+set "SELF=%~dp0"
+if "%SELF:~-1%"=="\" set "SELF=%SELF:~0,-1%"
+
+REM Project root = parent of test folder, also without trailing backslash
+for %%I in ("%SELF%\..") do set "ROOT=%%~fI"
+
+REM =============================================
 REM  Detect Python interpreter
 REM =============================================
-
 set "PY=python"
-
-if exist "%~dp0..\python\runtime\python.exe" (
-    set "PY=%~dp0..\python\runtime\python.exe"
-) else if exist "%~dp0..\python\xtts_env\python.exe" (
-    set "PY=%~dp0..\python\xtts_env\python.exe"
-) else if exist "%~dp0..\python\xtts_env\Scripts\python.exe" (
-    set "PY=%~dp0..\python\xtts_env\Scripts\python.exe"
-) else if exist "%~dp0..\.venv\Scripts\python.exe" (
-    set "PY=%~dp0..\.venv\Scripts\python.exe"
-) else if exist "%~dp0..\venv\Scripts\python.exe" (
-    set "PY=%~dp0..\venv\Scripts\python.exe"
-) else if exist "%~dp0python\xtts_env\python.exe" (
-    set "PY=%~dp0python\xtts_env\python.exe"
-) else if exist "%~dp0python\xtts_env\Scripts\python.exe" (
-    set "PY=%~dp0python\xtts_env\Scripts\python.exe"
+if exist "%ROOT%\python\runtime\python.exe" (
+    set "PY=%ROOT%\python\runtime\python.exe"
+) else if exist "%ROOT%\python\xtts_env\python.exe" (
+    set "PY=%ROOT%\python\xtts_env\python.exe"
+) else if exist "%ROOT%\python\xtts_env\Scripts\python.exe" (
+    set "PY=%ROOT%\python\xtts_env\Scripts\python.exe"
+) else if exist "%ROOT%\.venv\Scripts\python.exe" (
+    set "PY=%ROOT%\.venv\Scripts\python.exe"
+) else if exist "%ROOT%\venv\Scripts\python.exe" (
+    set "PY=%ROOT%\venv\Scripts\python.exe"
 )
 
 REM =============================================
-REM  Detect test folder
+REM  Detect test folder (no trailing backslash)
 REM =============================================
-
-set "TESTDIR=%~dp0"
-if exist "%~dp0test_updater.py" (
-    set "TESTDIR=%~dp0."
-) else if exist "%~dp0test\test_updater.py" (
-    set "TESTDIR=%~dp0test"
+set "TESTDIR=%SELF%"
+if exist "%SELF%\test_updater.py" (
+    set "TESTDIR=%SELF%"
+) else if exist "%SELF%\test\test_updater.py" (
+    set "TESTDIR=%SELF%\test"
 )
 
-set "PYTHONPATH=%~dp0..;%PYTHONPATH%"
-set "PYTEST_LOG=%~dp0result\pytest_report.txt"
+set "PYTHONPATH=%ROOT%;%PYTHONPATH%"
+set "PYTEST_LOG=%SELF%\result\pytest_report.txt"
 
-REM  Ensure result folder exists
-if not exist "%~dp0result" mkdir "%~dp0result"
+if not exist "%SELF%\result" mkdir "%SELF%\result"
 
 REM =============================================
 REM  CLI mode (no menu)
 REM =============================================
-
 if /i "%~1"=="real" (
-    "%PY%" "%~dp0_verify.py" "%~dp0.."
+    "%PY%" "%SELF%\_verify.py" "%ROOT%"
     exit /b %ERRORLEVEL%
 )
-
 if /i "%~1"=="all" (
     "%PY%" -m pytest "%TESTDIR%" -v > "%PYTEST_LOG%" 2>&1
     type "%PYTEST_LOG%"
     exit /b %ERRORLEVEL%
 )
-
 if /i "%~1"=="lf" (
     "%PY%" -m pytest "%TESTDIR%" --lf -v > "%PYTEST_LOG%" 2>&1
     type "%PYTEST_LOG%"
     exit /b %ERRORLEVEL%
 )
-
 if not "%~1"=="" (
     echo Unknown mode: %~1  ^(valid: real, all, lf^)
     exit /b 1
@@ -74,9 +72,7 @@ if not "%~1"=="" (
 REM =============================================
 REM  Check if pytest is installed
 REM =============================================
-
 "%PY%" -m pytest --version >nul 2>&1
-
 if errorlevel 1 (
     echo.
     echo [!] pytest not found in this Python environment.
@@ -101,7 +97,6 @@ if errorlevel 1 (
 REM =============================================
 REM  MAIN MENU
 REM =============================================
-
 :MENU
 cls
 echo ==================================================
@@ -141,7 +136,6 @@ if "%CHOICE%"=="6" goto RUN_ALL_VERBOSE
 if "%CHOICE%"=="7" goto RUN_LAST_FAILED
 if "%CHOICE%"=="8" call :RUN_VERIFY
 if "%CHOICE%"=="0" goto END
-
 echo Invalid option.
 pause
 goto MENU
@@ -149,7 +143,6 @@ goto MENU
 REM =============================================
 REM  Run single test file
 REM =============================================
-
 :RUN_ONE
 if "%CHOICE%"=="2" set "FILE=%TESTDIR%\test_updater.py"
 if "%CHOICE%"=="3" set "FILE=%TESTDIR%\test_normalizer.py"
@@ -165,7 +158,6 @@ if not exist "%FILE%" (
     pause
     goto MENU
 )
-
 echo.
 echo Running: %FILE%
 echo --------------------------------------------------------------
@@ -176,7 +168,6 @@ goto RESULT
 REM =============================================
 REM  Run all tests
 REM =============================================
-
 :RUN_ALL
 echo.
 echo Running all tests from: %TESTDIR%
@@ -203,17 +194,14 @@ goto RESULT
 
 REM =============================================
 REM  Project verification
-REM  Calls _verify.py (same folder) with the
-REM  project root as argument. No quoting hell.
 REM =============================================
-
 :RUN_VERIFY
 echo.
 echo Project verification ^(syntax / imports / JSON^)...
 echo --------------------------------------------------------------
 echo Python: %PY%
 echo.
-"%PY%" "%~dp0_verify.py" "%~dp0.."
+"%PY%" "%SELF%\_verify.py" "%ROOT%"
 echo.
 echo ==================================================
 if errorlevel 1 (
@@ -222,7 +210,7 @@ if errorlevel 1 (
     echo   RESULT: PROJECT OK
 )
 echo ==================================================
-echo   Log saved: %~dp0result\verify_report.txt
+echo   Log saved: %SELF%\result\verify_report.txt
 echo.
 pause
 goto MENU
@@ -230,7 +218,6 @@ goto MENU
 REM =============================================
 REM  Test results
 REM =============================================
-
 :RESULT
 echo.
 echo ==================================================
@@ -246,7 +233,6 @@ pause
 goto MENU
 
 REM =============================================
-
 :END
 endlocal
 exit /b 0

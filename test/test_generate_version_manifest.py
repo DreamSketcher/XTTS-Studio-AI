@@ -36,7 +36,11 @@ if not SCRIPT_PATH.exists():
 
 def _run_git(repo: Path, *args) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["git"] + list(args), cwd=str(repo), capture_output=True, text=True, timeout=30,
+        ["git"] + list(args),
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
 
 
@@ -51,7 +55,10 @@ def _run_generator(repo: Path, *args) -> subprocess.CompletedProcess:
         shutil.copy(SCRIPT_PATH, script_in_repo)
     return subprocess.run(
         [sys.executable, str(script_in_repo)] + list(args),
-        cwd=str(repo), capture_output=True, text=True, timeout=30,
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
 
 
@@ -67,7 +74,8 @@ def git_repo(tmp_path):
 
 def _write_version_json(repo: Path, data: dict):
     (repo / "version.json").write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8",
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
 
 
@@ -79,11 +87,18 @@ def _commit(repo: Path, message: str):
 
 # ───────────────────────── базовое поведение: sha256 ─────────────────────────
 
+
 def test_sha256_matches_real_file_content(git_repo):
     (git_repo / "a.py").write_text("print('hello')", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     r = _run_generator(git_repo, "--version", "1.0.1")
@@ -91,15 +106,22 @@ def test_sha256_matches_real_file_content(git_repo):
 
     manifest = json.loads((git_repo / "version.json").read_text(encoding="utf-8"))
     import hashlib
+
     expected = hashlib.sha256(b"print('hello')").hexdigest()
     assert manifest["sha256"]["a.py"] == expected
     assert manifest["version"] == "1.0.1"
 
 
 def test_missing_file_is_skipped_without_crashing(git_repo):
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py", "does_not_exist.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py", "does_not_exist.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     (git_repo / "a.py").write_text("code", encoding="utf-8")
     _commit(git_repo, "release 1.0.0")
 
@@ -113,12 +135,19 @@ def test_missing_file_is_skipped_without_crashing(git_repo):
 
 # ───────────────────────── removed_files: базовый diff ─────────────────────────
 
+
 def test_removed_files_detects_file_missing_from_new_release(git_repo):
     (git_repo / "old.py").write_text("old code", encoding="utf-8")
     (git_repo / "keep.py").write_text("kept code", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["old.py", "keep.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["old.py", "keep.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     # Симулируем рефакторинг: old.py убран из проекта и из списка files
@@ -137,9 +166,15 @@ def test_removed_files_detects_file_missing_from_new_release(git_repo):
 
 def test_removed_files_empty_when_nothing_removed(git_repo):
     (git_repo / "a.py").write_text("code", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     r = _run_generator(git_repo, "--version", "1.0.1")
@@ -153,9 +188,15 @@ def test_removed_files_empty_on_first_ever_release(git_repo):
     """Нет предыдущего коммита -> git show HEAD:version.json не сработает ->
     removed_files должен быть пустым, а не падать с ошибкой."""
     (git_repo / "a.py").write_text("code", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     # НЕ коммитим — HEAD ещё не существует
 
     r = _run_generator(git_repo, "--version", "1.0.0")
@@ -167,13 +208,20 @@ def test_removed_files_empty_on_first_ever_release(git_repo):
 
 # ───────────────────────── removed_files: накопление между релизами ─────────────────────────
 
+
 def test_removed_files_accumulate_across_multiple_releases(git_repo):
     (git_repo / "a.py").write_text("a", encoding="utf-8")
     (git_repo / "b.py").write_text("b", encoding="utf-8")
     (git_repo / "c.py").write_text("c", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py", "b.py", "c.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py", "b.py", "c.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     # Релиз 1.0.1: убираем a.py
@@ -196,8 +244,10 @@ def test_removed_files_accumulate_across_multiple_releases(git_repo):
     assert r.returncode == 0, r.stdout + r.stderr
 
     manifest = json.loads((git_repo / "version.json").read_text(encoding="utf-8"))
-    assert sorted(manifest["removed_files"]) == ["a.py", "b.py"], \
-        "removed_files должен накапливаться, а не только отражать diff с последним коммитом"
+    assert sorted(manifest["removed_files"]) == [
+        "a.py",
+        "b.py",
+    ], "removed_files должен накапливаться, а не только отражать diff с последним коммитом"
 
 
 def test_removed_files_self_heals_when_file_reappears(git_repo):
@@ -206,9 +256,15 @@ def test_removed_files_self_heals_when_file_reappears(git_repo):
     иначе апдейтер удалит у пользователей файл, который на самом деле нужен."""
     (git_repo / "a.py").write_text("a", encoding="utf-8")
     (git_repo / "b.py").write_text("b", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py", "b.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py", "b.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     # 1.0.1: убрали a.py
@@ -231,12 +287,14 @@ def test_removed_files_self_heals_when_file_reappears(git_repo):
     assert r.returncode == 0, r.stdout + r.stderr
 
     manifest = json.loads((git_repo / "version.json").read_text(encoding="utf-8"))
-    assert manifest["removed_files"] == [], \
-        "файл, вернувшийся в files, не должен оставаться в removed_files"
+    assert (
+        manifest["removed_files"] == []
+    ), "файл, вернувшийся в files, не должен оставаться в removed_files"
     assert "a.py" in manifest["sha256"]
 
 
 # ───────────────────────── UTF-8 / кириллица (регрессия на cp1251-баг) ─────────────────────────
+
 
 def test_handles_cyrillic_changelog_without_crashing(git_repo):
     """Регрессионный тест: раньше _get_previous_files_list() использовал
@@ -246,12 +304,15 @@ def test_handles_cyrillic_changelog_without_crashing(git_repo):
     может пойти не так, декодируя строго как UTF-8)."""
     (git_repo / "a.py").write_text("code", encoding="utf-8")
     (git_repo / "old.py").write_text("old", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0",
-        "files": ["a.py", "old.py"],
-        "changelog": "- Редизайн интерфейса\n- Исправлены ошибки — оптимизация",
-        "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py", "old.py"],
+            "changelog": "- Редизайн интерфейса\n- Исправлены ошибки — оптимизация",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     (git_repo / "old.py").unlink()
@@ -259,25 +320,34 @@ def test_handles_cyrillic_changelog_without_crashing(git_repo):
     manifest["files"] = ["a.py"]
     _write_version_json(git_repo, manifest)
 
-    r = _run_generator(git_repo, "--version", "1.0.1",
-                        "--changelog", "- Новая кириллическая строка чейнджлога")
+    r = _run_generator(
+        git_repo, "--version", "1.0.1", "--changelog", "- Новая кириллическая строка чейнджлога"
+    )
     assert r.returncode == 0, r.stdout + r.stderr
     assert "UnicodeDecodeError" not in r.stdout
     assert "UnicodeDecodeError" not in r.stderr
 
     manifest = json.loads((git_repo / "version.json").read_text(encoding="utf-8"))
-    assert manifest["removed_files"] == ["old.py"], \
-        "removed_files должен посчитаться корректно даже при кириллице в предыдущем коммите"
+    assert manifest["removed_files"] == [
+        "old.py"
+    ], "removed_files должен посчитаться корректно даже при кириллице в предыдущем коммите"
     assert manifest["changelog"] == "- Новая кириллическая строка чейнджлога"
 
 
 # ───────────────────────── checksums.txt ─────────────────────────
 
+
 def test_checksums_txt_is_created(git_repo):
     (git_repo / "a.py").write_text("code", encoding="utf-8")
-    _write_version_json(git_repo, {
-        "version": "1.0.0", "files": ["a.py"], "changelog": "init", "sha256": {},
-    })
+    _write_version_json(
+        git_repo,
+        {
+            "version": "1.0.0",
+            "files": ["a.py"],
+            "changelog": "init",
+            "sha256": {},
+        },
+    )
     _commit(git_repo, "release 1.0.0")
 
     r = _run_generator(git_repo, "--version", "1.0.1")

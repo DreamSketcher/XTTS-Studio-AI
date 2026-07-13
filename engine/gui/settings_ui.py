@@ -30,6 +30,7 @@ def init(**deps):
 
 def save_settings(extra=None):
     from engine.gui import textbox as _textbox
+
     data = {
         "language": lang_var.get(),
         "quality": quality_var.get(),
@@ -44,18 +45,17 @@ def save_settings(extra=None):
             for params in quality_params.values()
         ),
         "ai_conductor_context": next(
-            (params["ai_conductor_context"].get()
-             for params in quality_params.values()
-             if "ai_conductor_context" in params),
-            ""
+            (
+                params["ai_conductor_context"].get()
+                for params in quality_params.values()
+                if "ai_conductor_context" in params
+            ),
+            "",
         ),
         "quality_params": {
-            preset: {
-                k: (v.get() if hasattr(v, "get") else v)
-                for k, v in params.items()
-            }
+            preset: {k: (v.get() if hasattr(v, "get") else v) for k, v in params.items()}
             for preset, params in quality_params.items()
-        }
+        },
     }
     if extra:
         data.update(extra)
@@ -95,14 +95,15 @@ def save_settings(extra=None):
         pass
 
 
-
 def apply_settings(data):
     import traceback
+
     if not isinstance(data, dict):
         return
     if "text_font_size" in data:
         try:
             from engine.gui import textbox as _textbox
+
             _textbox.restore_text_font_size(data["text_font_size"])
         except Exception:
             pass
@@ -130,8 +131,10 @@ def apply_settings(data):
         for preset_name, params in quality_params.items():
             params["ai_conductor_enabled"].set(data["ai_conductor_enabled"])
         try:
-            ai_btn.config(bg=Colors.BG_INPUT,
-                          fg=Colors.AI_ACCENT if data["ai_conductor_enabled"] else Colors.TEXT_DIM)
+            ai_btn.config(
+                bg=Colors.BG_INPUT,
+                fg=Colors.AI_ACCENT if data["ai_conductor_enabled"] else Colors.TEXT_DIM,
+            )
         except NameError:
             pass
     if "ai_rewrite_enabled" in data:

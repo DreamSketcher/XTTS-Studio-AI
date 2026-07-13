@@ -49,13 +49,13 @@ DARK_PALETTE = {
 
 # ── Светлая тема: мягкий молочно-книжный тон (не «вычурно белая») ──
 LIGHT_PALETTE = {
-    "BG_DARK": "#f4efe6",      # молочный фон
-    "BG_CARD": "#faf6ee",      # карточки — чуть светлее, кремовые
-    "BG_INPUT": "#fffdf7",     # поля ввода — тёплый почти-белый
-    "BG_HOVER": "#e9e2d2",     # наведение — приглушённый бежевый
+    "BG_DARK": "#f4efe6",  # молочный фон
+    "BG_CARD": "#faf6ee",  # карточки — чуть светлее, кремовые
+    "BG_INPUT": "#fffdf7",  # поля ввода — тёплый почти-белый
+    "BG_HOVER": "#e9e2d2",  # наведение — приглушённый бежевый
     "BG_ACTIVE": "#2da44e",
     "BG_DANGER": "#d1242f",
-    "TEXT_MAIN": "#3a352d",    # тёмно-коричневатый «книжный» текст
+    "TEXT_MAIN": "#3a352d",  # тёмно-коричневатый «книжный» текст
     "TEXT_DIM": "#857d6e",
     "TEXT_SUCCESS": "#1a7f37",
     "TEXT_WARNING": "#9a6700",
@@ -64,7 +64,7 @@ LIGHT_PALETTE = {
     "BORDER": "#d9d0bd",
     "PROGRESS_BG": "#e9e2d2",
     "PROGRESS_FG": "#2da44e",
-    "CHUNK_BG": "#cfe3f7",     # мягкая подсветка чанка
+    "CHUNK_BG": "#cfe3f7",  # мягкая подсветка чанка
     "CHUNK_FG": "#1f2328",
     "TOOLTIP_BG": "#efe8d8",
     "MENU_BG": "#f7f2e7",
@@ -85,6 +85,7 @@ PALETTES = {"dark": DARK_PALETTE, "light": LIGHT_PALETTE}
 
 class Colors:
     """Атрибуты заполняются apply_palette(); по умолчанию — тёмная тема."""
+
     pass
 
 
@@ -191,11 +192,11 @@ def load_font_scale_from_settings() -> None:
     в худшем случае останется дефолтный размер (без масштабирования)."""
     try:
         from engine.gui import theme_manager
+
         base_size = theme_manager.get_font_base_size()
         set_font_base_size(base_size)
     except Exception:
         pass
-
 
 
 def apply_palette(theme: str = "dark") -> None:
@@ -225,6 +226,7 @@ def apply_palette(theme: str = "dark") -> None:
     # приложения: в худшем случае просто останется встроенная палитра.
     try:
         from engine.gui import theme_manager
+
         custom = theme_manager.get_custom_colors(theme)
         for key, value in custom.items():
             # Применяем только к уже существующим атрибутам палитры —

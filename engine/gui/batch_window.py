@@ -19,6 +19,7 @@ import json
 
 from engine.task_models import Task
 from engine.paths import BASE_DIR
+
 try:
     from engine.paths import ICON_PATH
 except ImportError:
@@ -44,9 +45,22 @@ _lang_var = None
 _normalize_text = None
 _clean_path = None
 
-def init(root, colors, output_dir, task_manager, ref_var, quality_var,
-         quality_params, word_replacer_enabled_var, lang_split_enabled_var,
-         use_gpt_var, lang_var, normalize_text_fn, clean_path_fn):
+
+def init(
+    root,
+    colors,
+    output_dir,
+    task_manager,
+    ref_var,
+    quality_var,
+    quality_params,
+    word_replacer_enabled_var,
+    lang_split_enabled_var,
+    use_gpt_var,
+    lang_var,
+    normalize_text_fn,
+    clean_path_fn,
+):
     global _root, _colors, _output_dir, _task_manager, _ref_var, _quality_var
     global _quality_params, _word_replacer_enabled_var, _lang_split_enabled_var
     global _use_gpt_var, _lang_var, _normalize_text, _clean_path
@@ -68,6 +82,7 @@ def init(root, colors, output_dir, task_manager, ref_var, quality_var,
 def _apply_window_icon(win: tk.Toplevel):
     try:
         import ctypes
+
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("XTTSStudio.App")
         except Exception:
@@ -77,11 +92,13 @@ def _apply_window_icon(win: tk.Toplevel):
     candidates = []
     if ICON_PATH:
         candidates.append(ICON_PATH)
-    candidates.extend([
-        os.path.join(str(BASE_DIR), "icon.ico"),
-        os.path.join(str(BASE_DIR), "icon.png"),
-        os.path.join(str(BASE_DIR), "images", "icon.ico"),
-    ])
+    candidates.extend(
+        [
+            os.path.join(str(BASE_DIR), "icon.ico"),
+            os.path.join(str(BASE_DIR), "icon.png"),
+            os.path.join(str(BASE_DIR), "images", "icon.ico"),
+        ]
+    )
     ico_file = None
     png_file = None
     for p in candidates:
@@ -113,7 +130,8 @@ def _apply_window_icon(win: tk.Toplevel):
         if photo is None and ico_file:
             try:
                 from PIL import Image, ImageTk
-                im = Image.open(ico_file).resize((32,32), Image.LANCZOS)
+
+                im = Image.open(ico_file).resize((32, 32), Image.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
             except Exception:
                 photo = None
@@ -145,10 +163,17 @@ def open_batch_window():
         hover = "#2ea043" if primary else (Colors.BG_DANGER if danger else Colors.BG_HOVER)
         sd = scaled_size(diameter, min_size=diameter)
         return CompatCTkButton(
-            parent, text=text, command=cmd,
-            width=sd, height=sd, corner_radius=sd//2,
-            fg_color=bg, text_color=Colors.TEXT_MAIN, hover_color=hover,
-            border_width=0, font=("Segoe UI", scaled_font_size(17 if primary else 15)),
+            parent,
+            text=text,
+            command=cmd,
+            width=sd,
+            height=sd,
+            corner_radius=sd // 2,
+            fg_color=bg,
+            text_color=Colors.TEXT_MAIN,
+            hover_color=hover,
+            border_width=0,
+            font=("Segoe UI", scaled_font_size(17 if primary else 15)),
         )
 
     def _unique_wav(base: str) -> str:
@@ -169,37 +194,67 @@ def open_batch_window():
                 _empty_state["w"] = None
             return
         if _empty_state["w"] is None:
-            lbl = CompatCTkLabel(list_frame, text="Выберите папку или файлы с текстами",
-                                 fg_color=Colors.BG_DARK, text_color=Colors.TEXT_DIM,
-                                 font=("Segoe UI", scaled_font_size(13)))
+            lbl = CompatCTkLabel(
+                list_frame,
+                text="Выберите папку или файлы с текстами",
+                fg_color=Colors.BG_DARK,
+                text_color=Colors.TEXT_DIM,
+                font=("Segoe UI", scaled_font_size(13)),
+            )
             lbl.pack(pady=60)
             _empty_state["w"] = lbl
 
     def _make_row(idx, src, dst, status_var):
-        card = CompatCTkFrame(list_frame, fg_color=Colors.BG_CARD, corner_radius=14,
-                              border_width=1, border_color=Colors.BORDER)
+        card = CompatCTkFrame(
+            list_frame,
+            fg_color=Colors.BG_CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=Colors.BORDER,
+        )
         card.pack(fill="x", padx=4, pady=5)
         _card_widgets[src] = card
 
         # badge
-        badge = CompatCTkFrame(card, fg_color=Colors.BG_INPUT, corner_radius=20, width=44, height=44)
-        badge.pack(side="left", padx=(14,10), pady=12)
+        badge = CompatCTkFrame(
+            card, fg_color=Colors.BG_INPUT, corner_radius=20, width=44, height=44
+        )
+        badge.pack(side="left", padx=(14, 10), pady=12)
         badge.pack_propagate(False)
-        CompatCTkLabel(badge, text="📄", fg_color=Colors.BG_INPUT, text_color=Colors.TEXT_MAIN,
-                      font=("Segoe UI", scaled_font_size(18))).pack(expand=True)
+        CompatCTkLabel(
+            badge,
+            text="📄",
+            fg_color=Colors.BG_INPUT,
+            text_color=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(18)),
+        ).pack(expand=True)
 
         info = tk.Frame(card, bg=Colors.BG_CARD)
         info.pack(side="left", fill="both", expand=True, pady=10)
-        CompatCTkLabel(info, text=os.path.basename(src), fg_color=Colors.BG_CARD,
-                      text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(13), "bold"),
-                      anchor="w").pack(fill="x")
-        CompatCTkLabel(info, text=os.path.dirname(src)[-48:], fg_color=Colors.BG_CARD,
-                      text_color=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(10)),
-                      anchor="w").pack(fill="x", pady=(2,0))
+        CompatCTkLabel(
+            info,
+            text=os.path.basename(src),
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(13), "bold"),
+            anchor="w",
+        ).pack(fill="x")
+        CompatCTkLabel(
+            info,
+            text=os.path.dirname(src)[-48:],
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_DIM,
+            font=("Segoe UI", scaled_font_size(10)),
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
 
-        status_lbl = CompatCTkLabel(card, textvariable=status_var,
-                                   fg_color=Colors.BG_CARD, text_color=Colors.TEXT_DIM,
-                                   font=("Consolas", scaled_font_size(11)))
+        status_lbl = CompatCTkLabel(
+            card,
+            textvariable=status_var,
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_DIM,
+            font=("Consolas", scaled_font_size(11)),
+        )
         status_lbl.pack(side="right", padx=12)
 
     def _refresh_rows():
@@ -267,7 +322,14 @@ def open_batch_window():
                             win.after(0, lambda s=sv: s.set("❌ Ошибка"))
                         elif t.status == "cancelled":
                             win.after(0, lambda s=sv: s.set("⛔ Отменено"))
-                        elif t.status in ("running", "generate", "merge", "chunking", "normalize", "reference"):
+                        elif t.status in (
+                            "running",
+                            "generate",
+                            "merge",
+                            "chunking",
+                            "normalize",
+                            "reference",
+                        ):
                             win.after(0, lambda s=sv, p=t.progress: s.set(f"▶ {p}%"))
                         elif t.status == "queued":
                             win.after(0, lambda s=sv: s.set("🕒 В очереди"))
@@ -276,6 +338,7 @@ def open_batch_window():
                 win.after(400, _tick)
             except Exception:
                 pass
+
         _tick()
 
     def _run_batch():
@@ -320,20 +383,29 @@ def open_batch_window():
                     "word_replacer_enabled": _word_replacer_enabled_var.get(),
                     "lang_split_enabled": _lang_split_enabled_var.get(),
                     "use_gpt": _use_gpt_var.get(),
-                    "ai_conductor_enabled": params.get("ai_conductor_enabled", tk.BooleanVar()).get(),
+                    "ai_conductor_enabled": params.get(
+                        "ai_conductor_enabled", tk.BooleanVar()
+                    ).get(),
                     "output_path_override": dst,
-                }
+                },
             )
             _task_manager.add_task(task)
-        win.after(500, lambda: (btn_folder.configure(state="normal"), btn_files.configure(state="normal")))
+        win.after(
+            500, lambda: (btn_folder.configure(state="normal"), btn_files.configure(state="normal"))
+        )
         _start_status_tracker()
 
     # HEADER - pill
     header = tk.Frame(win, bg=Colors.BG_DARK, pady=12)
     header.pack(fill="x", padx=16)
 
-    pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=18,
-                          border_width=1, border_color=Colors.BORDER)
+    pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=18,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     pill.pack(side="left")
     row = tk.Frame(pill, bg=Colors.BG_CARD)
     row.pack(padx=6, pady=6)
@@ -346,17 +418,33 @@ def open_batch_window():
     btn_files.pack(side="left", padx=3)
     ToolTip(btn_files, "Выбрать отдельные TXT файлы")
 
-    count_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=14,
-                                border_width=1, border_color=Colors.BORDER)
+    count_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     count_pill.pack(side="right")
-    count_lbl = CompatCTkLabel(count_pill, text="0 файлов", fg_color=Colors.BG_CARD,
-                               text_color=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(12)))
+    count_lbl = CompatCTkLabel(
+        count_pill,
+        text="0 файлов",
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(12)),
+    )
     count_lbl.pack(padx=16, pady=9)
 
-    voice_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=14,
-                                border_width=1, border_color=Colors.BORDER)
-    voice_pill.pack(side="right", padx=(0,10))
+    voice_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
+    voice_pill.pack(side="right", padx=(0, 10))
     _batch_voice_var = tk.StringVar()
+
     def _update_batch_voice(*_):
         p = _ref_var.get().strip()
         if not p:
@@ -365,32 +453,58 @@ def open_batch_window():
         folder = os.path.basename(os.path.dirname(p))
         name = os.path.splitext(os.path.basename(p))[0]
         _batch_voice_var.set(folder if name.lower() == "normalized" else name)
+
     _ref_var.trace_add("write", _update_batch_voice)
     _update_batch_voice()
     tk.Frame(voice_pill, bg=Colors.BG_CARD, width=6).pack(side="left")
-    CompatCTkLabel(voice_pill, text="Голос:", fg_color=Colors.BG_CARD,
-                  text_color=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(11))).pack(side="left")
-    CompatCTkLabel(voice_pill, textvariable=_batch_voice_var, fg_color=Colors.BG_CARD,
-                  text_color=Colors.ACCENT, font=("Segoe UI", scaled_font_size(11), "bold"),
-                  width=120).pack(side="left", padx=(4,12), pady=9)
+    CompatCTkLabel(
+        voice_pill,
+        text="Голос:",
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(11)),
+    ).pack(side="left")
+    CompatCTkLabel(
+        voice_pill,
+        textvariable=_batch_voice_var,
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.ACCENT,
+        font=("Segoe UI", scaled_font_size(11), "bold"),
+        width=120,
+    ).pack(side="left", padx=(4, 12), pady=9)
 
     # LIST
     list_frame = ctk.CTkScrollableFrame(win, fg_color=Colors.BG_DARK, corner_radius=12)
-    list_frame.pack(fill="both", expand=True, padx=12, pady=(4,6))
+    list_frame.pack(fill="both", expand=True, padx=12, pady=(4, 6))
 
     # BOTTOM
     outer_wrap = tk.Frame(win, bg=Colors.BG_DARK)
     outer_wrap.pack(fill="x", side="bottom")
-    bottom_card = CompatCTkFrame(outer_wrap, fg_color=Colors.BG_CARD, corner_radius=20,
-                                 border_width=1, border_color=Colors.BORDER)
-    bottom_card.pack(fill="x", padx=14, pady=(6,14))
+    bottom_card = CompatCTkFrame(
+        outer_wrap,
+        fg_color=Colors.BG_CARD,
+        corner_radius=20,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
+    bottom_card.pack(fill="x", padx=14, pady=(6, 14))
     bottom_row = tk.Frame(bottom_card, bg=Colors.BG_CARD)
     bottom_row.pack(fill="x", padx=18, pady=14)
 
-    CompatCTkLabel(bottom_row, text="Пресет:", fg_color=Colors.BG_CARD,
-                  text_color=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(11))).pack(side="left")
-    CompatCTkLabel(bottom_row, textvariable=_quality_var, fg_color=Colors.BG_CARD,
-                  text_color=Colors.TEXT_MAIN, font=("Segoe UI", scaled_font_size(12), "bold")).pack(side="left", padx=(6,12))
+    CompatCTkLabel(
+        bottom_row,
+        text="Пресет:",
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(11)),
+    ).pack(side="left")
+    CompatCTkLabel(
+        bottom_row,
+        textvariable=_quality_var,
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_MAIN,
+        font=("Segoe UI", scaled_font_size(12), "bold"),
+    ).pack(side="left", padx=(6, 12))
 
     btn_run = _round_btn(bottom_row, "🚀 Запустить пакет", _run_batch, diameter=44, primary=True)
     # делаем шире для текста
@@ -402,6 +516,7 @@ def open_batch_window():
 
     def _on_close():
         win.destroy()
+
     win.protocol("WM_DELETE_WINDOW", _on_close)
     _refresh_rows()
     try:

@@ -26,6 +26,7 @@ except ImportError:
 from i18n import t
 
 from engine.paths import BASE_DIR, OUTPUT_DIR
+
 # ICON_PATH может быть, а может нет — обрабатываем fallback
 try:
     from engine.paths import ICON_PATH
@@ -74,9 +75,30 @@ def _compute_waveform_peaks(path, num_bars=_WAVE_BARS):
 
 def _round_rect(canvas, x1, y1, x2, y2, r, **kwargs):
     points = [
-        x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
-        x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-        x1, y2, x1, y2 - r, x1, y1 + r, x1, y1,
+        x1 + r,
+        y1,
+        x2 - r,
+        y1,
+        x2,
+        y1,
+        x2,
+        y1 + r,
+        x2,
+        y2 - r,
+        x2,
+        y2,
+        x2 - r,
+        y2,
+        x1 + r,
+        y2,
+        x1,
+        y2,
+        x1,
+        y2 - r,
+        x1,
+        y1 + r,
+        x1,
+        y1,
     ]
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
@@ -86,6 +108,7 @@ def _load_repeat_saved() -> bool:
     # 1. через theme_manager если есть новый API
     try:
         from engine.gui import theme_manager as tm
+
         if hasattr(tm, "get_audio_repeat"):
             return bool(tm.get_audio_repeat())
         if hasattr(tm, "get_audio_repeat_state"):
@@ -99,6 +122,7 @@ def _load_repeat_saved() -> bool:
     # 2. через settings.json (устаревший fallback)
     try:
         from engine.settings_store import SETTINGS_PATH
+
         if os.path.isfile(SETTINGS_PATH):
             with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
                 d = json.load(f)
@@ -121,6 +145,7 @@ def _load_repeat_saved() -> bool:
 def _save_repeat_state(val: bool):
     try:
         from engine.gui import theme_manager as tm
+
         if hasattr(tm, "set_audio_repeat"):
             tm.set_audio_repeat(bool(val))
             return
@@ -162,6 +187,7 @@ def _apply_window_icon(win: tk.Toplevel):
     # 1. AppUserModelID чтобы Windows группировала иконку с основным приложением
     try:
         import ctypes
+
         # тот же ID что и у основного окна — тогда иконка не слетает
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("XTTSStudio.App")
@@ -173,13 +199,15 @@ def _apply_window_icon(win: tk.Toplevel):
     candidates = []
     if ICON_PATH:
         candidates.append(ICON_PATH)
-    candidates.extend([
-        os.path.join(str(BASE_DIR), "icon.ico"),
-        os.path.join(str(BASE_DIR), "icon.png"),
-        os.path.join(str(BASE_DIR), "images", "icon.ico"),
-        os.path.join(str(BASE_DIR), "images", "icon.png"),
-        os.path.join(str(BASE_DIR), "..", "icon.ico"),
-    ])
+    candidates.extend(
+        [
+            os.path.join(str(BASE_DIR), "icon.ico"),
+            os.path.join(str(BASE_DIR), "icon.png"),
+            os.path.join(str(BASE_DIR), "images", "icon.ico"),
+            os.path.join(str(BASE_DIR), "images", "icon.png"),
+            os.path.join(str(BASE_DIR), "..", "icon.ico"),
+        ]
+    )
     ico_file = None
     png_file = None
     for p in candidates:
@@ -210,6 +238,7 @@ def _apply_window_icon(win: tk.Toplevel):
                     win.iconbitmap(ico_file)
                 except Exception:
                     pass
+
         try:
             win.after(100, _reapply_icon)
             win.after(400, _reapply_icon)
@@ -229,6 +258,7 @@ def _apply_window_icon(win: tk.Toplevel):
             # попробуем через PIL если есть
             try:
                 from PIL import Image, ImageTk
+
                 im = Image.open(ico_file)
                 im = im.resize((32, 32), Image.LANCZOS)
                 photo = ImageTk.PhotoImage(im)
@@ -290,10 +320,17 @@ def open_outputs_folder():
             hover = Colors.BG_HOVER
         scaled_diameter = scaled_size(diameter, min_size=diameter)
         return CompatCTkButton(
-            parent, text=text, command=cmd,
-            width=scaled_diameter, height=scaled_diameter, corner_radius=scaled_diameter // 2,
-            fg_color=bg, text_color=Colors.TEXT_MAIN, hover_color=hover,
-            border_width=0, font=("Segoe UI", scaled_font_size(17 if primary else 15)),
+            parent,
+            text=text,
+            command=cmd,
+            width=scaled_diameter,
+            height=scaled_diameter,
+            corner_radius=scaled_diameter // 2,
+            fg_color=bg,
+            text_color=Colors.TEXT_MAIN,
+            hover_color=hover,
+            border_width=0,
+            font=("Segoe UI", scaled_font_size(17 if primary else 15)),
         )
 
     def _fmt(sec):
@@ -301,7 +338,7 @@ def open_outputs_folder():
         return f"{sec // 60}:{sec % 60:02d}"
 
     def _truncate(s, max_chars=44):
-        return s if len(s) <= max_chars else s[:max_chars - 1] + "…"
+        return s if len(s) <= max_chars else s[: max_chars - 1] + "…"
 
     def _get_duration(path):
         try:
@@ -317,9 +354,9 @@ def open_outputs_folder():
             d = _dt.datetime.fromtimestamp(ts)
             today = _dt.date.today()
             if d.date() == today:
-                return t("time_today", d.strftime('%H:%M'))
+                return t("time_today", d.strftime("%H:%M"))
             elif (today - d.date()).days == 1:
-                return t("time_yesterday", d.strftime('%H:%M'))
+                return t("time_yesterday", d.strftime("%H:%M"))
             return d.strftime("%d.%m.%Y %H:%M")
         except Exception:
             return ""
@@ -370,8 +407,9 @@ def open_outputs_folder():
                     color = Colors.ACCENT if x0 <= played_x else Colors.BG_INPUT
                     wave_canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline="")
             if _p["path"]:
-                wave_canvas.create_line(played_x, body_top - 2, played_x, h,
-                                        fill=Colors.TEXT_MAIN, width=1)
+                wave_canvas.create_line(
+                    played_x, body_top - 2, played_x, h, fill=Colors.TEXT_MAIN, width=1
+                )
             wave_canvas.create_rectangle(0, 0, w, text_zone_h, fill=Colors.BG_CARD, outline="")
             if _p.get("error"):
                 title, title_color = _p["error"], Colors.TEXT_ERROR
@@ -379,11 +417,23 @@ def open_outputs_folder():
                 title, title_color = os.path.basename(_p["path"]), Colors.TEXT_MAIN
             else:
                 title, title_color = t("no_file"), Colors.TEXT_DIM
-            wave_canvas.create_text(10, text_zone_h / 2, text=_truncate(title), anchor="w",
-                                    fill=title_color, font=("Segoe UI", scaled_font_size(12), "bold"))
+            wave_canvas.create_text(
+                10,
+                text_zone_h / 2,
+                text=_truncate(title),
+                anchor="w",
+                fill=title_color,
+                font=("Segoe UI", scaled_font_size(12), "bold"),
+            )
             time_text = f"{_fmt(_p['pos'])} / {_fmt(_p['duration'])}" if _p["path"] else "0:00"
-            wave_canvas.create_text(w - 10, text_zone_h / 2, text=time_text, anchor="e",
-                                    fill=Colors.TEXT_DIM, font=("Consolas", scaled_font_size(11)))
+            wave_canvas.create_text(
+                w - 10,
+                text_zone_h / 2,
+                text=time_text,
+                anchor="e",
+                fill=Colors.TEXT_DIM,
+                font=("Consolas", scaled_font_size(11)),
+            )
         except Exception:
             pass
 
@@ -402,6 +452,7 @@ def open_outputs_folder():
                 if _wave_state["path"] == path:
                     _wave_state["peaks"] = peaks
                     _redraw_waveform()
+
             try:
                 win.after(0, apply)
             except Exception:
@@ -559,15 +610,13 @@ def open_outputs_folder():
             if _p["repeat_one"]:
                 btn.configure(
                     fg_color=Colors.AI_ACCENT,
-                    hover_color=getattr(Colors, "AI_ACCENT_HOVER", getattr(Colors, "ACCENT_HOVER", Colors.BG_HOVER)),
-                    text="🔂"
+                    hover_color=getattr(
+                        Colors, "AI_ACCENT_HOVER", getattr(Colors, "ACCENT_HOVER", Colors.BG_HOVER)
+                    ),
+                    text="🔂",
                 )
             else:
-                btn.configure(
-                    fg_color=Colors.BG_INPUT,
-                    hover_color=Colors.BG_HOVER,
-                    text="🔁"
-                )
+                btn.configure(fg_color=Colors.BG_INPUT, hover_color=Colors.BG_HOVER, text="🔁")
         except Exception:
             pass
 
@@ -618,32 +667,56 @@ def open_outputs_folder():
         dur_str = _fmt(dur) if dur > 0 else "--:--"
         meta = f"{dur_str}   ·   {size_kb} KB   ·   {date_str}"
 
-        card = CompatCTkFrame(parent, fg_color=Colors.BG_CARD, corner_radius=14,
-                              border_width=1, border_color=Colors.BORDER)
+        card = CompatCTkFrame(
+            parent,
+            fg_color=Colors.BG_CARD,
+            corner_radius=14,
+            border_width=1,
+            border_color=Colors.BORDER,
+        )
         card.pack(fill="x", padx=4, pady=5)
         _card_widgets[path] = card
 
-        badge = CompatCTkFrame(card, fg_color=Colors.BG_INPUT, corner_radius=20,
-                               width=44, height=44)
+        badge = CompatCTkFrame(
+            card, fg_color=Colors.BG_INPUT, corner_radius=20, width=44, height=44
+        )
         badge.pack(side="left", padx=(14, 10), pady=12)
         badge.pack_propagate(False)
-        CompatCTkLabel(badge, text="🎵", fg_color=Colors.BG_INPUT, text_color=Colors.TEXT_MAIN,
-                      font=("Segoe UI", scaled_font_size(18))).pack(expand=True)
+        CompatCTkLabel(
+            badge,
+            text="🎵",
+            fg_color=Colors.BG_INPUT,
+            text_color=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(18)),
+        ).pack(expand=True)
 
         info = tk.Frame(card, bg=Colors.BG_CARD)
         info.pack(side="left", fill="both", expand=True, pady=10)
-        CompatCTkLabel(info, text=fname, fg_color=Colors.BG_CARD, text_color=Colors.TEXT_MAIN,
-                      font=("Segoe UI", scaled_font_size(13), "bold"), anchor="w").pack(fill="x")
-        CompatCTkLabel(info, text=meta, fg_color=Colors.BG_CARD, text_color=Colors.TEXT_DIM,
-                      font=("Segoe UI", scaled_font_size(11)), anchor="w").pack(fill="x", pady=(2, 0))
+        CompatCTkLabel(
+            info,
+            text=fname,
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_MAIN,
+            font=("Segoe UI", scaled_font_size(13), "bold"),
+            anchor="w",
+        ).pack(fill="x")
+        CompatCTkLabel(
+            info,
+            text=meta,
+            fg_color=Colors.BG_CARD,
+            text_color=Colors.TEXT_DIM,
+            font=("Segoe UI", scaled_font_size(11)),
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
 
         actions = tk.Frame(card, bg=Colors.BG_CARD)
         actions.pack(side="right", padx=12)
         play_btn_card = _round_btn(actions, "▶", lambda p=path: _card_click_play(p), diameter=34)
         play_btn_card.pack(side="left", padx=(0, 6))
         _card_buttons[path] = play_btn_card
-        del_btn_card = _round_btn(actions, "🗑", lambda p=path, c=card: _delete_file(p, c),
-                                  diameter=34, danger=True)
+        del_btn_card = _round_btn(
+            actions, "🗑", lambda p=path, c=card: _delete_file(p, c), diameter=34, danger=True
+        )
         del_btn_card.pack(side="left")
 
         for w in (card, badge, info):
@@ -680,8 +753,9 @@ def open_outputs_folder():
         if not files:
             messagebox.showinfo(t("dlg_empty"), t("dlg_empty_msg"), parent=win)
             return
-        if not messagebox.askyesno(t("dlg_delete_all_title"),
-                                   t("dlg_delete_all_msg", len(files)), parent=win):
+        if not messagebox.askyesno(
+            t("dlg_delete_all_title"), t("dlg_delete_all_msg", len(files)), parent=win
+        ):
             return
         try:
             pygame.mixer.music.stop()
@@ -755,9 +829,13 @@ def open_outputs_folder():
                 _empty_state["widget"] = None
             return
         if _empty_state["widget"] is None:
-            lbl = CompatCTkLabel(list_frame, text="Здесь появятся ваши аудиозаписи",
-                                 fg_color=Colors.BG_DARK, text_color=Colors.TEXT_DIM,
-                                 font=("Segoe UI", scaled_font_size(13)))
+            lbl = CompatCTkLabel(
+                list_frame,
+                text="Здесь появятся ваши аудиозаписи",
+                fg_color=Colors.BG_DARK,
+                text_color=Colors.TEXT_DIM,
+                font=("Segoe UI", scaled_font_size(13)),
+            )
             lbl.pack(pady=50)
             _empty_state["widget"] = lbl
 
@@ -795,8 +873,9 @@ def open_outputs_folder():
         x = vol_btn.winfo_rootx() - (popup_w - vol_btn.winfo_width()) // 2
         y = vol_btn.winfo_rooty() - popup_h - 10
         popup.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
-        pcanvas = tk.Canvas(popup, width=popup_w, height=popup_h, bg=canvas_bg,
-                            highlightthickness=0, bd=0)
+        pcanvas = tk.Canvas(
+            popup, width=popup_w, height=popup_h, bg=canvas_bg, highlightthickness=0, bd=0
+        )
         pcanvas.pack(fill="both", expand=True)
 
         track_top, track_bottom = 16, popup_h - 40
@@ -805,19 +884,49 @@ def open_outputs_folder():
 
         def _redraw_slider():
             pcanvas.delete("all")
-            _round_rect(pcanvas, 2, 2, popup_w - 2, popup_h - 2, 18,
-                       fill=Colors.BG_CARD, outline=Colors.BORDER)
-            _round_rect(pcanvas, cx - 3, track_top, cx + 3, track_bottom, 3,
-                       fill=Colors.BG_INPUT, outline="")
+            _round_rect(
+                pcanvas,
+                2,
+                2,
+                popup_w - 2,
+                popup_h - 2,
+                18,
+                fill=Colors.BG_CARD,
+                outline=Colors.BORDER,
+            )
+            _round_rect(
+                pcanvas,
+                cx - 3,
+                track_top,
+                cx + 3,
+                track_bottom,
+                3,
+                fill=Colors.BG_INPUT,
+                outline="",
+            )
             fill_top = track_top + track_h * (1 - _p["volume"])
             if track_bottom - fill_top > 1:
-                _round_rect(pcanvas, cx - 3, fill_top, cx + 3, track_bottom, 3,
-                           fill=Colors.ACCENT, outline="")
+                _round_rect(
+                    pcanvas,
+                    cx - 3,
+                    fill_top,
+                    cx + 3,
+                    track_bottom,
+                    3,
+                    fill=Colors.ACCENT,
+                    outline="",
+                )
             thumb_y = track_top + track_h * (1 - _p["volume"])
-            pcanvas.create_oval(cx - 7, thumb_y - 7, cx + 7, thumb_y + 7,
-                               fill=Colors.TEXT_MAIN, outline="")
-            pcanvas.create_text(cx, popup_h - 18, text=_volume_icon(_p["volume"]),
-                               font=("Segoe UI", scaled_font_size(14)), fill=Colors.TEXT_DIM)
+            pcanvas.create_oval(
+                cx - 7, thumb_y - 7, cx + 7, thumb_y + 7, fill=Colors.TEXT_MAIN, outline=""
+            )
+            pcanvas.create_text(
+                cx,
+                popup_h - 18,
+                text=_volume_icon(_p["volume"]),
+                font=("Segoe UI", scaled_font_size(14)),
+                fill=Colors.TEXT_DIM,
+            )
 
         def _on_slider_drag(event):
             frac = 1 - min(1.0, max(0.0, (event.y - track_top) / track_h))
@@ -851,8 +960,13 @@ def open_outputs_folder():
     header = tk.Frame(win, bg=Colors.BG_DARK, pady=12)
     header.pack(fill="x", padx=16)
 
-    actions_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=18,
-                                  border_width=1, border_color=Colors.BORDER)
+    actions_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=18,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     actions_pill.pack(side="left")
     actions_row = tk.Frame(actions_pill, bg=Colors.BG_CARD)
     actions_row.pack(padx=6, pady=6)
@@ -866,11 +980,21 @@ def open_outputs_folder():
     btn_delete_all.pack(side="left", padx=3)
     ToolTip(btn_delete_all, t("btn_delete_all"))
 
-    count_pill = CompatCTkFrame(header, fg_color=Colors.BG_CARD, corner_radius=14,
-                                border_width=1, border_color=Colors.BORDER)
+    count_pill = CompatCTkFrame(
+        header,
+        fg_color=Colors.BG_CARD,
+        corner_radius=14,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     count_pill.pack(side="right")
-    count_lbl = CompatCTkLabel(count_pill, text="", fg_color=Colors.BG_CARD,
-                               text_color=Colors.TEXT_DIM, font=("Segoe UI", scaled_font_size(12)))
+    count_lbl = CompatCTkLabel(
+        count_pill,
+        text="",
+        fg_color=Colors.BG_CARD,
+        text_color=Colors.TEXT_DIM,
+        font=("Segoe UI", scaled_font_size(12)),
+    )
     count_lbl.pack(padx=16, pady=9)
 
     list_frame = ctk.CTkScrollableFrame(win, fg_color=Colors.BG_DARK, corner_radius=12)
@@ -884,12 +1008,18 @@ def open_outputs_folder():
     outer_wrap = tk.Frame(win, bg=Colors.BG_DARK)
     outer_wrap.pack(fill="x", side="bottom")
 
-    player_card = CompatCTkFrame(outer_wrap, fg_color=Colors.BG_CARD, corner_radius=20,
-                                 border_width=1, border_color=Colors.BORDER)
+    player_card = CompatCTkFrame(
+        outer_wrap,
+        fg_color=Colors.BG_CARD,
+        corner_radius=20,
+        border_width=1,
+        border_color=Colors.BORDER,
+    )
     player_card.pack(fill="x", padx=14, pady=(6, 14))
 
-    wave_canvas = tk.Canvas(player_card, bg=Colors.BG_CARD, height=90, bd=0,
-                            highlightthickness=0, cursor="hand2")
+    wave_canvas = tk.Canvas(
+        player_card, bg=Colors.BG_CARD, height=90, bd=0, highlightthickness=0, cursor="hand2"
+    )
     wave_canvas.pack(fill="x", padx=18, pady=(16, 6))
     wave_canvas.bind("<Button-1>", _wave_seek)
     wave_canvas.bind("<B1-Motion>", _wave_seek)
