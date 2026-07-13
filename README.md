@@ -109,6 +109,7 @@ One portable folder. One double-click. Your machine, your rules.
 
 <p align="center">
   <img src="images/ai-settings.PNG" width="45%" alt="AI settings" />
+  <img src="images/preset-settings.PNG" width="45%" alt="AI-настройки" />
 </p>
 
 ---
