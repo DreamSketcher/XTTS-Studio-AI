@@ -25,15 +25,11 @@
 
 <br/><br/>
 
-**[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)**
-&nbsp;&nbsp;•&nbsp;&nbsp;
-**[🎧 Audio Samples](#audio-examples)**
-&nbsp;&nbsp;•&nbsp;&nbsp;
-**[📖 Documentation RU](./DOCUMENTATION.RU.md)**
-&nbsp;&nbsp;•&nbsp;&nbsp;
-**[📖 Documentation EN](./DOCUMENTATION.EN.md)**
-&nbsp;&nbsp;•&nbsp;&nbsp;
-**[📜 License](./LICENSE.md)**
+**[📥 Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** ·
+**[🎧 Примеры звука](#audio-examples)** ·
+**[📖 Документация RU](./DOCUMENTATION.RU.md)** ·
+**[📖 Документация EN](./DOCUMENTATION.EN.md)** ·
+**[📜 Лицензия](./LICENSE.md)**
 
 <br/>
 
