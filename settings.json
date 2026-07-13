@@ -94,7 +94,7 @@
   "ai_conductor_open_count": 11,
   "ai_conductor_warning_dismissed": true,
   "ui_theme": "light",
-  "left_panel_visible": true,
+  "left_panel_visible": false,
   "ai_conductor_preset": "Все пресеты",
   "torch_device_preference": "cpu",
   "open_updates_on_startup": false,

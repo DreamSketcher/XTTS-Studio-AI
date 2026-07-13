@@ -68,7 +68,7 @@
   "layout": "classic",
   "audio_repeat_one": true,
   "console_visible": true,
-  "console_scroll_pos": 0.7360248447204969,
+  "console_scroll_pos": 0.0,
   "sidebar_side": "left",
   "toolbar_order": [
     "file",

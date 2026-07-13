@@ -417,6 +417,9 @@ def _run_scan_with_splash(diagnostics_fn):
     """
     import tkinter as tk
     import colorsys
+    import webbrowser
+
+    GITHUB_URL = "https://github.com/DreamSketcher/XTTS-Studio"
 
     result = {}
 
@@ -434,8 +437,20 @@ def _run_scan_with_splash(diagnostics_fn):
         title_lbl.pack(pady=(24, 0))
 
         author_lbl = tk.Label(splash, text="by EXIZ10TION", font=("Segoe UI", 9, "italic"),
-                               bg="#0d1117", fg="#7c6aa5")
-        author_lbl.pack(pady=(0, 8))
+                               bg="#0d1117", fg="#7c6aa5", cursor="hand2")
+        author_lbl.pack(pady=(0, 2))
+        # Клик по подписи автора открывает репозиторий в браузере по умолчанию
+        author_lbl.bind("<Button-1>", lambda e: webbrowser.open(GITHUB_URL))
+
+        # Жирное подчёркивание под подписью — обычный Label.underline слишком
+        # тонкий и не поддаётся управлению толщиной, поэтому рисуем отдельной
+        # полосой того же цвета, что и текст (ширина подгоняется под текст
+        # после отрисовки).
+        author_underline = tk.Frame(splash, bg="#7c6aa5", height=2, cursor="hand2")
+        author_underline.pack(pady=(0, 8))
+        author_underline.bind("<Button-1>", lambda e: webbrowser.open(GITHUB_URL))
+        splash.update_idletasks()
+        author_underline.configure(width=author_lbl.winfo_reqwidth())
 
         status_lbl = tk.Label(splash, text="Проверка окружения...", font=("Segoe UI", 10),
                                bg="#0d1117", fg="#8b949e")
@@ -463,6 +478,7 @@ def _run_scan_with_splash(diagnostics_fn):
             try:
                 title_lbl.configure(fg=title_color)
                 author_lbl.configure(fg=author_color)
+                author_underline.configure(bg=author_color)
                 splash.after(40, _pulse)
             except Exception:
                 pass
