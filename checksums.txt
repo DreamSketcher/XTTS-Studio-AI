@@ -1,4 +1,4 @@
-XTTS Studio — контрольные суммы SHA256 для версии 1.1.222
+XTTS Studio — контрольные суммы SHA256 для версии 1.1.223
 Проверка (Windows PowerShell): certutil -hashfile "имя_файла" SHA256
 Проверка (Linux/macOS): sha256sum имя_файла
 
@@ -114,7 +114,7 @@ cce1a0c70d0f53f7bb54a842876e9a3e0139fc10f7b686781408d7659bc2e180  engine/tts_run
 181495e80f0d99a675ab160ffaf6ff0e199e28054980b6de21f19837e63fa441  engine/voice_manager.py
 e90d1304376b54d2cc94f4a4a3cb9b5f60b07c380ab1fd3cd554a3b4c493e88c  engine/word_replacer.py
 20623ccd89d6c1956afafbcf9d0ea0f8ec3ff95a24422456da63ab5d9397d5fd  engine/word_replacer_window.py
-034840056c95b680e60b66ad99f6f8d7e0e81d69aac56ec0e73a62add9efe4af  gui.py
+da742a649e67459a7961bdba0a25d8e86dd11cdad023425c7c64233c8e064fd4  gui.py
 af2a8d0000a4def84691d548a1e698cd7172c3958fb86fd08ed5832d47ff176b  i18n.py
 0c94eb3b8468f04839b23cc38d65e96ceb1977d12ca58fb594839bbff0339044  json/rvc_catalog_seed.json
 ded6327a5261c7f72de85457581687ec3e4a7ec9abbf1a80443b8c9acfd1d537  pyproject.toml
