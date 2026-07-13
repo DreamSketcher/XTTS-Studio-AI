@@ -16,13 +16,6 @@
 
 <br/><br/>
 
-[![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](#download)
-[![Offline](https://img.shields.io/badge/100%25-Offline-2da44e?style=for-the-badge)](#why-xtts-studio)
-[![Portable](https://img.shields.io/badge/Portable-No%20Installation-orange?style=for-the-badge)](#download)
-[![UI](https://img.shields.io/badge/UI-RU%20%2F%20EN-58a6ff?style=for-the-badge)](#features)
-[![RVC](https://img.shields.io/badge/RVC-Voice%20Enhancement-e11d48?style=for-the-badge)](#features)
-[![Themes](https://img.shields.io/badge/Themes-Dark%20%2F%20Light-7c3aed?style=for-the-badge)](#features)
-
 <br/><br/>
 
 **[📥 Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** ·
