@@ -19,7 +19,7 @@
 
 <br/>
 
-**[📥 Скачать](#-скачать)** · **[🎧 Послушать](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Документация EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
+**[📥 Скачать](#-https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)** · **[🎧 Послушать](#-послушать)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Документация EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
 
 </div>
 
