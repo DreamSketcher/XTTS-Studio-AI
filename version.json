@@ -1,5 +1,5 @@
 {
-  "version": "1.1.224",
+  "version": "1.1.225",
   "files": [
     ".pre-commit-config.yaml",
     "DOCUMENTATION.EN.md",
@@ -240,7 +240,7 @@
     "gui.py": "9b6df4d0a3e4a85b506a8b194996f2b95aca01885b95e2e7d4e952d4c74f743f",
     "i18n.py": "eb9b7e6aaf07b7955592d8329953487180b38d725d9ae57d2b749be026c7a411",
     "json/rvc_catalog_seed.json": "0c94eb3b8468f04839b23cc38d65e96ceb1977d12ca58fb594839bbff0339044",
-    "pyproject.toml": "d1e89bcd721145781bae272c60fa0c6988e479553ce6c8c8372b07583f5b3d17",
+    "pyproject.toml": "0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92",
     "requirements.txt": "5fac87e286e3e0088189176c6a8f063380f3b1591290ac7d013d24e4b027fa98"
   },
   "removed_files": [
