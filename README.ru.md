@@ -21,11 +21,15 @@
 
 <br/>
 
-**[📥 Скачать](#download)** ·
-**[🎧 Примеры звука](#audio-examples)** ·
-**[📖 Документация RU](./DOCUMENTATION.RU.md)** ·
-**[📖 Docs EN](./DOCUMENTATION.EN.md)** ·
-**[📜 Лицензия](./LICENSE.md)**
+[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)
+&nbsp;•&nbsp;
+[🎧 Audio Samples](#audio-examples)
+&nbsp;•&nbsp;
+[📖 Documentation RU](./DOCUMENTATION.RU.md)
+&nbsp;•&nbsp;
+[📖 Docs EN](./DOCUMENTATION.EN.md)
+&nbsp;•&nbsp;
+[📜 License](./LICENSE.md)
 
 </div>
 
