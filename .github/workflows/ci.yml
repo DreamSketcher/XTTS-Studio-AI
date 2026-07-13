@@ -1,0 +1,73 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+jobs:
+  lint-and-format:
+    name: Code Quality (Ruff & Black)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-level: '3.11'
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Linting Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff black
+
+      - name: Run Black formatter check
+        run: black --check .
+
+      - name: Run Ruff linter
+        run: ruff check .
+
+  tests:
+    name: Pytest Suite (CPU)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.11']
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install light dependencies or requirements.txt
+          # For a heavy ML project, we can install test-specific requirements to save time,
+          # or mock heavy dependencies (like torch, coqui-tts) if they are not strictly needed for logic testing.
+          if [ -f requirements.txt ]; then
+            # Filter out heavy CUDA/PyTorch if running on standard runner to prevent timeouts
+            # Or run with CPU torch
+            pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+            pip install -r requirements.txt || true
+          fi
+          pip install pytest pytest-cov ruff black
+        shell: bash
+
+      - name: Run pytest
+        run: |
+          # Run pytest on CPU, ignoring heavy GPU integration tests if necessary
+          pytest test/ --ignore=test/test_local_llm_client_download.py -v
+        shell: bash

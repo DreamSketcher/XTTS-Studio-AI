@@ -9,7 +9,7 @@
     },
     "light": {
       "BG_CARD": "#f4ecd9",
-      "BG_ACTIVE": "#b3a266",
+      "BG_ACTIVE": "#d6ccab",
       "TEXT_ERROR": "#e6626b"
     }
   },
@@ -173,14 +173,14 @@
       "style": {
         "speed_ms": 20,
         "saturation": 1.0,
-        "brightness": 0.65,
-        "hue_offset": 0.6,
-        "spread": 1.4,
+        "brightness": 1.0,
+        "hue_offset": 1.0,
+        "spread": 2.0,
         "mode": "custom",
         "colors": [
-          "#804040",
-          "#808000",
-          "#c99494"
+          "#000000",
+          "#804000",
+          "#808080"
         ]
       }
     }

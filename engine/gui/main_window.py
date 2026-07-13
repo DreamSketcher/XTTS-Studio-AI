@@ -85,7 +85,7 @@ from engine.gui.layout import build_layout
 from engine.gui import (helpers, statusbar, console, textbox, player,
                         voice_panel, queue_panel, history_window,
                         output_window, dialogs, presets, settings_ui,
-                        ai_status_window, updates, header_panel,
+                        ai_status_window, env_settings, header_panel,
                         ai_conductor, styles_menu, generation,
                         chat_panel, batch_panel, word_replacer_panel,
                         toolbar)
@@ -244,7 +244,7 @@ def create_main_window(startup_status: str = None):
     # UI language variable (stored in settings.json)
     ui_lang_var = tk.StringVar(value="ru")
 
-    # Библиотека голосов: library/<name>/normalized.wav (+ embedding cache рядом)
+    #  Библиотека голосов: library/<name>/normalized.wav (+ embedding cache рядом)
     # НЕ reference/backup — туда раньше ошибочно смотрел VoiceManager.
     voice_manager = VoiceManager(LIBRARY_DIR)
     try:
@@ -274,7 +274,7 @@ def create_main_window(startup_status: str = None):
     history_window.init(root=root, PYGAME_OK=PYGAME_OK)
     output_window.init(root=root, PYGAME_OK=PYGAME_OK)
     ai_status_window.init(root=root)
-    updates.init(root=root)
+    env_settings.init(root=root)
     # Передаём в textbox callback открытия конструктора темы + текущий layout_preset
     textbox.init(root=root, use_gpt=use_gpt, textbox_updated=_textbox_updated,
                  clean_path=clean_path, show_help=dialogs.show_help,
@@ -406,7 +406,7 @@ def create_main_window(startup_status: str = None):
     y = max(0, (sh - 820) // 2)
     root.geometry(f"1160x820+{x}+{y}")
     root.after(150, generation.start_preload_thread)
-    threading.Thread(target=updates._auto_check_update, daemon=True).start()
+    threading.Thread(target=env_settings._auto_check_update, daemon=True).start()
 
     # ── ПОДТВЕРЖДЕНИЕ ОБНОВЛЕНИЯ ──
     # Мы дошли до этой точки без исключений — интерфейс собран полностью.

@@ -16,7 +16,7 @@ from i18n import t, set_language
 from engine.gui.colors import Colors, scaled_font_size
 from engine.gui.tooltip import ToolTip
 from engine.gui.widgets import CompatCTkFrame, create_button
-from engine.gui.updates import check_and_update
+from engine.gui.env_settings import check_and_update
 from engine.gui.ai_status_window import open_ai_status_window
 
 # Внедряются из main_window: root, ui_lang_var, save_settings

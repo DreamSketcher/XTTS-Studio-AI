@@ -155,6 +155,29 @@ def get_tts():
     return _tts_instance
 
 
+_rvc_processor = None
+_rvc_lock = _threading.Lock()
+
+
+def get_rvc_processor():
+    """
+    Ленивая инициализация RVCPostProcessor (engine/rvc_pipeline.py).
+    Создаётся один раз и переиспользуется, аналогично get_tts().
+    """
+    global _rvc_processor
+    with _rvc_lock:
+        if _rvc_processor is None:
+            from engine.rvc_pipeline import RVCPostProcessor
+            device = detect_device()
+            # RVCInference ожидает вид "cuda:0" для GPU или "cpu" для CPU.
+            rvc_device = "cuda:0" if device == "cuda" else "cpu"
+            _rvc_processor = RVCPostProcessor(
+                models_dir=path("models", "rvc"),
+                device=rvc_device,
+            )
+    return _rvc_processor
+
+
 PROSODY_PRESETS = {
     "Высокое качество": dict(mode="balanced",     intensity=0.1),
     "Нарратив":         dict(mode="balanced",     intensity=0.5),
@@ -408,6 +431,19 @@ def run_tts(
                 preset.pop("ai_rewrite_context", None)
                 preset.pop("ai_rewrite_negative", None)
 
+                # RVC — это постобработка уже сгенерированного аудио
+                # (voice conversion поверх готового wav), а НЕ параметр
+                # самой генерации XTTS. transformers.generate() не знает
+                # эти ключи и падает с ValueError, если они попадают в
+                # **sub_preset → inference(). Вынимаем их здесь и
+                # применяем RVC-конвертацию отдельным шагом ниже, уже
+                # после того как XTTS сгенерирует wav.
+                rvc_enable = bool(preset.pop("rvc_enable", False))
+                rvc_model = preset.pop("rvc_model", None)
+                rvc_index_rate = preset.pop("rvc_index_rate", 0.75)
+                rvc_pitch_shift = preset.pop("rvc_pitch_shift", 0)
+                rvc_f0_method = preset.pop("rvc_f0_method", "rmvpe")
+
                 # #2: temperature schedule — компенсация угасания на перечислениях
                 if ai_conductor_enabled and conductor_map and i < len(conductor_map):
                     cmap = conductor_map[i]
@@ -442,7 +478,18 @@ def run_tts(
                 # =========================
                 # CHUNK CACHE — проверяем до генерации
                 # =========================
-                cache_key = _chunk_cache_key(chunk, lang, preset, speed_value, ref_path, conductor_active=ai_conductor_enabled)
+                # ВАЖНО: rvc_* уже вынуты из preset (нельзя передавать в
+                # XTTS inference), поэтому для кэша собираем ОТДЕЛЬНЫЙ
+                # словарь с их учётом — иначе кэш не отличит "тот же
+                # текст, но с другой моделью/настройками RVC (или вообще
+                # без RVC)" и подставит чужой результат.
+                cache_preset = dict(preset)
+                cache_preset["_rvc_enable"] = rvc_enable
+                cache_preset["_rvc_model"] = rvc_model
+                cache_preset["_rvc_index_rate"] = rvc_index_rate
+                cache_preset["_rvc_pitch_shift"] = rvc_pitch_shift
+                cache_preset["_rvc_f0_method"] = rvc_f0_method
+                cache_key = _chunk_cache_key(chunk, lang, cache_preset, speed_value, ref_path, conductor_active=ai_conductor_enabled)
                 cached = _chunk_cache_get(output_dir, cache_key)
 
                 if cached:
@@ -562,6 +609,32 @@ def run_tts(
                             wav = wav[:-trim_samples]
 
                 sf.write(chunk_path, wav, 24000)
+
+                # =========================
+                # RVC (voice conversion) — постобработка ГОТОВОГО аудио.
+                # =========================
+                # RVC — это конвертация уже сгенерированного XTTS-звука,
+                # а не параметр самой генерации, поэтому применяется
+                # здесь, к уже записанному wav-файлу чанка, а не внутри
+                # tts_model.inference().
+                if rvc_enable and rvc_model:
+                    try:
+                        from engine.rvc_pipeline import RVCPipelineError
+                        rvc_processor = get_rvc_processor()
+                        rvc_processor.run_inference_via_lib(
+                            input_path=chunk_path,
+                            output_path=chunk_path,
+                            model_name=rvc_model,
+                            index_rate=rvc_index_rate,
+                            pitch_shift=rvc_pitch_shift,
+                            f0_method=rvc_f0_method,
+                        )
+                    except RVCPipelineError as rvc_err:
+                        # Не роняем всю генерацию из-за RVC — отдаём
+                        # чистый XTTS-звук и явно предупреждаем в консоли.
+                        print(f"[RVC] Конвертация не применена: {rvc_err}")
+                    except Exception as rvc_err:
+                        print(f"[RVC] Неожиданная ошибка постобработки: {rvc_err}")
 
                 # сохраняем в кэш
                 _chunk_cache_set(output_dir, cache_key, chunk_path)

@@ -30,8 +30,8 @@ def open_gpt_settings(event=None):
         messagebox.showerror(t("chat_settings_title"), t("chat_err_load_gpt", e), parent=_get_app_parent() or state._root)
         return "break"
 
-    if _widget_exists(state._settings_window):
-        _show_window(state._settings_window)
+    if _widget_exists(state._env_settings_window):
+        _show_window(state._env_settings_window)
         return "break"
 
     win = tk.Toplevel(_get_app_parent() or state._root)
@@ -43,7 +43,7 @@ def open_gpt_settings(event=None):
     except Exception:
         pass
         
-    state._settings_window = win
+    state._env_settings_window = win
 
     def _win_report_callback_exception(exc, val, tb):
         """Без этого переопределения Tkinter молча печатает traceback в stderr,
@@ -1685,7 +1685,7 @@ def open_gpt_settings(event=None):
     show_page_with_style("api")
     
     def close_settings(event=None):
-        state._settings_window = None
+        state._env_settings_window = None
         try: win.grab_release()
         except Exception: pass
         try: win.destroy()

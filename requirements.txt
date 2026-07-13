@@ -5,12 +5,12 @@
 #   Основные зависимости (обычный PyPI):
 #     python\runtime\python.exe -m pip install -r requirements.txt --target python\xtts_env\Lib\site-packages
 #
-#   torch/torchaudio/torchvision собраны под CUDA 11.8 и лежат на отдельном
-#   индексе PyTorch, а не на обычном PyPI — без --extra-index-url pip либо
-#   не найдёт версию с суффиксом +cu118, либо поставит CPU-only сборку.
-#   Добавьте флаг при установке (или установите эти три пакета отдельной
-#   командой до остальных):
-#     --extra-index-url https://download.pytorch.org/whl/cu118
+#   torch/torchaudio/torchvision зафиксированы БЕЗ суффикса сборки
+#   (нейтрально: torch==2.2.2). Реальный вариант сборки (+cpu или +cu118)
+#   выбирается автоматически установщиком: при наличии NVIDIA-GPU ставится
+#   CUDA-сборка с --extra-index-url https://download.pytorch.org/whl/cu118,
+#   иначе — CPU-сборка напрямую с PyPI. Одни и те же файлы работают на
+#   любой машине без ручного редактирования.
 
 absl-py==2.4.0
 aiohappyeyeballs==2.6.2
@@ -147,9 +147,10 @@ thinc==8.3.13
 threadpoolctl==3.6.0
 tkinterdnd2==0.4.4.1
 tokenizers==0.15.2
-torch==2.2.2+cu118
-torchaudio==2.2.2+cu118
-torchvision==0.17.2+cu118
+torch==2.2.2
+torchaudio==2.2.2
+torchvision==0.17.2
+av==12.3.0
 tqdm==4.68.1
 trainer==0.0.36
 transformers==4.38.2

@@ -15,7 +15,7 @@ try:
 except ImportError:
     _SSL_CONTEXT = None  # если certifi не установлен — используем системное по умолчанию
 
-REPO = "DreamSketcher/XTTS-Studio-portable-"
+REPO = "DreamSketcher/XTTS-Studio"
 BRANCH = "main"
 # BRANCH_RAW_BASE используется ТОЛЬКО для version.json — нам всегда нужен
 # HEAD ветки, чтобы вовремя увидеть новый релиз.

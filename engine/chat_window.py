@@ -572,8 +572,8 @@ def open_chat_window():
         except Exception:
             pass
         try:
-            if _widget_exists(state._settings_window):
-                state._settings_window.destroy()
+            if _widget_exists(state._env_settings_window):
+                state._env_settings_window.destroy()
         except Exception:
             pass
         try:
@@ -584,7 +584,7 @@ def open_chat_window():
 
         state._chat_window = None
         state._search_window = None
-        state._settings_window = None
+        state._env_settings_window = None
         state._editor_window = None
 
         state._hint_text_var = None

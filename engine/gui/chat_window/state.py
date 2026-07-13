@@ -17,7 +17,7 @@ MAX_MESSAGES_PER_SESSION = 100
 
 _chat_window = None
 _search_window = None
-_settings_window = None
+_env_settings_window = None
 _editor_window = None
 _sessions_loaded = False
 _scroll_debounce_id = None

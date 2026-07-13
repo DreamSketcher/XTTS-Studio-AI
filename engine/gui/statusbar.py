@@ -110,7 +110,7 @@ def build_statusbar(right_panel):
 
     # Кнопка "Отмена" — правый нижний угол статус-бара. Скрыта по умолчанию,
     # показывается только на время активного обновления (show_cancel_button /
-    # hide_cancel_button вызываются из engine/gui/updates.py).
+    # hide_cancel_button вызываются из engine/gui/env_settings.py).
     cancel_button = ctk.CTkButton(
         bottom_row,
         text=t("update_cancel_btn"),
