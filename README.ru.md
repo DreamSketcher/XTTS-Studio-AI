@@ -109,6 +109,7 @@
 
 <p align="center">
   <img src="images/ai-settings.PNG" width="45%" alt="AI-настройки" />
+  <img src="images/preset-settings.PNG" width="45%" alt="AI-настройки" />
 </p>
 
 ---
