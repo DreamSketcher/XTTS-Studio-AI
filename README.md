@@ -164,6 +164,8 @@ A longer passage, showing consistent quality with no length limit.
 ```text
 ✔  C:\XTTS\
 ✘  C:\Новая папка\XTTS\
+XTTS Studio.exe - this is a converted bat, just a nice launcher for launching, it contains only launch paths and an icon.
+Included in the update in case  have to rewrite the launch paths.
 ```
 
 ---
