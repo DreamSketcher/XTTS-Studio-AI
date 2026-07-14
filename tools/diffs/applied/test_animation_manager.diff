@@ -1,0 +1,19 @@
+diff --git a/test/test_animation_manager.py b/test/test_animation_manager.py
+index 0e5c804..368d077 100644
+--- a/test/test_animation_manager.py
++++ b/test/test_animation_manager.py
+@@ -239,7 +239,13 @@ class TestAnimationManagerWithTk:
+     def root_tk(self):
+         import tkinter as tk
+ 
+-        r = tk.Tk()
++        try:
++            r = tk.Tk()
++        except tk.TclError as e:
++            # На некоторых Windows CI-раннерах Tcl/Tk установлен некорректно
++            # (init.tcl не читается) — это проблема окружения, а не кода,
++            # поэтому мягко скипаем тест вместо падения всего прогона.
++            pytest.skip(f"Tk недоступен в этом окружении: {e}")
+         r.withdraw()
+         yield r
+         try:
