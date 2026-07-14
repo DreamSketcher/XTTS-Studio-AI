@@ -582,7 +582,7 @@ engine/gui/chat_window/engine/settings_context.py
 
 Конфигурация находится в `pyproject.toml`:
 
-- Black и Ruff ориентируются на Python 3.10/3.11;
+- Black и Ruff ориентируются на Python 3.11;
 - Ruff проверяет E/F/W, а `F821` оставлен включённым для реальных undefined names;
 - pytest использует корень проекта в `pythonpath`;
 - `pytest-timeout` ограничивает один тест 60 секундами.
