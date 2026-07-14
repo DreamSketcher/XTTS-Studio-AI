@@ -290,7 +290,8 @@ def _build_chunk_text_map(full_text: str, chunks: list) -> list:
 
 
 def _get_embedding(tts, ref_wav, cache_path):
-    import torch  # type: ignore
+    if torch is None:
+        raise RuntimeError("torch not available")
 
     device = detect_device()
 

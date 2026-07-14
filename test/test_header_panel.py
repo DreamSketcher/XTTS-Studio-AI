@@ -82,20 +82,25 @@ class TestSwitchUiLang:
 
 
 class TestRainbowEnabled:
-    def test_is_rainbow_enabled_false_when_no_theme_manager(self, monkeypatch):
-        # симулируем отсутствие theme_manager через исключение в импорте
+    def test_is_rainbow_enabled_false_when_no_theme_manager(self, monkeypatch, tmp_path):
+        # изолируемся от реального theme_settings.json на диске разработчика,
+        # чтобы тест не зависел от текущих личных настроек темы
+        import engine.gui.theme_manager as tm
+        monkeypatch.setattr(tm, "THEME_FILE", str(tmp_path / "theme.json"))
+
+        # симулируем отсутствие theme_manager через исключение в импорте.
+        # `from engine.gui import theme_manager as tm` вызывает __import__ с
+        # name="engine.gui" и fromlist=("theme_manager",) — проверка должна
+        # учитывать оба варианта, иначе патч тихо не сработает.
         import builtins
         original_import = builtins.__import__
 
-        def fake_import(name, *args, **kwargs):
-            if "theme_manager" in name:
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0, *args, **kwargs):
+            if "theme_manager" in name or (fromlist and "theme_manager" in fromlist):
                 raise ImportError("no theme_manager")
-            return original_import(name, *args, **kwargs)
+            return original_import(name, globals, locals, fromlist, level, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", fake_import)
-        # нужно перезагрузить? проще напрямую вызвать функцию с патчем который кидает
-        # Для теста достаточно проверить что при исключении возвращается False
-        # Мы уже запатчили __import__, поэтому _is_rainbow_enabled должен вернуть False
         assert hp._is_rainbow_enabled() is False
         assert hp._is_author_rainbow_enabled() is False
 

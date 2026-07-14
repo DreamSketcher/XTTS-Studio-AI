@@ -55,13 +55,11 @@ if /i "%~1"=="real" (
     exit /b %ERRORLEVEL%
 )
 if /i "%~1"=="all" (
-    "%PY%" -m pytest "%TESTDIR%" -v > "%PYTEST_LOG%" 2>&1
-    type "%PYTEST_LOG%"
+    call :RUN_PYTEST "%TESTDIR%" "-v"
     exit /b %ERRORLEVEL%
 )
 if /i "%~1"=="lf" (
-    "%PY%" -m pytest "%TESTDIR%" --lf -v > "%PYTEST_LOG%" 2>&1
-    type "%PYTEST_LOG%"
+    call :RUN_PYTEST "%TESTDIR%" "--lf -v"
     exit /b %ERRORLEVEL%
 )
 if not "%~1"=="" (
@@ -158,38 +156,24 @@ if not exist "%FILE%" (
     pause
     goto MENU
 )
-echo.
-echo Running: %FILE%
-echo --------------------------------------------------------------
-"%PY%" -m pytest "%FILE%" -v > "%PYTEST_LOG%" 2>&1
-type "%PYTEST_LOG%"
+call :RUN_PYTEST "%FILE%" "-v"
 goto RESULT
 
 REM =============================================
 REM  Run all tests
 REM =============================================
 :RUN_ALL
-echo.
-echo Running all tests from: %TESTDIR%
-echo --------------------------------------------------------------
-"%PY%" -m pytest "%TESTDIR%" > "%PYTEST_LOG%" 2>&1
-type "%PYTEST_LOG%"
+call :RUN_PYTEST "%TESTDIR%" ""
 goto RESULT
 
 :RUN_ALL_VERBOSE
-echo.
-echo Running all tests ^(verbose^) from: %TESTDIR%
-echo --------------------------------------------------------------
-"%PY%" -m pytest "%TESTDIR%" -v > "%PYTEST_LOG%" 2>&1
-type "%PYTEST_LOG%"
+call :RUN_PYTEST "%TESTDIR%" "-v"
 goto RESULT
 
 :RUN_LAST_FAILED
 echo.
 echo Re-running only previously failed tests...
-echo --------------------------------------------------------------
-"%PY%" -m pytest "%TESTDIR%" --lf -v > "%PYTEST_LOG%" 2>&1
-type "%PYTEST_LOG%"
+call :RUN_PYTEST "%TESTDIR%" "--lf -v"
 goto RESULT
 
 REM =============================================
@@ -231,6 +215,23 @@ echo   Log saved: %PYTEST_LOG%
 echo.
 pause
 goto MENU
+
+REM =============================================
+REM  Shared pytest runner
+REM  Runs pytest with output streamed to the console
+REM  in real time (via PowerShell Tee-Object) while
+REM  simultaneously saving it to PYTEST_LOG.
+REM  %1 = target path (file or folder), %2 = extra pytest args (may be empty)
+REM =============================================
+:RUN_PYTEST
+set "PT_TARGET=%~1"
+set "PT_ARGS=%~2"
+echo.
+echo Running: %PT_TARGET% %PT_ARGS%
+echo --------------------------------------------------------------
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "& '%PY%' -m pytest '%PT_TARGET%' %PT_ARGS% 2>&1 | Tee-Object -Variable ptOut; $ptOut | Out-File -FilePath '%PYTEST_LOG%' -Encoding utf8; exit $LASTEXITCODE"
+exit /b %ERRORLEVEL%
 
 REM =============================================
 :END

@@ -5,12 +5,18 @@ import traceback
 from engine.tts_runner import run_tts
 
 
+# Служебный маркер для мгновенной разблокировки q.get() в _loop() при stop().
+# Никогда не попадает в get_queue()/UI — фильтруется явно.
+_STOP_SENTINEL = object()
+
+
 class TaskManager:
     def __init__(self, ui_callback=None):
         self.q = queue.Queue()
         self.current_task = None
         self.running = False
         self.ui_callback = ui_callback
+        self._thread = None
 
     # =========================
     # ДОБАВИТЬ ЗАДАЧУ В ОЧЕРЕДЬ
@@ -30,7 +36,7 @@ class TaskManager:
         result = []
         if self.current_task is not None:
             result.append(self.current_task)
-        result.extend(list(self.q.queue))
+        result.extend(t for t in list(self.q.queue) if t is not _STOP_SENTINEL)
         return result
 
     # =========================
@@ -44,6 +50,8 @@ class TaskManager:
 
         # задача ещё в очереди — помечаем и уведомляем GUI
         for task in list(self.q.queue):
+            if task is _STOP_SENTINEL:
+                continue
             if task.id == task_id:
                 task.cancelled = True
                 task.status = "cancelled"
@@ -57,7 +65,54 @@ class TaskManager:
         if self.running:
             return
         self.running = True
-        threading.Thread(target=self._loop, daemon=True).start()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    # =========================
+    # ОСТАНОВКА WORKER-ПОТОКА (критично при закрытии приложения!)
+    # =========================
+    def stop(self, wait=True, timeout=5.0):
+        """Останавливает воркер-поток осознанно, а не полагается на то,
+        что daemon-поток сам умрёт вместе с процессом.
+
+        - помечает текущую (уже выполняющуюся) задачу отменённой — run_tts
+          сам проверяет is_cancelled() и должен прерваться на ближайшей
+          внутренней проверке;
+        - вычищает и отменяет все ещё не начатые задачи из очереди —
+          при закрытии приложения запускать их незачем;
+        - кладёт служебный sentinel, чтобы разблокировать q.get(), если
+          поток сейчас простаивает в ожидании новых задач;
+        - если wait=True, дожидается фактического завершения потока
+          (join с таймаутом), чтобы вызывающий код мог быть уверен, что
+          воркер реально остановился, а не просто "помечен как остановленный".
+        """
+        if not self.running:
+            return
+        self.running = False
+
+        if self.current_task is not None:
+            self.current_task.cancelled = True
+
+        drained = []
+        try:
+            while True:
+                item = self.q.get_nowait()
+                if item is _STOP_SENTINEL:
+                    continue
+                drained.append(item)
+        except queue.Empty:
+            pass
+        for task in drained:
+            task.cancelled = True
+            task.status = "cancelled"
+            self._notify(task)
+
+        # Разблокируем q.get() в _loop, если поток сейчас простаивает
+        self.q.put(_STOP_SENTINEL)
+
+        thread = self._thread
+        if wait and thread is not None and thread.is_alive():
+            thread.join(timeout=timeout)
 
     # =========================
     # ОБРАБОТКА ОЧЕРЕДИ
@@ -65,6 +120,11 @@ class TaskManager:
     def _loop(self):
         while self.running:
             task = self.q.get()
+
+            if task is _STOP_SENTINEL:
+                self.q.task_done()
+                break
+
             self.current_task = task
 
             # задача отменена до старта
@@ -107,6 +167,8 @@ class TaskManager:
 
             self._notify(task)
             self.q.task_done()
+
+        self.current_task = None
 
     # =========================
     # КОЛБЭК ПРОГРЕССА

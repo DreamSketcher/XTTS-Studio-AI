@@ -1,4 +1,4 @@
-============================= test session starts =============================
+п»ї============================= test session starts =============================
 platform win32 -- Python 3.11.7, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\XTTS Studio
 configfile: pyproject.toml
@@ -6,41 +6,42 @@ plugins: timeout-2.4.0
 timeout: 60.0s
 timeout method: thread
 timeout func_only: False
-collected 615 items / 2 skipped
+collected 621 items / 2 skipped
 
 test_ai_conductor.py .......................                             [  3%]
 test_batch_window.py .....                                               [  4%]
 test_chunker.py .................                                        [  7%]
 test_cpu_gpu.py .........                                                [  8%]
-test_diagnostics.py ..............                                       [ 11%]
+test_diagnostics.py ..............                                       [ 10%]
 test_env_core_init.py .                                                  [ 11%]
 test_env_setup.py ..........                                             [ 12%]
 test_generate_version_manifest.py .........                              [ 14%]
-test_gpt_client.py .................                                     [ 17%]
-test_header_panel.py ..F.............                                    [ 19%]
+test_gpt_client.py .................                                     [ 16%]
+test_header_panel.py ................                                    [ 19%]
 test_history_store.py ........                                           [ 20%]
 test_i18n.py ............                                                [ 22%]
 test_llama_setup.py ........................                             [ 26%]
-test_local_llm_client.py ...............                                 [ 29%]
-test_local_llm_client_download.py ......                                 [ 30%]
+test_local_llm_client.py ...............                                 [ 28%]
+test_local_llm_client_download.py ......                                 [ 29%]
 test_normalizer.py .......................                               [ 33%]
-test_output_naming.py ........                                           [ 35%]
+test_output_naming.py ........                                           [ 34%]
 test_presets.py ........                                                 [ 36%]
-test_presets_patch.py ................                                   [ 39%]
-test_prosody_layer.py ..................                                 [ 42%]
+test_presets_patch.py ................                                   [ 38%]
+test_prosody_layer.py ..................                                 [ 41%]
 test_qc.py ............................                                  [ 46%]
-test_reference_processor.py ...............                              [ 49%]
-test_rvc_catalog.py ................................                     [ 54%]
+test_reference_processor.py ...............                              [ 48%]
+test_rvc_catalog.py ................................                     [ 53%]
 test_rvc_pipeline.py ..............                                      [ 56%]
 test_rvc_setup.py ..............                                         [ 58%]
-test_settings_ui.py ......................                               [ 62%]
+test_settings_ui.py ......................                               [ 61%]
 test_sha256_verification.py ...                                          [ 62%]
-test_smart_pauses.py ..............                                      [ 65%]
-test_styles_menu.py .....                                                [ 66%]
-test_task_manager.py FFF.FFFF.FFFFFFFFF                                  [ 68%]
+test_smart_pauses.py ..............                                      [ 64%]
+test_smoke_startup.py .                                                  [ 64%]
+test_styles_menu.py .....                                                [ 65%]
+test_task_manager.py .......................                             [ 69%]
 test_theme_manager.py ............................                       [ 73%]
-test_torch_setup.py ...............                                      [ 75%]
-test_tts_utils.py .......................FFF                             [ 80%]
+test_torch_setup.py ...............                                      [ 76%]
+test_tts_utils.py ..........................                             [ 80%]
 test_updater.py ...........................                              [ 84%]
 test_updater_cancel_and_removed_files.py ................                [ 87%]
 test_validation.py .......................                               [ 90%]
@@ -48,358 +49,10 @@ test_voice_manager.py ............                                       [ 92%]
 test_voice_panel.py ............                                         [ 94%]
 test_word_replacer.py ................................                   [100%]
 
-================================== FAILURES ===================================
-___ TestRainbowEnabled.test_is_rainbow_enabled_false_when_no_theme_manager ____
-
-self = <test_header_panel.TestRainbowEnabled object at 0x00000250D360F6D0>
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000250E1B71910>
-
-    def test_is_rainbow_enabled_false_when_no_theme_manager(self, monkeypatch):
-        # симулируем отсутствие theme_manager через исключение в импорте
-        import builtins
-        original_import = builtins.__import__
-    
-        def fake_import(name, *args, **kwargs):
-            if "theme_manager" in name:
-                raise ImportError("no theme_manager")
-            return original_import(name, *args, **kwargs)
-    
-        monkeypatch.setattr(builtins, "__import__", fake_import)
-        # нужно перезагрузить? проще напрямую вызвать функцию с патчем который кидает
-        # Для теста достаточно проверить что при исключении возвращается False
-        # Мы уже запатчили __import__, поэтому _is_rainbow_enabled должен вернуть False
-        assert hp._is_rainbow_enabled() is False
->       assert hp._is_author_rainbow_enabled() is False
-E       assert True is False
-E        +  where True = <function _is_author_rainbow_enabled at 0x00000250D35EBEC0>()
-E        +    where <function _is_author_rainbow_enabled at 0x00000250D35EBEC0> = hp._is_author_rainbow_enabled
-
-test_header_panel.py:100: AssertionError
-______________ TestTaskManagerAdd.test_add_starts_if_not_running ______________
-
-self = <test_task_manager.TestTaskManagerAdd object at 0x00000250E187B890>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1E5B710>
-
-    def test_add_starts_if_not_running(self, task_manager):
->       task = Task(text="hello")
-               ^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:25: TypeError
-______________ TestTaskManagerAdd.test_add_notifies_queue_update ______________
-
-self = <test_task_manager.TestTaskManagerAdd object at 0x00000250E187BBD0>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1CB2D90>
-
-    def test_add_notifies_queue_update(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:32: TypeError
-___________ TestGetQueue.test_get_queue_includes_current_and_queued ___________
-
-self = <test_task_manager.TestGetQueue object at 0x00000250E188C150>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1D02550>
-
-    def test_get_queue_includes_current_and_queued(self, task_manager):
->       t1 = Task(text="current")
-             ^^^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:40: TypeError
-_____________________ TestCancelTask.test_cancel_current ______________________
-
-self = <test_task_manager.TestCancelTask object at 0x00000250E188CE90>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1E5A750>
-
-    def test_cancel_current(self, task_manager):
->       task = Task(text="current")
-               ^^^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:59: TypeError
-______________________ TestCancelTask.test_cancel_queued ______________________
-
-self = <test_task_manager.TestCancelTask object at 0x00000250E188D450>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E190A750>
-
-    def test_cancel_queued(self, task_manager):
->       task = Task(text="queued")
-               ^^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:67: TypeError
-___________________ TestCancelTask.test_cancel_nonexistent ____________________
-
-self = <test_task_manager.TestCancelTask object at 0x00000250E188DA10>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1CB2450>
-
-    def test_cancel_nonexistent(self, task_manager):
->       task = Task(text="other")
-               ^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:77: TypeError
-__________________ TestLoop.test_loop_cancelled_before_start __________________
-
-self = <test_task_manager.TestLoop object at 0x00000250E188E050>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E173A050>
-
-    def test_loop_cancelled_before_start(self, task_manager):
->       task = Task(text="cancelled before")
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:89: TypeError
-__________________________ TestLoop.test_loop_error ___________________________
-
-self = <test_task_manager.TestLoop object at 0x00000250E188EC50>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250DF7C8890>
-
-    def test_loop_error(self, task_manager):
->       task = Task(text="fail")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:144: TypeError
-__________________ TestProgressCallback.test_callback_chunk ___________________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E188F350>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1E4F790>
-
-    def test_callback_chunk(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:165: TypeError
-_____________ TestProgressCallback.test_callback_normalized_text ______________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E188FA10>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E16B9250>
-
-    def test_callback_normalized_text(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:173: TypeError
-_______________ TestProgressCallback.test_callback_ai_conductor _______________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E1898150>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E124E150>
-
-    def test_callback_ai_conductor(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:179: TypeError
-_________________ TestProgressCallback.test_callback_progress _________________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E1898890>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1E62290>
-
-    def test_callback_progress(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:186: TypeError
-__________________ TestProgressCallback.test_callback_final ___________________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E188DE50>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1D78590>
-
-    def test_callback_final(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:193: TypeError
-__________________ TestProgressCallback.test_callback_stats ___________________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E187B950>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1A01BD0>
-
-    def test_callback_stats(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:201: TypeError
-____________ TestProgressCallback.test_callback_cancelled_ignores _____________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E1898CD0>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1D60D50>
-
-    def test_callback_cancelled_ignores(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:207: TypeError
-___________ TestProgressCallback.test_callback_check_textbox_ready ____________
-
-self = <test_task_manager.TestProgressCallback object at 0x00000250E1899010>
-task_manager = <engine.task_manager.TaskManager object at 0x00000250E1E58F10>
-
-    def test_callback_check_textbox_ready(self, task_manager):
->       task = Task(text="test")
-               ^^^^^^^^^^^^^^^^^
-E       TypeError: Task.__init__() missing 1 required positional argument: 'voice'
-
-test_task_manager.py:216: TypeError
-____________________ TestGetEmbedding.test_no_torch_raises ____________________
-
-self = <test_tts_utils.TestGetEmbedding object at 0x00000250E18E6710>
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000250E1D63910>
-
-    def test_no_torch_raises(self, monkeypatch):
-        monkeypatch.setattr(utils, "torch", None)
-        with pytest.raises(RuntimeError, match="torch not available"):
->           utils._get_embedding(MagicMock(), "/tmp/ref.wav", "/tmp/cache.pth")
-
-test_tts_utils.py:158: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-
-tts = <MagicMock id='2546409550800'>, ref_wav = '/tmp/ref.wav'
-cache_path = '/tmp/cache.pth'
-
-    def _get_embedding(tts, ref_wav, cache_path):
-        import torch  # type: ignore
-    
-        device = detect_device()
-    
-        if os.path.exists(cache_path):
-            try:
-                data = torch.load(cache_path, map_location=device)
-                print("[XTTS] Embedding loaded from cache")
-                return data["gpt_cond_latent"], data["speaker_embedding"]
-            except Exception as e:
-                print(f"[XTTS] Cache load failed, recomputing: {e}")
-    
-        print("[XTTS] Computing embedding...")
->       gpt_cond_latent, speaker_embedding = tts.synthesizer.tts_model.get_conditioning_latents(
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            audio_path=ref_wav
-        )
-E       ValueError: not enough values to unpack (expected 2, got 0)
-
-..\engine\tts\utils.py:306: ValueError
----------------------------- Captured stdout call -----------------------------
-[XTTS] Computing embedding...
-____________________ TestGetEmbedding.test_load_from_cache ____________________
-
-self = <test_tts_utils.TestGetEmbedding object at 0x00000250E18E6A90>
-tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-30/test_load_from_cache0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000250E1A34790>
-
-    def test_load_from_cache(self, tmp_path, monkeypatch):
-        # мокаем torch
-        mock_torch = MagicMock()
-        mock_torch.load.return_value = {"gpt_cond_latent": "latent", "speaker_embedding": "emb"}
-        monkeypatch.setattr(utils, "torch", mock_torch)
-        monkeypatch.setattr(utils, "detect_device", lambda: "cpu")
-    
-        cache = tmp_path / "cache.pth"
-        cache.write_text("fake")
-    
-        tts = MagicMock()
->       latent, emb = utils._get_embedding(tts, "/tmp/ref.wav", str(cache))
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-test_tts_utils.py:171: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-
-tts = <MagicMock id='2546396799632'>, ref_wav = '/tmp/ref.wav'
-cache_path = 'C:\\Temp\\pytest-of-User\\pytest-30\\test_load_from_cache0\\cache.pth'
-
-    def _get_embedding(tts, ref_wav, cache_path):
-        import torch  # type: ignore
-    
-        device = detect_device()
-    
-        if os.path.exists(cache_path):
-            try:
-                data = torch.load(cache_path, map_location=device)
-                print("[XTTS] Embedding loaded from cache")
-                return data["gpt_cond_latent"], data["speaker_embedding"]
-            except Exception as e:
-                print(f"[XTTS] Cache load failed, recomputing: {e}")
-    
-        print("[XTTS] Computing embedding...")
->       gpt_cond_latent, speaker_embedding = tts.synthesizer.tts_model.get_conditioning_latents(
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            audio_path=ref_wav
-        )
-E       ValueError: not enough values to unpack (expected 2, got 0)
-
-..\engine\tts\utils.py:306: ValueError
----------------------------- Captured stdout call -----------------------------
-[XTTS] Cache load failed, recomputing: invalid load key, 'f'.
-[XTTS] Computing embedding...
-___________________ TestGetEmbedding.test_compute_and_save ____________________
-
-self = <test_tts_utils.TestGetEmbedding object at 0x00000250E18E6E10>
-tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-30/test_compute_and_save0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000250D27F7D10>
-
-    def test_compute_and_save(self, tmp_path, monkeypatch):
-        mock_torch = MagicMock()
-        mock_torch.load.side_effect = Exception("no cache")
-        mock_torch.save = MagicMock()
-        # мок get_conditioning_latents
-        mock_tts = MagicMock()
-        mock_latent = MagicMock()
-        mock_latent.to.return_value = "latent_to"
-        mock_emb = MagicMock()
-        mock_emb.to.return_value = "emb_to"
-        mock_tts.synthesizer.tts_model.get_conditioning_latents.return_value = (mock_latent, mock_emb)
-    
-        monkeypatch.setattr(utils, "torch", mock_torch)
-        monkeypatch.setattr(utils, "detect_device", lambda: "cpu")
-    
-        cache = tmp_path / "new_cache.pth"
-    
-        latent, emb = utils._get_embedding(mock_tts, "/tmp/ref.wav", str(cache))
-        assert latent == "latent_to"
-        assert emb == "emb_to"
->       assert mock_torch.save.called
-E       AssertionError: assert False
-E        +  where False = <MagicMock name='mock.save' id='2546124267152'>.called
-E        +    where <MagicMock name='mock.save' id='2546124267152'> = <MagicMock id='2546152206224'>.save
-
-test_tts_utils.py:196: AssertionError
----------------------------- Captured stdout call -----------------------------
-[XTTS] Computing embedding...
-[XTTS] Embedding saved to cache
 ============================== warnings summary ===============================
 ..\python\xtts_env\Lib\site-packages\pydub\utils.py:14
   C:\XTTS Studio\python\xtts_env\Lib\site-packages\pydub\utils.py:14: DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13
     import audioop
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ===========================
-FAILED test_header_panel.py::TestRainbowEnabled::test_is_rainbow_enabled_false_when_no_theme_manager
-FAILED test_task_manager.py::TestTaskManagerAdd::test_add_starts_if_not_running
-FAILED test_task_manager.py::TestTaskManagerAdd::test_add_notifies_queue_update
-FAILED test_task_manager.py::TestGetQueue::test_get_queue_includes_current_and_queued
-FAILED test_task_manager.py::TestCancelTask::test_cancel_current - TypeError:...
-FAILED test_task_manager.py::TestCancelTask::test_cancel_queued - TypeError: ...
-FAILED test_task_manager.py::TestCancelTask::test_cancel_nonexistent - TypeEr...
-FAILED test_task_manager.py::TestLoop::test_loop_cancelled_before_start - Typ...
-FAILED test_task_manager.py::TestLoop::test_loop_error - TypeError: Task.__in...
-FAILED test_task_manager.py::TestProgressCallback::test_callback_chunk - Type...
-FAILED test_task_manager.py::TestProgressCallback::test_callback_normalized_text
-FAILED test_task_manager.py::TestProgressCallback::test_callback_ai_conductor
-FAILED test_task_manager.py::TestProgressCallback::test_callback_progress - T...
-FAILED test_task_manager.py::TestProgressCallback::test_callback_final - Type...
-FAILED test_task_manager.py::TestProgressCallback::test_callback_stats - Type...
-FAILED test_task_manager.py::TestProgressCallback::test_callback_cancelled_ignores
-FAILED test_task_manager.py::TestProgressCallback::test_callback_check_textbox_ready
-FAILED test_tts_utils.py::TestGetEmbedding::test_no_torch_raises - ValueError...
-FAILED test_tts_utils.py::TestGetEmbedding::test_load_from_cache - ValueError...
-FAILED test_tts_utils.py::TestGetEmbedding::test_compute_and_save - Assertion...
-======= 20 failed, 595 passed, 2 skipped, 1 warning in 62.45s (0:01:02) =======
+============ 621 passed, 2 skipped, 1 warning in 66.41s (0:01:06) =============
