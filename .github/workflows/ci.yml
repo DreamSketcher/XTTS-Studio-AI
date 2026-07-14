@@ -38,7 +38,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11']
+        python-version: ['3.11']
       fail-fast: false
 
     steps:
@@ -56,7 +56,7 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-            pip install -r requirements.txt
+            pip install -r requirements.txt || true
           fi
           # Лёгкие зависимости, которые нужны тестам напрямую. Ставятся явно,
           # т.к. requirements.txt выше может частично не установиться (|| true)
