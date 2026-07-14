@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """engine/gui/statusbar.py — статусбар и прогресс-бар
-(перенесено из gui.py: set_status, set_stage, set_progress, секция STATUS BAR)."""
+(перенесено из gui.py: set_status, set_stage, set_progress, секция STATUS BAR).
+
+PATCH 2026-07-14: плавное появление/исчезновение кнопки отмены
+через AnimationManager (slide-in/slide-out по ширине).
+"""
 import tkinter as tk
 
 import customtkinter as ctk
@@ -18,6 +22,8 @@ status_frame = None
 progress_bar = None
 cancel_button = None
 _on_cancel_callback = None
+
+_CANCEL_BTN_WIDTH = 90
 
 
 def init(**deps):
@@ -52,6 +58,8 @@ def show_cancel_button(on_cancel):
     """
     Показывает кнопку "Отмена" в правом нижнем углу статус-бара.
     on_cancel — функция без аргументов, вызывается по нажатию (из UI-потока).
+
+    PATCH 2026-07-14: плавный slide-in (ширина 1 → _CANCEL_BTN_WIDTH).
     """
     global _on_cancel_callback
     _on_cancel_callback = on_cancel
@@ -60,19 +68,64 @@ def show_cancel_button(on_cancel):
         if cancel_button is None:
             return
         cancel_button.configure(state="normal", text=t("update_cancel_btn"))
+        # Slide-in: стартуем с минимальной ширины
+        cancel_button.configure(width=1)
         cancel_button.pack(side="right", padx=(8, 0))
+        cancel_button.update_idletasks()
+
+        try:
+            from engine.gui.animation_manager import AnimationManager
+
+            mgr = AnimationManager.get()
+            if not mgr._no_op:
+                mgr.animate(
+                    target=cancel_button,
+                    property_setter=lambda v: cancel_button.configure(width=max(1, int(v))),
+                    start=1,
+                    end=_CANCEL_BTN_WIDTH,
+                    duration_ms=200,
+                    easing="ease_out",
+                    animation_id="_cancel_slide_in",
+                )
+            else:
+                cancel_button.configure(width=_CANCEL_BTN_WIDTH)
+        except Exception:
+            cancel_button.configure(width=_CANCEL_BTN_WIDTH)
 
     root.after(0, _show)
 
 
 def hide_cancel_button():
-    """Прячет кнопку "Отмена" — обновление завершилось (успешно, с ошибкой или было отменено)."""
+    """Прячет кнопку "Отмена" — обновление завершилось (успешно, с ошибкой или было отменено).
+
+    PATCH 2026-07-14: плавный slide-out (ширина → 1, затем pack_forget).
+    """
     global _on_cancel_callback
     _on_cancel_callback = None
 
     def _hide():
         if cancel_button is None:
             return
+
+        try:
+            from engine.gui.animation_manager import AnimationManager
+
+            mgr = AnimationManager.get()
+            if not mgr._no_op:
+                current_w = max(1, cancel_button.winfo_width() or _CANCEL_BTN_WIDTH)
+                mgr.animate(
+                    target=cancel_button,
+                    property_setter=lambda v: cancel_button.configure(width=max(1, int(v))),
+                    start=current_w,
+                    end=1,
+                    duration_ms=150,
+                    easing="ease_in",
+                    on_complete=lambda: cancel_button.pack_forget(),
+                    animation_id="_cancel_slide_out",
+                )
+                return
+        except Exception:
+            pass
         cancel_button.pack_forget()
 
     root.after(0, _hide)
@@ -133,7 +186,7 @@ def build_statusbar(right_panel):
     cancel_button = ctk.CTkButton(
         bottom_row,
         text=t("update_cancel_btn"),
-        width=90,
+        width=_CANCEL_BTN_WIDTH,
         height=24,
         corner_radius=6,
         fg_color=getattr(Colors, "BG_INPUT", Colors.BG_CARD),

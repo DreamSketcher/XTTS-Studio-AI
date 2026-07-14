@@ -42,7 +42,7 @@ class TestRVCPostProcessorPaths:
         monkeypatch.setitem(sys.modules, "rvc_python.infer", fake_mod)
         monkeypatch.setitem(sys.modules, "rvc_python", types.ModuleType("rvc_python"))
 
-        with pytest.raises(RVCPipelineError, match="not found"):
+        with pytest.raises(RVCPipelineError, match="не найдена"):
             proc.run_inference_via_lib(
                 input_path="/tmp/in.wav",
                 output_path="/tmp/out.wav",
@@ -73,7 +73,7 @@ class TestRunInferenceViaLib:
 
         monkeypatch.setattr("builtins.__import__", fake_import)
 
-        with pytest.raises(RVCPipelineError, match="not installed"):
+        with pytest.raises(RVCPipelineError, match="не установлена"):
             proc.run_inference_via_lib("/tmp/in.wav", "/tmp/out.wav", "test")
 
     def test_success_mocked(self, tmp_path, monkeypatch):
@@ -142,14 +142,14 @@ class TestRunInferenceViaLib:
         input_wav.write_text("in")
         output_wav = tmp_path / "out.wav"
 
-        with pytest.raises(RVCPipelineError, match="without producing output"):
+        with pytest.raises(RVCPipelineError, match="без выходного WAV-файла"):
             proc.run_inference_via_lib(str(input_wav), str(output_wav), "model")
 
 
 class TestRunInferenceViaCli:
     def test_cli_model_not_found(self, tmp_path):
         proc = RVCPostProcessor(models_dir=str(tmp_path))
-        with pytest.raises(RVCPipelineError, match="not found"):
+        with pytest.raises(RVCPipelineError, match="не найдена"):
             proc.run_inference_via_cli("/tmp/in.wav", "/tmp/out.wav", "nonexistent")
 
     def test_cli_success_mocked(self, tmp_path, monkeypatch):
@@ -159,11 +159,19 @@ class TestRunInferenceViaCli:
         mock_which = MagicMock(return_value="/usr/bin/python")
         monkeypatch.setattr("shutil.which", mock_which)
 
-        mock_run = MagicMock(returncode=0, stdout="", stderr="")
-        monkeypatch.setattr("subprocess.run", lambda *a, **kw: mock_run)
+        output_wav = tmp_path / "out.wav"
 
-        result = proc.run_inference_via_cli("/tmp/in.wav", "/tmp/out.wav", "model")
-        assert result == "/tmp/out.wav"
+        # subprocess.run в реальности запускает CLI, который и создаёт WAV;
+        # мок должен повторить этот побочный эффект, иначе код закономерно
+        # решит, что конвертация не удалась (файла нет).
+        def fake_run(*a, **kw):
+            output_wav.write_text("output data")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr("subprocess.run", fake_run)
+
+        result = proc.run_inference_via_cli("/tmp/in.wav", str(output_wav), "model")
+        assert result == str(output_wav)
 
     def test_cli_failure(self, tmp_path, monkeypatch):
         proc = RVCPostProcessor(models_dir=str(tmp_path))
@@ -179,7 +187,7 @@ class TestRunInferenceViaCli:
 
         monkeypatch.setattr("subprocess.run", fake_run)
 
-        with pytest.raises(RVCPipelineError, match="CLI command failed"):
+        with pytest.raises(RVCPipelineError, match="CLI завершился с кодом"):
             proc.run_inference_via_cli("/tmp/in.wav", "/tmp/out.wav", "model")
 
 

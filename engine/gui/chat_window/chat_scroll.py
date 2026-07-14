@@ -60,7 +60,30 @@ def _scroll_chat_to_bottom(immediate: bool = False):
         try:
             state.chat_canvas.update_idletasks()
             state.chat_canvas.configure(scrollregion=state.chat_canvas.bbox("all"))
-            state.chat_canvas.yview_moveto(1.0)
+
+            # PATCH 2026-07-14: плавный скролл вниз через AnimationManager
+            try:
+                from engine.gui.animation_manager import AnimationManager
+
+                mgr = AnimationManager.get()
+                current_top = state.chat_canvas.yview()[0]
+                # Анимируем только если не на самом низу
+                if current_top < 0.99:
+                    mgr.animate(
+                        target=state.chat_canvas,
+                        property_setter=lambda v: state.chat_canvas.yview_moveto(v),
+                        start=current_top,
+                        end=1.0,
+                        duration_ms=250,
+                        easing="ease_out",
+                        animation_id=f"scroll_bottom_{id(state.chat_canvas)}",
+                    )
+                else:
+                    state.chat_canvas.yview_moveto(1.0)
+            except Exception:
+                # Fallback: мгновенный скролл если AnimationManager недоступен
+                state.chat_canvas.yview_moveto(1.0)
+
         except Exception:
             pass
 
@@ -77,7 +100,7 @@ def _show_new_message_indicator():
 
     state._new_message_btn = _make_button(
         state.composer_outer_ref[0],
-        "↓ Новый ответ — нажмите, чтобы прокрутить",
+        "\u2193 Новый ответ \u2014 нажмите, чтобы прокрутить",
         _scroll_to_new_message,
         bg=_c("ACCENT"),
         fg="#ffffff",
@@ -102,6 +125,34 @@ def _hide_new_message_indicator():
 def _scroll_to_new_message():
     _hide_new_message_indicator()
     _scroll_chat_to_bottom(immediate=True)
+
+
+def _get_scroll_animation_id(canvas) -> str:
+    """Единый ID для smooth-scroll анимации указанного canvas."""
+    return f"smooth_scroll_{id(canvas)}"
+
+
+def _estimate_scroll_delta(canvas, units: int) -> float:
+    """Преобразовать 'units' (строки) в дробь [0,1] для yview_moveto.
+
+    Вычисляет реальную высоту контента и видимую область,
+    чтобы пересчитать 'units' строк в корректную дельту прокрутки.
+    """
+    try:
+        bbox = canvas.bbox("all")
+        if not bbox:
+            return units * 0.02
+        total_h = float(max(1, bbox[3] - bbox[1]))
+        view_h = float(max(1, canvas.winfo_height()))
+        # Каждая "unit" ≈ одна строка текста (~пикселей)
+        # Зная общую высоту в пикселях, считаем долю одной строки
+        # Приблизительно: высота строки ≈ total_h / число элементов
+        # Но проще: 1 строка ≈ 20px (типичная высота строки в чате)
+        LINE_HEIGHT = 20.0
+        fraction_per_unit = LINE_HEIGHT / total_h
+        return units * fraction_per_unit
+    except Exception:
+        return units * 0.02
 
 
 def _chat_mousewheel(event):
@@ -130,7 +181,41 @@ def _chat_mousewheel(event):
                 return None
             units = -3 if delta > 0 else 3
 
-        state.chat_canvas.yview_scroll(units, "units")
+        # PATCH 2026-07-14: плавный скролл через AnimationManager
+        try:
+            from engine.gui.animation_manager import AnimationManager
+
+            mgr = AnimationManager.get()
+
+            # Если менеджер в no-op режиме (нет root) — fallback на прыжковый скролл
+            if mgr._no_op:
+                state.chat_canvas.yview_scroll(units, "units")
+            else:
+                current_top = state.chat_canvas.yview()[0]
+                delta_frac = _estimate_scroll_delta(state.chat_canvas, units)
+                target = max(0.0, min(1.0, current_top + delta_frac))
+
+                anim_id = _get_scroll_animation_id(state.chat_canvas)
+                # Отменяем предыдущую scroll-анимацию для этого canvas
+                if mgr.is_running(anim_id):
+                    mgr.cancel(anim_id)
+                    # После отмены применяем конечное значение, чтобы
+                    # не было "залипания" промежуточного состояния
+                    state.chat_canvas.yview_moveto(current_top)
+
+                mgr.animate(
+                    target=state.chat_canvas,
+                    property_setter=lambda v: state.chat_canvas.yview_moveto(v),
+                    start=current_top,
+                    end=target,
+                    duration_ms=200,
+                    easing="ease_out",
+                    animation_id=anim_id,
+                )
+
+        except Exception:
+            # Fallback: прыжковый скролл при любой ошибке
+            state.chat_canvas.yview_scroll(units, "units")
 
         # Если пользователь докрутил до низа сам — убираем индикатор
         _safe_after(50, lambda: _hide_new_message_indicator() if _is_chat_near_bottom() else None)
@@ -191,6 +276,14 @@ from engine.gui.chat_window.placeholders import (
     _sync_text_placeholder,
     _refresh_placeholder_state,
     _update_input_placeholder_text,
+)
+from engine.gui.chat_window.chat_scroll import (
+    _is_chat_near_bottom,
+    _scroll_chat_to_bottom,
+    _show_new_message_indicator,
+    _hide_new_message_indicator,
+    _scroll_to_new_message,
+    _chat_mousewheel,
 )
 from engine.gui.chat_window.chat_history import (
     _refresh_session_list,

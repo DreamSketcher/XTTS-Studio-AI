@@ -4,6 +4,9 @@ from __future__ import annotations
 
 Создаёт Toplevel, sidebar, scroll-canvas, кэш страниц и совместимые wrappers,
 которые делегируют построение страниц специализированным engine-модулям.
+
+PATCH 2026-07-14: плавный скролл колесом + анимация раскрытия страниц
+через центральный AnimationManager.
 """
 import json
 import os
@@ -164,6 +167,21 @@ def open_gpt_settings(event=None):
     # при Enter/Leave помечаются; page-wheel их не перехватывает.
     _scroll_over_child = {"widget": None}
 
+    # ── PATCH 2026-07-14: helper for smooth scroll delta ────────────────────────
+    def _estimate_scroll_delta(units: int) -> float:
+        """Преобразует 'units' строк в дробь [0,1] для yview_moveto."""
+        try:
+            bbox = canvas.bbox("all")
+            if not bbox:
+                return units * 0.02
+            total_h = float(max(1, bbox[3] - bbox[1]))
+            LINE_HEIGHT = 24.0  # приблизительная высота строки настроек
+            return units * LINE_HEIGHT / total_h
+        except Exception:
+            return units * 0.02
+
+    _SCROLL_ANIM_ID = "_settings_smooth_scroll"
+
     def _on_mousewheel(event):
         try:
             # если курсор над дочерним scrollable (лог-консоль) — не скроллим страницу
@@ -178,7 +196,35 @@ def open_gpt_settings(event=None):
                 if delta == 0:
                     return None
                 units = -3 if delta > 0 else 3
-            canvas.yview_scroll(units, "units")
+
+            # PATCH 2026-07-14: плавный скролл через AnimationManager
+            try:
+                from engine.gui.animation_manager import AnimationManager
+
+                mgr = AnimationManager.get()
+                if mgr._no_op:
+                    canvas.yview_scroll(units, "units")
+                else:
+                    current_top = canvas.yview()[0]
+                    delta_frac = _estimate_scroll_delta(units)
+                    target = max(0.0, min(1.0, current_top + delta_frac))
+
+                    if mgr.is_running(_SCROLL_ANIM_ID):
+                        mgr.cancel(_SCROLL_ANIM_ID)
+                        canvas.yview_moveto(current_top)
+
+                    mgr.animate(
+                        target=canvas,
+                        property_setter=lambda v: canvas.yview_moveto(v),
+                        start=current_top,
+                        end=target,
+                        duration_ms=200,
+                        easing="ease_out",
+                        animation_id=_SCROLL_ANIM_ID,
+                    )
+            except Exception:
+                canvas.yview_scroll(units, "units")
+
             return "break"
         except Exception:
             return None
@@ -206,6 +252,34 @@ def open_gpt_settings(event=None):
             except Exception:
                 pass
 
+    # ── PATCH 2026-07-14: плавное раскрытие страницы ──────────────────────────
+    def _animate_page_expand(frame):
+        """Анимирует высоту фрейма от 0 до естественной высоты (expand-эффект)."""
+        try:
+            from engine.gui.animation_manager import AnimationManager
+
+            mgr = AnimationManager.get()
+            if mgr._no_op:
+                return
+            frame.update_idletasks()
+            target_h = frame.winfo_reqheight()
+            if target_h <= 0:
+                return
+            frame.pack_propagate(False)
+            frame.configure(height=0)
+            mgr.animate(
+                target=frame,
+                property_setter=lambda v: frame.configure(height=max(1, int(v))),
+                start=0,
+                end=target_h,
+                duration_ms=200,
+                easing="ease_out",
+                on_complete=lambda: frame.pack_propagate(True),
+                animation_id=f"_page_expand_{id(frame)}",
+            )
+        except Exception:
+            pass
+
     def show_page(page_id):
         # Скрываем все закэшированные страницы
         for pid, frame in list(_page_cache.items()):
@@ -232,6 +306,8 @@ def open_gpt_settings(event=None):
                 return
 
         frame.pack(fill="both", expand=True)
+        # PATCH 2026-07-14: плавное раскрытие высоты
+        _animate_page_expand(frame)
         update_scroll_region()
         current_page[0] = page_id
 
@@ -323,7 +399,7 @@ def open_gpt_settings(event=None):
         try:
             win.destroy()
         except Exception:
-            pass
+            return "break"
         return "break"
 
     win.bind("<Escape>", close_settings)

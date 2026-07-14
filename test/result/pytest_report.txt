@@ -6,53 +6,288 @@ plugins: timeout-2.4.0
 timeout: 60.0s
 timeout method: thread
 timeout func_only: False
-collected 621 items / 2 skipped
+collected 693 items / 2 skipped
 
 test_ai_conductor.py .......................                             [  3%]
-test_batch_window.py .....                                               [  4%]
-test_chunker.py .................                                        [  7%]
-test_cpu_gpu.py .........                                                [  8%]
-test_diagnostics.py ..............                                       [ 10%]
-test_env_core_init.py .                                                  [ 11%]
-test_env_setup.py ..........                                             [ 12%]
-test_generate_version_manifest.py .........                              [ 14%]
-test_gpt_client.py .................                                     [ 16%]
-test_header_panel.py ................                                    [ 19%]
-test_history_store.py ........                                           [ 20%]
-test_i18n.py ............                                                [ 22%]
-test_llama_setup.py ........................                             [ 26%]
-test_local_llm_client.py ...............                                 [ 28%]
-test_local_llm_client_download.py ......                                 [ 29%]
-test_normalizer.py .......................                               [ 33%]
-test_output_naming.py ........                                           [ 34%]
-test_presets.py ........                                                 [ 36%]
-test_presets_patch.py ................                                   [ 38%]
-test_prosody_layer.py ..................                                 [ 41%]
-test_qc.py ............................                                  [ 46%]
-test_reference_processor.py ...............                              [ 48%]
-test_rvc_catalog.py ................................                     [ 53%]
-test_rvc_pipeline.py ..............                                      [ 56%]
-test_rvc_setup.py ..............                                         [ 58%]
-test_settings_ui.py ......................                               [ 61%]
-test_sha256_verification.py ...                                          [ 62%]
-test_smart_pauses.py ..............                                      [ 64%]
-test_smoke_startup.py .                                                  [ 64%]
-test_styles_menu.py .....                                                [ 65%]
-test_task_manager.py .......................                             [ 69%]
-test_theme_manager.py ............................                       [ 73%]
-test_torch_setup.py ...............                                      [ 76%]
-test_tts_utils.py ..........................                             [ 80%]
-test_updater.py ...........................                              [ 84%]
-test_updater_cancel_and_removed_files.py ................                [ 87%]
-test_validation.py .......................                               [ 90%]
-test_voice_manager.py ............                                       [ 92%]
-test_voice_panel.py ............                                         [ 94%]
+test_animation_manager.py .............................................. [  9%]
+..........................                                               [ 13%]
+test_batch_window.py .....                                               [ 14%]
+test_chunker.py .................                                        [ 16%]
+test_cpu_gpu.py .........                                                [ 18%]
+test_diagnostics.py ..............                                       [ 20%]
+test_env_core_init.py .                                                  [ 20%]
+test_env_setup.py ..........                                             [ 21%]
+test_generate_version_manifest.py .........                              [ 23%]
+test_gpt_client.py .................                                     [ 25%]
+test_header_panel.py ................                                    [ 27%]
+test_history_store.py ........                                           [ 29%]
+test_i18n.py ............                                                [ 30%]
+test_llama_setup.py ........................                             [ 34%]
+test_local_llm_client.py ...............                                 [ 36%]
+test_local_llm_client_download.py ......                                 [ 37%]
+test_normalizer.py .......................                               [ 40%]
+test_output_naming.py ........                                           [ 41%]
+test_presets.py ........                                                 [ 42%]
+test_presets_patch.py ................                                   [ 45%]
+test_prosody_layer.py ..................                                 [ 47%]
+test_qc.py ............................                                  [ 51%]
+test_reference_processor.py ...............                              [ 53%]
+test_rvc_catalog.py ................................                     [ 58%]
+test_rvc_pipeline.py ....FF.FFFF...                                      [ 60%]
+test_rvc_setup.py ..............                                         [ 62%]
+test_settings_ui.py ......................                               [ 65%]
+test_sha256_verification.py ...                                          [ 66%]
+test_smart_pauses.py ..............                                      [ 68%]
+test_smoke_startup.py .                                                  [ 68%]
+test_styles_menu.py .....                                                [ 69%]
+test_task_manager.py .......................                             [ 72%]
+test_theme_manager.py ............................                       [ 76%]
+test_torch_setup.py ...............                                      [ 78%]
+test_tts_utils.py ..........................                             [ 82%]
+test_updater.py ...........................                              [ 86%]
+test_updater_cancel_and_removed_files.py ................                [ 88%]
+test_validation.py .......................                               [ 91%]
+test_voice_manager.py ............                                       [ 93%]
+test_voice_panel.py ............                                         [ 95%]
 test_word_replacer.py ................................                   [100%]
 
+================================== FAILURES ===================================
+_______________ TestRVCPostProcessorPaths.test_model_not_found ________________
+
+self = <test_rvc_pipeline.TestRVCPostProcessorPaths object at 0x00000178111F72D0>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_model_not_found0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000178135B2510>
+
+    def test_model_not_found(self, tmp_path, monkeypatch):
+        proc = RVCPostProcessor(models_dir=str(tmp_path), device="cpu:0")
+        # ��� rvc_python ����� ������ ������, � ����� �������� ����� ���������
+        import sys, types
+    
+        fake_mod = types.ModuleType("rvc_python.infer")
+        fake_mod.RVCInference = MagicMock()
+        monkeypatch.setitem(sys.modules, "rvc_python.infer", fake_mod)
+        monkeypatch.setitem(sys.modules, "rvc_python", types.ModuleType("rvc_python"))
+    
+>       with pytest.raises(RVCPipelineError, match="not found"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'not found'
+E         Actual message: '������ �� �������: C:\\Temp\\pytest-of-User\\pytest-35\\test_model_not_found0\\nonexistent.pth'
+
+test_rvc_pipeline.py:45: AssertionError
+__________________ TestRunInferenceViaLib.test_import_error ___________________
+
+self = <test_rvc_pipeline.TestRunInferenceViaLib object at 0x00000178111F7150>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_import_error0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001781113C110>
+
+    def test_import_error(self, tmp_path, monkeypatch):
+        proc = RVCPostProcessor(models_dir=str(tmp_path), device="cpu:0")
+        # ������ ������ ���� ����� ������ ������ ��������
+        (tmp_path / "test.pth").write_text("fake")
+    
+        # ������ ���������� rvc_python
+        import sys
+    
+        # ������� ���� ����
+        monkeypatch.delitem(sys.modules, "rvc_python.infer", raising=False)
+        monkeypatch.delitem(sys.modules, "rvc_python", raising=False)
+    
+        # ������ __import__ ����� ����� ImportError ��� rvc_python
+        original_import = __import__
+    
+        def fake_import(name, *args, **kwargs):
+            if "rvc_python" in name:
+                raise ImportError("no rvc_python")
+            return original_import(name, *args, **kwargs)
+    
+        monkeypatch.setattr("builtins.__import__", fake_import)
+    
+>       with pytest.raises(RVCPipelineError, match="not installed"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'not installed'
+E         Actual message: '���������� rvc-python �� ����������� ��� ����������'
+
+test_rvc_pipeline.py:76: AssertionError
+---------------------------- Captured stdout call -----------------------------
+[RVC] ������: test | ����������: CPU | index: 0.75 | pitch: +0 | f0: rmvpe
+______________ TestRunInferenceViaLib.test_no_output_file_raises ______________
+
+self = <test_rvc_pipeline.TestRunInferenceViaLib object at 0x00000178111F4450>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_no_output_file_raises0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001781359DDD0>
+
+    def test_no_output_file_raises(self, tmp_path, monkeypatch):
+        proc = RVCPostProcessor(models_dir=str(tmp_path), device="cpu:0")
+        (tmp_path / "model.pth").write_text("fake")
+    
+        import sys, types
+    
+        mock_infer = MagicMock()
+        mock_instance = MagicMock()
+        mock_infer.return_value = mock_instance
+        mock_instance.infer_file.return_value = None  # �� ������ ����
+    
+        fake_mod = types.ModuleType("rvc_python.infer")
+        fake_mod.RVCInference = mock_infer
+        monkeypatch.setitem(sys.modules, "rvc_python.infer", fake_mod)
+        monkeypatch.setitem(sys.modules, "rvc_python", types.ModuleType("rvc_python"))
+    
+        input_wav = tmp_path / "in.wav"
+        input_wav.write_text("in")
+        output_wav = tmp_path / "out.wav"
+    
+>       with pytest.raises(RVCPipelineError, match="without producing output"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'without producing output'
+E         Actual message: '����������� ����������� ��� ��������� WAV-�����'
+
+test_rvc_pipeline.py:145: AssertionError
+---------------------------- Captured stdout call -----------------------------
+[RVC] ������: model | ����������: CPU | index: 0.75 | pitch: +0 | f0: rmvpe
+_______________ TestRunInferenceViaCli.test_cli_model_not_found _______________
+
+self = <test_rvc_pipeline.TestRunInferenceViaCli object at 0x000001781120C450>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_cli_model_not_found0')
+
+    def test_cli_model_not_found(self, tmp_path):
+        proc = RVCPostProcessor(models_dir=str(tmp_path))
+>       with pytest.raises(RVCPipelineError, match="not found"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'not found'
+E         Actual message: '������ �� �������: C:\\Temp\\pytest-of-User\\pytest-35\\test_cli_model_not_found0\\nonexistent.pth'
+
+test_rvc_pipeline.py:152: AssertionError
+_______________ TestRunInferenceViaCli.test_cli_success_mocked ________________
+
+self = <test_rvc_pipeline.TestRunInferenceViaCli object at 0x000001781120C490>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_cli_success_mocked0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001781359E150>
+
+    def test_cli_success_mocked(self, tmp_path, monkeypatch):
+        proc = RVCPostProcessor(models_dir=str(tmp_path))
+        (tmp_path / "model.pth").write_text("fake")
+    
+        mock_which = MagicMock(return_value="/usr/bin/python")
+        monkeypatch.setattr("shutil.which", mock_which)
+    
+        mock_run = MagicMock(returncode=0, stdout="", stderr="")
+        monkeypatch.setattr("subprocess.run", lambda *a, **kw: mock_run)
+    
+>       result = proc.run_inference_via_cli("/tmp/in.wav", "/tmp/out.wav", "model")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_rvc_pipeline.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <engine.rvc_pipeline.RVCPostProcessor object at 0x000001781359DB90>
+input_path = '/tmp/in.wav', output_path = '/tmp/out.wav', model_name = 'model'
+pitch_shift = 0, f0_method = 'rmvpe', index_rate = 0.75
+rvc_cli_dir = 'tools/RVC_CLI'
+
+    def run_inference_via_cli(
+        self,
+        input_path: str,
+        output_path: str,
+        model_name: str,
+        pitch_shift: int = 0,
+        f0_method: str = "rmvpe",
+        index_rate: float = 0.75,
+        rvc_cli_dir: str = "tools/RVC_CLI",
+    ) -> str:
+        """
+        Runs RVC conversion via a CLI subprocess call.
+        Ideal for standalone executable environments or pre-built RVC packages.
+        """
+        model_path = os.path.join(self.models_dir, f"{model_name}.pth")
+        index_path = os.path.join(self.models_dir, f"{model_name}.index")
+    
+        if not os.path.exists(model_path):
+            raise RVCPipelineError(f"������ �� �������: {model_path}")
+        _validate_rvc_checkpoint(model_path)
+        print(
+            f"[RVC] ������: {model_name} | CLI | index: {float(index_rate):.2f} | "
+            f"pitch: {int(pitch_shift):+d} | f0: {f0_method or 'rmvpe'}"
+        )
+    
+        # Build command based on RVC CLI layout
+        # (Standard layout uses a python launcher or shell script)
+        cli_script = os.path.join(rvc_cli_dir, "rvc.py")
+        if not os.path.exists(cli_script):
+            cli_script = "rvc"  # fallback to global command if path not set
+    
+        # Check if RVC script/command is available
+        if not shutil.which("python") and not shutil.which("python3"):
+            raise RVCPipelineError("Python is not found in PATH to call RVC CLI.")
+    
+        cmd = [
+            "python",
+            cli_script,
+            "infer",
+            "--input_path",
+            input_path,
+            "--output_path",
+            output_path,
+            "--pth_path",
+            model_path,
+            "--f0up_key",
+            str(pitch_shift),
+            "--f0method",
+            f0_method,
+            "--index_rate",
+            str(index_rate),
+        ]
+    
+        if os.path.exists(index_path):
+            cmd.extend(["--index_path", index_path])
+    
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8")
+            if not os.path.isfile(output_path):
+>               raise RVCPipelineError("CLI ���������� ��� ��������� WAV-�����")
+E               engine.rvc_pipeline.RVCPipelineError: CLI ���������� ��� ��������� WAV-�����
+
+..\engine\rvc_pipeline.py:288: RVCPipelineError
+---------------------------- Captured stdout call -----------------------------
+[RVC] ������: model | CLI | index: 0.75 | pitch: +0 | f0: rmvpe
+___________________ TestRunInferenceViaCli.test_cli_failure ___________________
+
+self = <test_rvc_pipeline.TestRunInferenceViaCli object at 0x000001781120C410>
+tmp_path = WindowsPath('C:/Temp/pytest-of-User/pytest-35/test_cli_failure0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000178135AB750>
+
+    def test_cli_failure(self, tmp_path, monkeypatch):
+        proc = RVCPostProcessor(models_dir=str(tmp_path))
+        (tmp_path / "model.pth").write_text("fake")
+    
+        monkeypatch.setattr("shutil.which", lambda x: "/usr/bin/python")
+        import subprocess
+    
+        def fake_run(*a, **kw):
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd="rvc", output="fail", stderr="error"
+            )
+    
+        monkeypatch.setattr("subprocess.run", fake_run)
+    
+>       with pytest.raises(RVCPipelineError, match="CLI command failed"):
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'CLI command failed'
+E         Actual message: 'CLI ���������� � ����� 1: fail | error'
+
+test_rvc_pipeline.py:182: AssertionError
+---------------------------- Captured stdout call -----------------------------
+[RVC] ������: model | CLI | index: 0.75 | pitch: +0 | f0: rmvpe
 ============================== warnings summary ===============================
 ..\python\xtts_env\Lib\site-packages\pydub\utils.py:14
   C:\XTTS Studio\python\xtts_env\Lib\site-packages\pydub\utils.py:14: DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13
     import audioop
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-============ 621 passed, 2 skipped, 1 warning in 66.41s (0:01:06) =============
+=========================== short test summary info ===========================
+FAILED test_rvc_pipeline.py::TestRVCPostProcessorPaths::test_model_not_found
+FAILED test_rvc_pipeline.py::TestRunInferenceViaLib::test_import_error - Asse...
+FAILED test_rvc_pipeline.py::TestRunInferenceViaLib::test_no_output_file_raises
+FAILED test_rvc_pipeline.py::TestRunInferenceViaCli::test_cli_model_not_found
+FAILED test_rvc_pipeline.py::TestRunInferenceViaCli::test_cli_success_mocked
+FAILED test_rvc_pipeline.py::TestRunInferenceViaCli::test_cli_failure - Asser...
+======= 6 failed, 687 passed, 2 skipped, 1 warning in 69.26s (0:01:09) ========

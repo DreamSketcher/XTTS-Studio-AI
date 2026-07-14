@@ -245,6 +245,15 @@ def create_main_window(startup_status: str = None):
     # ── ROOT (перенесено из gui.py, секция ROOT) ──
     root = TkinterDnD.Tk()
     set_dark_titlebar(root)
+
+    # PATCH 2026-07-14: AnimationManager — центральный тик-цикл анимаций
+    try:
+        from engine.gui.animation_manager import AnimationManager
+
+        AnimationManager.init(root, fps=60)
+    except Exception:
+        pass
+
     try:
         import os as _os
 
@@ -454,6 +463,16 @@ def create_main_window(startup_status: str = None):
 
     # ── LAUNCH (перенесено из gui.py, секция LAUNCH) ──
     def on_closing():
+        try:
+            # PATCH 2026-07-14: AnimationManager destroy
+            try:
+                from engine.gui.animation_manager import AnimationManager
+
+                AnimationManager.get().destroy()
+            except Exception:
+                pass
+        except Exception:
+            pass
         try:
             if task_manager:
                 try:
