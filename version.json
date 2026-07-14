@@ -6,7 +6,6 @@
     "DOCUMENTATION.RU.md",
     "XTTS Studio.exe",
     "XTTS_DIAG.bat",
-    "ci.yml",
     "engine/__init__.py",
     "engine/ai_conductor.py",
     "engine/audio_backend.py",

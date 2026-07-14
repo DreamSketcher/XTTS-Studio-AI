@@ -10,6 +10,7 @@
 
 <br/>
 
+[![CI](https://github.com/DreamSketcher/XTTS-Studio/actions/workflows/ci.yml/badge.svg)](https://github.com/DreamSketcher/XTTS-Studio/actions/workflows/ci.yml)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11%20x64-0078D6?logo=windows&logoColor=white)](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)
 [![Offline](https://img.shields.io/badge/100%25-Offline-2da44e)](https://github.com/DreamSketcher/XTTS-Studio)
 [![Portable](https://img.shields.io/badge/Portable-no%20install-orange)](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)
