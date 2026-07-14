@@ -67,7 +67,7 @@
   },
   "layout": "classic",
   "audio_repeat_one": true,
-  "console_visible": true,
+  "console_visible": false,
   "console_scroll_pos": 0.0,
   "sidebar_side": "left",
   "toolbar_order": [

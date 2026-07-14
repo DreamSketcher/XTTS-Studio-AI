@@ -252,10 +252,12 @@ def _add_message_bubble(message: dict, smooth_scroll: bool = True, force_scroll:
     text_label.bind("<Button-1>", lambda e: _on_bubble_text_click(e))
     text_label.bind("<B1-Motion>", lambda e: "ignore_disabled_drag" or None)
 
-    # PATCH 2026-07-15: пузыри не перехватывают колесо мыши
-    text_label.bind("<MouseWheel>", lambda e: "break")
-    text_label.bind("<Button-4>", lambda e: "break")
-    text_label.bind("<Button-5>", lambda e: "break")
+    # PATCH 2026-07-15: колесо над текстом пузыря скроллит canvas чата,
+    # а содержимое Text'а не смещается. Вызываем _chat_mousewheel напрямую
+    # и возвращаем "break", чтобы Text не скроллил себя сам.
+    text_label.bind("<MouseWheel>", lambda e: _chat_mousewheel(e) or "break")
+    text_label.bind("<Button-4>", lambda e: _chat_mousewheel(e) or "break")
+    text_label.bind("<Button-5>", lambda e: _chat_mousewheel(e) or "break")
 
     # fill=x только внутри УЖЕ content-sized bubble — не раздувает row
     text_label.pack(fill="x", padx=4, pady=(0, 6))

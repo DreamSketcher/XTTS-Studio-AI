@@ -2,652 +2,626 @@
 
 **[English](./DOCUMENTATION.EN.md)** · **[Русский](./DOCUMENTATION.RU.md)**
 
-Technical reference: architecture, features, data, and project tree.
+This guide explains how to use XTTS Studio, what actually affects the result, and where to look when something goes wrong.
 
-> Quick overview: **[README.EN.md](./README.EN.md)** · **[README.RU.md](./README.RU.md)**  
-> API reference: **[unified_function_reference.EN.md](./unified_function_reference.EN.md)** · **[RU](./unified_function_reference.RU.md)**
+> Quick overview: **[README.EN.md](./README.md)** · **[README.RU.md](./README.ru.md)**  
+> Source code: **[github.com/DreamSketcher/XTTS-Studio](https://github.com/DreamSketcher/XTTS-Studio)**
 
 ---
 
-## Table of contents
+## Contents
 
-1. [About](#about)
+1. [What the application does](#what-the-application-does)
 2. [Quick start](#quick-start)
-3. [Pipeline](#pipeline)
-4. [Features (detailed)](#features-detailed)
-5. [RVC voice enhancement](#rvc-voice-enhancement)
-6. [TTS core (`engine/tts/`)](#tts-core-enginettss)
-7. [AI module](#ai-module)
-8. [Pronunciation dictionary](#pronunciation-dictionary)
-9. [Diagnostics and self-healing](#diagnostics-and-self-healing)
-10. [Update system](#update-system)
-11. [Requirements](#requirements)
-12. [Data and config files](#data-and-config-files)
-13. [Project structure](#project-structure)
-14. [engine/ modules by area](#engine-modules-by-area)
-15. [Development](#development)
-16. [Third-party components / licenses](#third-party-components--licenses)
+3. [Preparing a good reference](#preparing-a-good-reference)
+4. [Practical workflows](#practical-workflows)
+5. [How generation works](#how-generation-works)
+6. [Quality presets and parameters](#quality-presets-and-parameters)
+7. [RVC: models, previews, and cache](#rvc-models-previews-and-cache)
+8. [Text processing](#text-processing)
+9. [Queue, history, and batch processing](#queue-history-and-batch-processing)
+10. [AI features and offline use](#ai-features-and-offline-use)
+11. [CPU, CUDA, and performance](#cpu-cuda-and-performance)
+12. [Files, caches, and settings](#files-caches-and-settings)
+13. [Troubleshooting](#troubleshooting)
+14. [Project architecture](#project-architecture)
+15. [Development and tests](#development-and-tests)
+16. [Licenses](#licenses)
 
 ---
 
-## About
+## What the application does
 
-**XTTS Studio** is a portable, fully offline text-to-speech and voice-cloning application built on **XTTS v2**.
+**XTTS Studio** is a portable Windows application for local speech synthesis and voice cloning based on **XTTS v2**.
 
-- Entry point: `XTTS Studio.exe` → BAT → `python\runtime\python.exe` → `gui.py`
-- Dependencies: `python\xtts_env`
-- Architecture: thin entry · core in `engine/` (no GUI) · UI in `engine/gui/`
+The basic workflow is:
 
-The optional **AI module** supports cloud OpenAI-compatible providers and/or **local LLMs** (no keys, offline).
+```text
+short voice sample + text → finished WAV or MP3
+```
+
+The following features work locally after installation:
+
+- XTTS generation;
+- reference processing;
+- text normalization and chunking;
+- task queue and generation history;
+- local RVC conversion after an RVC model has been installed;
+- local GGUF models through `llama-cpp-python`.
+
+The application does not always need an internet connection. Internet access is used by cloud AI providers, RVC model search/download, local-LLM catalogue downloads, update checks, and installation of some optional components.
+
+> **Important:** “offline” describes synthesis and installed local models. Online catalogues and cloud APIs require a network connection by design.
 
 ---
 
 ## Quick start
 
-1. Download and unpack the archive  
-2. **Do not** use a path containing Cyrillic characters  
-3. Run `XTTS Studio.exe`  
-4. Select a reference clip (~10–20 s)  
-5. Enter text  
-6. Click **🚀 GENERATE**  
-7. Result → `outputs/` (or **🎵 Audio**)
+1. Unpack XTTS Studio into a path without Cyrillic characters.
+2. Run `XTTS Studio.exe`.
+3. Select a voice reference of roughly **10–20 seconds**.
+4. Enter your text.
+5. Choose a preset.
+6. Click **🚀 GENERATE**.
+7. The result appears in `outputs/` and in the **🎵 Audio** window.
 
 ```text
-✔  C:\XTTS\
-✘  C:\Новая папка\XTTS\
+✔ C:\XTTS\
+✔ D:\Apps\XTTS-Studio\
+✘ C:\Новая папка\XTTS\
 ```
 
----
+### What `XTTS Studio.exe` is
 
-## Pipeline
+`XTTS Studio.exe` is not another copy of the speech engine and it does not contain the full application. It is a small launcher converted from the startup BAT file. It contains only the launch paths for the bundled Python runtime, the path to `gui.py`, and the application icon.
+
+The launcher is included in updates because the paths to the runtime or portable environment may need to change when the folder layout changes. Models, settings, and user data are not stored inside the `.exe`.
+
+### How release updates work
+
+The full release archive is required for the first installation or for a rare incompatible upgrade. Normal releases are installed by the client-side updater:
+
+1. the application receives a list of changed files;
+2. only those files are downloaded into temporary staging;
+3. SHA256 is checked when a hash is present in the manifest;
+4. files that will be replaced are backed up;
+5. the update is applied and waits for a successful-start confirmation;
+6. a failed startup can trigger rollback.
+
+This means users do not need to download and unpack the multi-gigabyte portable archive for every normal release. A full reinstall is requested only when the installed version is below `min_app_version` or the portable folder layout changed incompatibly.
+
+`XTTS Studio.exe` is part of the update manifest as well. If launch paths change, the updater replaces the launcher together with the other changed files.
+
+### First run on CPU
+
+The application can run on CPU immediately. This is the most compatible mode, but long texts and RVC take more time.
+
+### Enabling NVIDIA CUDA
+
+If a compatible NVIDIA GPU is installed:
 
 ```text
-Reference → auto-processing → voice library (+ embedding cache)
-   ↓
-Text → (optional GPT improve on raw text) → normalize → word replacer
-   ↓
-(optional) AI Conductor rewrite / per-chunk map
-   ↓
-Chunker (SBD / initials / merge-split) → (optional) prosody / smart pauses*
-   ↓
-For each chunk:
-   · XTTS inference (QC retries when QC is enabled)
-   · (optional) RVCPostProcessor on the chunk WAV
-   · chunk cache key includes RVC settings
-   ↓
-Merge + pauses → loudness normalize → de-esser → WAV / MP3
+⚙ Settings → Acceleration → install the GPU PyTorch variant
 ```
 
-\* Smart pauses / prosody are **skipped** when AI Conductor is active (pauses come from `conductor_map`).
-
-**Important:** RVC runs **for every chunk** after XTTS, not only on the final file. The de-esser runs once on the **merged** export.
+Do not install dependencies into system Python. XTTS Studio uses its own environment in `python/xtts_env`.
 
 ---
 
-## Features (detailed)
+## Preparing a good reference
 
-### Synthesis and cloning
+The reference recording affects the result more than most sliders.
 
-- Fully offline TTS  
-- Portable folder layout  
-- Voice cloning from a short reference  
-- Voice library + embedding cache  
-- No hard text-length limit  
-- RU/EN content  
-- **CUDA on demand**: CPU by default; **⚙ Settings → Acceleration**  
+A good sample contains:
 
-### Interface
+- one speaker;
+- 10–20 seconds of continuous speech;
+- no music or other voices;
+- little room echo, reverb, or aggressive denoising;
+- no clipping;
+- preferably the same language and a similar speaking style to the desired result.
 
-- **⚙ Settings**: updates · CPU/GPU acceleration · diagnostics  
-- Dark/light themes + constructor; immersive titlebar  
-- Layout, dock panels, auto-save  
-- **RU / EN** UI  
-- Input font size and neon glow  
-- Auto-update: SHA256, backup, rollback  
+Poor example: quiet speech under music in a large reverberant room.  
+Good example: normal speech recorded 15–30 cm from a microphone in a quiet room.
 
-### Text
+### What the application does with a reference
 
-| Module | API | Notes |
-|--------|-----|-------|
-| `normalizer.py` | `TextNormalizer.normalize`, `safe_character_filter` | Numbers→words, ordinals, time, abbreviations, **ё restoration** |
-| `word_replacer.py` | `WordReplacer.apply`, `add_rule`, `remove_rule` | **builtin → auto → ai_corrected → custom**; JSON-only; backups ≤30 |
-| `chunker.py` | `TextChunker.chunk_text` | max 175 / target 150 / min 50; initials-aware SBD |
-| `prosody_layer.py` | `ProsodyLayer.process` | Semantic pauses; **off with Conductor** |
-| `smart_pauses.py` | `SmartPauseEngine.get_pause_ms` | Merge pauses; **off with Conductor** |
+`engine/reference_processor.py`:
 
-### Quality
+1. creates a voice folder under `library/`;
+2. converts the file to mono 24 kHz WAV;
+3. trims a limited amount of silence from both ends;
+4. processes at most 30 seconds;
+5. applies compression and normalizes to roughly −16 dBFS;
+6. saves `normalized.wav`;
+7. estimates signal-to-noise ratio (SNR).
 
-- 4 presets; sticky tabs **RVC · Trim · Output · XTTS**  
-- `quality_settings_last_tab` in `settings.json`  
-- Integrated RVC model browser: **Curated · New · Top**, live search, preview before/after download, and cache cleanup  
-- Parameter RVC preview: current **Index · Pitch shift · f0** applied to a short segment of the selected voice reference  
-- QC, de-esser (on merge), trim, chunk cache (key includes RVC)  
+SNR ratings:
 
-**Persistence (verified):** `settings_ui.save_settings()` writes the complete `quality_params` tree, including `rvc_*`, with **read-modify-write**. Real sessions store `rvc_enable`, `rvc_model`, `rvc_index_rate`, `rvc_pitch_shift`, and `rvc_f0_method`.
+| SNR | Rating | Expected result |
+|-----|--------|-----------------|
+| ≥25 dB | excellent | clean and stable reference |
+| 15–25 dB | good | normally sufficient |
+| 8–15 dB | poor | possible noise, unstable timbre, or breathing artifacts |
+| <8 dB | bad | record a cleaner sample if possible |
 
-### Other
-
-Task queue, batch TXT, history, chunk highlighting, statistics, WAV/MP3.
+A previously prepared `library/<voice>/normalized.wav` is not normalized again. This prevents compression from accumulating every time the voice is selected.
 
 ---
 
-## RVC voice enhancement
+## Practical workflows
 
-Optional **Retrieval-based Voice Conversion** stage after XTTS. The feature is split into **setup** (portable install), **catalog/parser/cache** (model discovery and lifecycle), **pipeline** (inference), and the **GUI model browser + shared audio player**.
+### 1. An audiobook chapter
 
-### User workflow
+1. Choose a clean, calm reference.
+2. Start with the **Narrative** preset.
+3. Paste the whole chapter.
+4. Keep QC enabled.
+5. After generation, use the waveform in **History** to inspect questionable places.
+6. Use **↩** to return the text of a history item to the editor and regenerate only the problematic part.
 
-1. Open a quality preset and select the **RVC** tab.
-2. Enable **RVC post-processing**.
-3. Open the model browser and choose **★ Curated**, **🆕 New**, **🔥 Top**, or enter a search query.
-4. Select a row. Press **▶** to hear a short sample without downloading the checkpoint; press **■** to stop.
-5. Press **⬇** for a direct model file, or **🔗** when the source requires a browser/manual download.
-6. After download, the model moves to the local list and retains **▶ / ■** preview when source metadata is available.
-7. Use **🧹** to clear temporary pre-download previews and interrupted downloads. Samples attached to installed models are preserved until those models are deleted.
-8. Select the local model and adjust **Index**, **Pitch**, and **f0 method** for the preset.
-9. Press the separate **▶ parameter preview** button immediately to the left of the model selector. XTTS Studio applies the current settings to the first six seconds of the selected voice reference in a background RVC pass, caches the result, and plays it; **■** stops playback.
+The application splits the text into chunks and merges them with pauses. The UI has no hard text-length limit, but processing time, RAM use, and cache size grow with the input.
 
-### Where RVC is called (generation)
+### 2. A character voice through RVC
 
-In `engine/tts/__init__.py` → `run_tts()`:
+1. First make sure the XTTS output is intelligible without RVC.
+2. Enable RVC and select an installed `.pth` model.
+3. Test it with the separate parameter-preview button.
+4. Adjust Pitch shift.
+5. Adjust Index only if the matching `.index` exists.
+6. Compare the result with RVC disabled, not only with the website demo.
 
-1. Pop `rvc_enable`, `rvc_model`, `rvc_index_rate`, `rvc_pitch_shift`, `rvc_f0_method` from the preset so they never reach XTTS `inference()`.
-2. Include those values in the **chunk cache key** (`_rvc_*` fields) so cache does not mix “same text / different RVC”.
-3. After XTTS writes the chunk WAV (and QC accepts it), if `rvc_enable and rvc_model`:
-   - `get_rvc_processor()` → lazy singleton `RVCPostProcessor`
-   - `run_inference_via_lib(chunk_path, chunk_path, model_name=..., ...)` (in-place convert)
-4. On `RVCPipelineError` / unexpected error: **log and keep the XTTS chunk** (generation does not abort).
+If the base XTTS audio is unintelligible, RVC normally will not repair pronunciation. It changes the timbre of audio that has already been generated.
 
-Facade: `engine/tts_runner.py` re-exports `run_tts`, `get_tts`, `detect_device`, `word_replacer` from `engine.tts`.
+### 3. Multiple TXT files
 
-GUI entry: `engine/gui/generation.py` → `generate()` builds a `Task` with `quality_params={**preset vars including rvc_*}`, queues via `task_manager`.
+Use batch processing for multiple chapters, dialogue files, or ad variants. Every item enters the same queue with its own text and selected settings. A task can be cancelled before it starts or while it is running.
 
-### Pipeline classes (`engine/rvc_pipeline.py`)
+### 4. Russian text with numbers and abbreviations
 
-| Name | Role |
-|------|------|
-| `RVCPipelineError` | Raised on missing model / API mismatch / failed infer |
-| `RVCPostProcessor` | Loads `.pth` (+ optional `.index`), runs `rvc-python` |
-| `XTTSWithRVCPipeline` | XTTS → temp WAV → RVC → final path; skips RVC if no model |
-
-**`RVCPostProcessor.run_inference_via_lib(...)`** (production path):
-
-1. Lazy-import `rvc_python.infer.RVCInference`  
-2. `load_model(model_path, version="v2", index_path=...)`  
-3. `set_params(f0up_key=pitch_shift, f0method=..., index_rate=..., filter_radius=3, resample_sr=0, rms_mix_rate=0.25, protect=0.33)`  
-4. `infer_file(input_path, output_path)` — **exactly two arguments** (pitch is **not** passed here)
-
-Device strings are normalized to `cpu:0` / `cuda:0`.  
-Optional CLI path: `run_inference_via_cli` (`tools/RVC_CLI` / global `rvc`).
-
-**Runtime reporting and model validation**
-
-- One concise start line reports model, CPU/CUDA device, index ratio, pitch, and f0 method.
-- One completion line reports the output filename.
-- Direct `print()` noise and INFO messages from `rvc-python` / `fairseq` are scoped out during inference; warnings/errors still become `RVCPipelineError` where applicable.
-- Before inference, `_validate_rvc_checkpoint` rejects empty checkpoints and HTML/XML responses accidentally stored with a `.pth` extension.
-- CLI stderr/stdout is compacted to the last useful non-noise lines when a subprocess fails.
-
-### Catalog, site parsing, previews, and cache (`engine/rvc_catalog.py`)
-
-The RVC catalog has three user-facing sources. All sources are normalized to the same entry format, so download, preview, page opening, and local metadata use one code path.
-
-| Catalog | Source | Network behavior |
-|---------|--------|------------------|
-| **★ Curated** | `json/rvc_catalog_seed.json` or `models/rvc/catalog_cache.json` | Available offline; remote GitHub catalog is queried only when local data is empty or refresh is forced |
-| **🆕 New** | First page of the public voice-models.com feed (`fetch_data.php`, empty search) | Loaded on demand; cached in memory for 15 minutes |
-| **🔥 Top** | Public `https://voice-models.com/top` table | Parsed on demand; cached in memory for 15 minutes |
-
-#### voice-models.com parsing
-
-The site is treated as a public index, not as a required runtime dependency:
-
-1. `_parse_vm_table(html)` extracts the model page id, title, creator, size, and download link from table rows.
-2. `_row_to_entry(row)` normalizes a parsed row to the catalog entry schema.
-3. `browse_voice_models("new" | "top")` preserves site order and caches normalized entries.
-4. `search_voice_models(query)` uses `fetch_data.php`; autocomplete is a fallback when the table endpoint returns too few rows.
-5. `search_catalog(...)` merges local seed/cache matches with live results and removes duplicate ids.
-6. Network failures are soft: the UI retains local models and the offline curated catalog.
-
-The parser recognizes direct Hugging Face `/resolve/` links, direct `.pth` / `.zip` files, and Google Drive file links. Folder-only or page-only links remain usable through **🔗 Open page** instead of being presented as direct downloads.
-
-#### Audio preview discovery
-
-A preview does **not** require downloading the RVC checkpoint:
-
-1. `can_preview(entry)` checks a remembered local sample, a direct preview URL, or a voice-models.com model page.
-2. `get_preview_url(entry)` lazily requests that model page only after the user presses **▶**.
-3. `_PreviewAudioParser` selects the real `<audio id="vm-fit-audio" ...>` source; embedded script audio URLs are a fallback.
-4. `get_preview_audio_path(entry)` downloads only the short MP3/WAV/OGG/M4A sample, with a 32 MiB safety limit.
-5. The sample is played inside XTTS Studio through the existing pygame player. If pygame is unavailable, `open_preview(entry)` opens the stream in the system browser.
-
-Preview URLs are cached for 24 hours after success. A failed lookup has a short 5-minute cache, so temporarily unavailable pages can be retried later.
-
-#### On-demand parameter preview
-
-The separate button beside the model selector is different from the website sample buttons inside the list. It performs a real local RVC pass with the currently selected downloaded model:
-
-1. The source is the current voice-reference file, not an already converted website preview.
-2. At most the first six seconds are copied to a temporary WAV.
-3. Current `rvc_index_rate`, `rvc_pitch_shift`, and `rvc_f0_method` are applied in a background worker through `get_rvc_processor()`.
-4. The cache fingerprint includes reference path/size/mtime, model path/size/mtime, optional `.index` size/mtime, and all three parameters.
-5. An identical request reuses the WAV in `.parameter_preview_cache` immediately; each model keeps up to six recent variants.
-6. **▶** renders or plays; **■** stops through the shared pygame player. If parameters change during rendering, the stale result is cached but not auto-played.
-
-`Index` changes the audio only when a matching `.index` file exists. Pitch shift and f0 method still apply to models without an index.
-
-#### Local model metadata
-
-Models downloaded through the catalog receive a sidecar file:
+Example:
 
 ```text
-models/rvc/.metadata/<local_model_name>.json
+В 2026 году А. С. Пушкин не мог пользоваться GPU, API и OpenAI.
 ```
 
-The sidecar stores the catalog id, display name, author, source/page URL, local filename, preview URL, and cached preview path. This allows a downloaded local model to keep its **▶ / ■** preview action after it disappears from the remote results list.
+Before XTTS, the text goes through normalization, pronunciation rules, and safe chunking. Initials such as `А. С. Пушкин` should not become three separate sentences.
 
-`get_local_model_entry(name)` also migrates older downloads when it can match their filename to:
+### 5. Narration with AI Conductor
 
-- the offline seed or disk catalog cache;
-- a loaded **New** / **Top** catalog;
-- a live search result seen in the current session.
+Conductor is useful when one long text contains different scenes: a calm introduction, dialogue, and an emotional ending. It can assign different parameters and pauses to individual chunks. For a uniform technical text, a normal preset is often more predictable.
 
-A manually copied `.pth` has no embedded demo audio. If no catalog/page metadata can be matched, the model remains fully usable for conversion but no preview button is shown.
+---
 
-#### Preview and partial-download cache lifecycle
-
-| Path / pattern | Purpose | Cleanup behavior |
-|----------------|---------|------------------|
-| `models/rvc/.preview_cache/` | Short website samples used by list-row ▶ preview | Orphan/pre-download samples can be cleared; samples referenced by installed-model metadata are protected |
-| `models/rvc/.parameter_preview_cache/<model>/` | Locally rendered Index/Pitch/f0 preview WAVs | Kept while the model is installed; incomplete `.part` files and orphan model folders are cleared; the whole folder is removed with the model |
-| `models/rvc/.metadata/*.json` | Source and preview metadata for installed models | Kept by cache cleanup; removed with the corresponding model |
-| `models/rvc/*.part`, `*.part.*`, `*.partial`, `*.tmp`, `*.download`, `*.crdownload` | Interrupted model downloads / temporary files | Removed by **🧹 Clear RVC cache** |
-| `models/rvc/catalog_cache.json` | Disk catalog cache | Not removed by RVC preview/partial cleanup |
-| `models/rvc/*.pth`, `*.index` | Installed model weights and optional index | Never removed by cache cleanup |
-
-`clear_rvc_cache()` returns counts and released bytes. It removes orphan website samples, interrupted-download files, unfinished parameter-preview `.part` files, orphan parameter-preview folders, and abandoned metadata `.tmp` files. Website samples and completed parameter previews for installed models are kept until `delete_local_model(name)`; shared samples still referenced by another installed model are retained.
-
-#### Public API
-
-| Function | Description |
-|----------|-------------|
-| `get_catalog(force_refresh=False)` | Disk cache/seed first; GitHub raw catalog only if empty or forced; one attempt and 6-hour failure cooldown |
-| `browse_voice_models(mode, max_results=50, force_refresh=False)` | Parse public **New** or **Top** catalogs and keep a 15-minute in-memory cache |
-| `search_catalog(query, max_results=30, live=True)` | Local seed/cache match followed by optional live search, with id deduplication |
-| `search_voice_models(query, ...)` | voice-models.com table search plus autocomplete fallback; fails soft |
-| `can_preview(entry)` / `get_preview_url(entry)` | Detect and lazily resolve a model-page audio sample |
-| `get_preview_audio_path(entry, force_refresh=False)` | Download/reuse a short website sample in `.preview_cache` |
-| `get_parameter_preview_cache_path(model_name, fingerprint)` | Return/create the per-model cache path for a locally rendered parameter preview |
-| `prune_parameter_preview_cache(model_name, keep=6)` | Limit cached Index/Pitch/f0 variants for one installed model |
-| `open_preview(entry)` | Browser fallback for website-sample playback |
-| `download_model(entry, progress_callback, cancelled_flag)` | HF `/resolve/`, direct zip/pth, best-effort Google Drive file; zip → largest `.pth` + best `.index`; writes local metadata |
-| `get_local_model_entry(name)` | Restore preview/source metadata for a downloaded model, including legacy matching |
-| `clear_rvc_cache()` | Remove orphan preview and interrupted-download cache while preserving installed models and their samples |
-| `is_downloaded` / `local_model_path` / `delete_local_model` | Local lifecycle helpers; `.pth` is canonical, and delete also handles `.index`, metadata, and the protected sample |
-| `open_model_page(entry)` | Open a non-direct model/folder page in the browser |
-
-Catalog entry **must** have `id`, `name`, `url`. Optional fields include `filename`, `author`, `license`, `description`, `source`, `page_url`, `size`, `sha256`, `downloadable`, `catalog`, `preview_url`, `preview_cache_path`, and `local_name`.
-
-### Install stack (`engine/env_core/rvc_setup.py`)
-
-| Function | Description |
-|----------|-------------|
-| `rvc_status()` | Subprocess probe: can import `RVCInference`? |
-| `install_rvc(progress_cb=None)` | Install into portable `python/xtts_env/Lib/site-packages` |
-| `uninstall_rvc(progress_cb=None)` | Remove rvc_python + fairseq tails (keeps shared packages like `portalocker`) |
-| `detect_torch_build(site_packages)` | Same torch variant as base install (`cu118` / `cpu`) |
-
-**Install highlights (Windows-safe)**
-
-- Prebuilt **fairseq** wheels by CPython version (avoids MSVC compile)  
-- `rvc-python --no-deps`, then real deps from package METADATA  
-- Dynamic constraints so existing **torch+cu118/cpu** is not re-downloaded (~GB)  
-- Retry without `--upgrade` on WinError 5 (locked `.pyd` while app is running)  
-- Auto-heal missing modules after install (import probe loop)  
-- PyYAML force-reinstall (common breakage with `--target` installs)  
-
-### GUI model browser (`engine/gui/rvc_model_dropdown.py`)
-
-`RVCModelDropdown` is a custom model browser embedded in each preset's RVC tab.
-
-**Persistent controls**
-
-- Trigger button: current local model + **▾**.
-- Search field: debounced local results first, live voice-models.com results second.
-- Catalog bar: **★ Curated · 🆕 New · 🔥 Top**. Selecting a catalog clears the current search.
-- **🧹 Clear cache**: removes orphan preview samples and interrupted model downloads after confirmation; installed models and their attached samples are preserved.
-- The result list is a canvas with a vertical scrollbar and wheel handling.
-
-**Row actions**
-
-| Row type | Actions when selected |
-|----------|-----------------------|
-| Local model with known preview metadata | **▶ / ■** play/stop preview · **🗑** delete model |
-| Local model without preview metadata | **🗑** delete model |
-| Remote model with direct file URL | **▶ / ■** preview · **⬇** download; during download **✕** cancels |
-| Remote page/folder without a direct file URL | **▶ / ■** preview when available · **🔗** open page |
-
-Only the selected row renders active action buttons. The action column is reserved before the text column, so long model names are clipped instead of pushing controls outside the popup. Re-rendering after selection preserves the list position and keeps the active row visible.
-
-Preview playback is shared with `engine/gui/player.py`: a cached sample is loaded into `pygame.mixer.music`, **▶** changes to **■**, natural completion restores **▶**, and starting the normal reference player stops the RVC preview (and vice versa). The current player volume is reused.
-
-Remote downloads report byte progress through the status bar. Successful downloads select the new local model and keep its page/preview metadata for later playback.
-
-### Preset settings UI (`engine/gui/presets.py`)
-
-Sticky tabs (do not scroll away): **RVC · Trim · Output · XTTS**
-
-- RVC tab: enable, model dropdown, separate **▶ / ■ parameter preview**, index, pitch, f0 method  
-- Parameter preview uses the active voice reference, runs asynchronously, and reuses the per-model cache for identical settings  
-- Output tab: export format, **de-esser**, QC  
-- Last tab stored as `quality_settings_last_tab` in `settings.json`  
-- Closing the window (button or ✕) calls `save_settings` so **RVC fields persist** inside `quality_params[preset]`  
-
-Preset keys:
+## How generation works
 
 ```text
-rvc_enable, rvc_model, rvc_index_rate, rvc_pitch_shift, rvc_f0_method
+reference
+  → conversion / normalization / SNR
+  → speaker embedding and embedding cache
+
+text
+  → optional AI preprocessing
+  → normalizer
+  → pronunciation dictionary
+  → chunker
+  → optional AI Conductor / prosody / smart pauses
+
+each chunk
+  → XTTS
+  → QC and optional retry
+  → optional RVC
+  → chunk cache
+
+final output
+  → merge with pauses
+  → loudness normalization
+  → optional de-esser
+  → WAV or MP3
 ```
 
-Plus window-level: `quality_settings_last_tab` ∈ `rvc | trim | out | xtts`.
+### What a chunk is
+
+A chunk is a small piece of text generated independently by XTTS. `TextChunker` uses approximately:
+
+```text
+minimum: 50 characters
+target:  150 characters
+maximum: 175 characters
+```
+
+The split is selected around punctuation. The chunker also tries not to leave standalone conjunctions such as “and”, “but”, or relative words at a boundary.
+
+### QC
+
+When `qc_enabled` is active, a rejected chunk can be generated up to three times. Checks include suspicious repetition and implausible duration.
+
+### Chunk cache
+
+Text generated with the same voice and parameters can be reused. The cache key includes RVC settings, so an XTTS-only result is not confused with an RVC-processed result.
 
 ---
 
-## TTS core (`engine/tts/`)
+## Quality presets and parameters
 
-| Symbol | File | Role |
-|--------|------|------|
-| `run_tts(...)` | `tts/__init__.py` | Full job |
-| `get_tts()` / `get_rvc_processor()` | `tts/__init__.py` | Lazy singletons |
-| `tts_runner.py` | project root | Re-export |
-| QC helpers | `tts/qc.py` | Repeats, duration, trim, loudness |
-| `export_audio` | `tts/export.py` | Merge + de-esser + WAV/MP3 |
-| `DeEsser` / `create_de_esser` | `engine/de_esser.py` | 4–9 kHz split-band |
+XTTS Studio includes four presets:
 
-QC performs up to **3** attempts when `qc_enabled`. The de-esser runs in `export_audio` when `de_esser_intensity > 0`.
+| Preset | Typical use |
+|--------|-------------|
+| **High Quality** | general starting point |
+| **Narrative** | books, lectures, calm voice-over |
+| **Dynamic** | videos, short ads, energetic delivery |
+| **Expressive** | emotional lines and scenes; needs a suitable reference |
 
----
+Each preset stores its own values. Changing Narrative does not have to change Dynamic.
 
-## AI module
+Settings tabs:
 
-### Conductor — `ai_conductor.py`
+- **RVC** — model, Index, Pitch shift, f0;
+- **Trim** — trim mode and amount;
+- **Output** — WAV/MP3, QC, de-esser;
+- **XTTS** — temperature, top_p, top_k, repetition penalty, speed, prosody.
 
-`conduct(...)` → list / `{rewritten_text, chunks}` / None / fallback.  
-Ranges: temperature 0.50–0.90, top_p 0.70–0.95, speed 0.75–1.25, pause 0–1200.  
-`rewritten_text` is used only when `rewrite_enabled=True`. Transport: `_call_with_chain`.
+Preset values are stored under `quality_params` in `settings.json`. Saving uses read-modify-write, so unrelated theme and UI keys should not disappear.
 
-### GPT client — `gpt_client.py`
+### A controlled way to tune parameters
 
-`gpt_settings.json`. Chain: **active → built-ins with a key → custom**.  
-`_call_with_chain`, `chat`, `improve_for_tts`, key library, `get_chain_diagnostics`.  
-Exceptions: `AIUnavailable`, rate-limit / network errors.
-
-### Local LLM — `local_llm_client.py`
-
-In-process GGUF (`llama-cpp-python`). HF catalog, download+resume, `call_local_llm` (CPU max_tokens ≤256). GPU→CPU fallback + broken-backend tracking.
-
-### `gui.py`
-
-Single instance, `_ensure_dependencies_before_startup`, recovery UI, `main` + `updater.check_startup_health`.  
-`llama_cpp` / `rvc_python` are **not** critical.
+1. Start with the preset defaults.
+2. Change one parameter at a time.
+3. Compare on the same short text.
+4. Test a question, a statement, and a longer sentence before judging a voice.
+5. Theme/layout presets are for UI appearance; voice-generation values belong to quality presets.
 
 ---
 
-## Pronunciation dictionary
+## RVC: models, previews, and cache
 
-`WordReplacer`. Source of truth: `word_rules.json`.  
-Priority: **builtin → auto → ai_corrected → custom**.  
-Backups ≤30. UI: **📖 Dictionary**. Conductor can write `ai_corrected` entries.
+RVC is a second processing stage: it receives a WAV generated by XTTS and changes its timbre. In this project RVC runs **for every chunk accepted by QC**. If RVC fails, the whole job is not discarded: the original XTTS chunk is kept.
+
+### Model files
+
+```text
+models/rvc/<name>.pth       required model weights
+models/rvc/<name>.index     optional feature index
+```
+
+- `.pth` is always required;
+- `.index` can improve similarity for models trained with an index;
+- the Index slider cannot provide the expected effect without a matching `.index`;
+- a model of unknown origin may still sound poor regardless of its epoch count.
+
+### Model catalogues
+
+The browser contains:
+
+| Section | Data source |
+|---------|-------------|
+| **★ Curated** | local seed and `catalog_cache.json`; available offline |
+| **🆕 New** | first page of the public voice-models.com catalogue |
+| **🔥 Top** | public `/top` section |
+| Search | local entries plus live voice-models.com search |
+
+The network catalogue is a convenient index, not a quality or license guarantee.
+
+Row actions:
+
+- **▶ / ■** — play/stop a demo;
+- **⬇** — download a direct `.pth` or `.zip`;
+- **✕** — cancel a download;
+- **🔗** — open the model page when no direct file is available;
+- **🗑** — delete a local model and its matching `.index`.
+
+### Two different previews
+
+A **catalogue demo** is a finished example supplied by the model source. It helps identify the general timbre, but it does not show how the model will process your own reference.
+
+The **parameter preview** beside the model selector performs a real local RVC pass:
+
+- source: the first 6 seconds of the current voice reference;
+- current Index, Pitch shift, and f0 method are used;
+- rendering runs in the background;
+- an identical combination is reused from cache;
+- up to six recent variants are kept per model;
+- if parameters change during rendering, the stale result is not played automatically.
+
+This is the most useful way to compare parameters on your own source voice.
+
+### Practical tuning
+
+- **Pitch shift**: change it one semitone at a time until the result sounds natural. `+12` and `−12` are octave shifts, not universal “gender” presets.
+- **Index**: start around the middle of the range. Excessive values may strengthen artifacts; without `.index` it will not help.
+- **f0 method**: `rmvpe` is a reasonable default. Alternatives are useful when one model tracks the source pitch poorly.
+
+### Cache and metadata
+
+| Path | Contents |
+|------|----------|
+| `.preview_cache/` | short demos from the website |
+| `.parameter_preview_cache/<model>/` | WAV variants of your parameter preview |
+| `.metadata/<model>.json` | model page, URL, author, and local preview path |
+| `catalog_cache.json` | catalogue cache |
+
+The **🧹** button calls `clear_rvc_cache()`. It removes orphan previews, temporary files, and interrupted downloads. It does not remove installed `.pth`, `.index`, or previews attached to an installed model. Model-specific cache is removed together with the model.
+
+### A local model has no ▶ button
+
+A `.pth` file does not contain demo audio. For an older download, the application tries to restore metadata from the seed, New/Top catalogues, and the current search results. If no match is found, the model remains usable for conversion but preview is unavailable.
 
 ---
 
-## Diagnostics and self-healing
+## Text processing
 
-Package: **`engine/env_core/`** (re-export in `__init__.py`, facade `env_setup`).
+| Stage | Purpose | Example |
+|-------|---------|---------|
+| `normalizer.py` | numbers, dates, abbreviations, safe characters | `2026` → words |
+| `word_replacer.py` | user-defined and automatically discovered pronunciations | `GPU`, brand names, foreign terms |
+| `chunker.py` | splits long text into safe parts | does not treat `А. С. Пушкин` as three sentences |
+| `prosody_layer.py` | semantic pauses and emphasis | a list, contrast, or conclusion |
+| `smart_pauses.py` | pause duration during merge | a period is longer than a comma |
 
-| Module | Main responsibility |
-|--------|---------------------|
-| `cpu_gpu.py` | `detect_cpu`, `detect_gpu` |
-| `diagnostics.py` | `run_full_diagnostics` (isolated process), `get_broken_critical`, `scan_for_garbage` + quarantine, `run_error_recovery`; CRITICAL vs OPTIONAL=`{llama_cpp,rvc_python}` |
-| `torch_setup.py` | `install_torch` / `torch_status` / cu118\|cpu variant |
-| `llama_setup.py` | cuda/vulkan/cpu, broken backends, smoke test |
-| `rvc_setup.py` | RVC install/probe |
+Dictionary priority:
 
-Startup: `gui.py` → full diagnostics → recovery only for critical components.
+```text
+builtin → auto → ai_corrected → custom
+```
+
+A custom rule has the highest priority. Backups are created before changes; up to 30 are retained.
+
+When AI Conductor is active, normal prosody/smart pauses are skipped because pauses come from `conductor_map`.
 
 ---
 
-## Update system
+## Queue, history, and batch processing
 
-**`engine/updater.py`** (not an `Updater` class).
+### Queue
 
-| Function | Description |
-|----------|-------------|
-| `check_update()` | Version comparison + files + sha256 + manual reinstall |
-| `apply_update(...)` | staging → verify → backup → live → removed_files → marker |
-| `check_startup_health()` | `ok` / `first_attempt` / `rolled_back` |
-| `confirm_update_success()` | Called after successful GUI startup |
-| `rollback_update()` / `restart()` | Rollback / restart |
+`TaskManager` runs tasks sequentially in a worker thread. Cancelling the current task sets a flag checked inside `run_tts`. A queued task can be marked cancelled before it starts.
 
-Cancellation works before live-file replacement. When `local < min_app_version`, a full reinstall is required.
+When the application closes, the manager:
+
+- cancels the current task;
+- drains waiting tasks;
+- wakes a blocked `queue.get()` with a sentinel;
+- waits for the worker with a timeout.
+
+### History
+
+`history.json` stores the last **100** generations: date, text, voice, preset, output path, duration, and chunk count.
+
+In the History window:
+
+- each card contains its waveform;
+- clicking the waveform seeks;
+- **▶ / ■** plays and stops;
+- volume is next to playback;
+- **↩** returns the text to the editor.
+
+### Batch processing
+
+Batch mode is intended for multiple TXT files. It uses the same queue and quality parameters as normal generation.
+
+---
+
+## AI features and offline use
+
+### What may use the network
+
+| Action | Internet required? |
+|--------|--------------------|
+| XTTS with a local reference | no |
+| RVC with an installed model | no |
+| RVC catalogue/search/download | yes |
+| Cloud AI provider | yes |
+| Installed local GGUF model | no |
+| Update checks / CUDA component installation | yes |
+
+### AI preprocessing
+
+When AI edit is enabled, raw text is sent to the selected AI provider before the local normalizer runs. If AI is unavailable, the function should return the original text rather than aborting TTS.
+
+### AI Conductor
+
+Conductor can:
+
+- assign parameters per chunk;
+- set `pause_after_ms`;
+- add pronunciation corrections;
+- rewrite the text style when rewrite is enabled.
+
+For maximum privacy, use a local GGUF model or disable AI features.
+
+### API settings
+
+Keys are stored in `gpt_settings.json`. Providers can form a fallback chain: active → other configured built-ins → custom. Never publish `gpt_settings.json` with real API keys.
+
+---
+
+## CPU, CUDA, and performance
+
+| Mode | Advantages | Limitations |
+|------|------------|-------------|
+| CPU | works on most systems; no NVIDIA required | XTTS, RVC, and local LLM are significantly slower |
+| CUDA | faster XTTS and some local workloads | requires a compatible NVIDIA GPU and matching PyTorch |
+
+Practical advice:
+
+- test a short sentence first;
+- start a chapter or batch only after the short test succeeds;
+- RVC adds a separate stage for every chunk;
+- parameter preview may take several seconds on CPU;
+- a stationary progress bar does not always mean a hang: model loading and the first inference are the slowest steps;
+- do not manually install a different torch build over the portable environment.
+
+---
+
+## Files, caches, and settings
+
+| Path | Purpose | Safe to delete manually? |
+|------|---------|--------------------------|
+| `XTTS Studio.exe` | small launcher: bundled-Python path, `gui.py` path, and icon | no, if this is how you start the application |
+| `version.json`, `checksums.txt` | installed version, update manifest, and file verification | not recommended |
+| `settings.json` | GUI settings and all quality presets | yes, but settings reset |
+| `theme_settings.json` | theme, layout, neon, UI presets | yes, but theme settings reset |
+| `gpt_settings.json` | AI providers, models, and keys | only if you are ready to configure them again |
+| `word_rules.json` | pronunciation dictionary | avoid without a backup |
+| `history.json` | last 100 generations | yes; history is cleared |
+| `library/<voice>/` | normalized voice files and embedding data | use the UI when possible |
+| `outputs/` | finished audio | yes, after saving needed files elsewhere |
+| `outputs/_cache/` | chunk cache | yes; repeated generation becomes slower |
+| `models/rvc/` | RVC models and related caches | remove models through the RVC browser |
+| `models/` | also contains local LLM files | do not delete blindly |
+| `logs/` | diagnostic logs | yes, when no investigation is needed |
+
+Quality presets are saved as a complete tree. Theme and other independent keys should survive changes to language or voice because `settings_ui.save_settings()` uses read-modify-write.
+
+---
+
+## Troubleshooting
+
+### The application does not start after moving it
+
+Check the path. Cyrillic characters and some unusual symbols break parts of the portable dependency stack.
+
+### The cloned voice is not similar enough
+
+1. Disable RVC.
+2. Test XTTS with a clean reference.
+3. Remove music, echo, and other speakers.
+4. Try a sample with the same language and speaking style.
+5. Add RVC only after the base voice is intelligible.
+
+### The result sounds noisy or metallic
+
+Typical causes are a poor reference, excessive Index, a weak RVC model, or an extreme Pitch shift. Compare with RVC disabled and change one parameter at a time.
+
+### Index does not change anything
+
+Check for a matching file:
+
+```text
+models/rvc/<model name>.index
+```
+
+Without it, `index_rate` cannot have the expected effect.
+
+### A local RVC model has no preview
+
+The `.pth` file does not contain audio. Preview requires stored metadata or a match in the catalogue.
+
+### An RVC model downloaded but cannot be loaded
+
+An error such as `invalid load key, '<'` usually means an HTML page was saved instead of model weights. Such files should be rejected by checkpoint validation. Download a direct `.pth`/`.zip` or open the source page through **🔗**.
+
+### CPU generation is slow
+
+This is expected for XTTS, RVC, and local LLM. Test a short sentence, close heavy applications, or enable CUDA on a compatible NVIDIA GPU.
+
+### A cloud AI provider does not respond
+
+Check the API key, selected model, provider availability, and VPN requirements. For a fully local workflow, select a GGUF model or disable AI.
+
+### The application rolled back after an update
+
+The updater first applies files through staging and writes a confirmation marker. If the next startup is not confirmed, the backup is restored. Check logs and the system-settings window for diagnostics.
+
+---
+
+## Project architecture
+
+Code is separated by responsibility:
+
+| Path | Responsibility |
+|------|----------------|
+| `gui.py` | application entry and startup checks |
+| `engine/tts/` | generation pipeline, QC, export, and cache |
+| `engine/gui/` | main window and user-facing panels |
+| `engine/env_core/` | diagnostics and torch / llama.cpp / RVC installation |
+| `engine/reference_processor.py` | reference preparation and SNR |
+| `engine/normalizer.py` | text normalization |
+| `engine/chunker.py` | safe text splitting |
+| `engine/word_replacer.py` | pronunciation dictionary |
+| `engine/rvc_pipeline.py` | local RVC inference |
+| `engine/rvc_catalog.py` | catalogues, parsing, download, previews, metadata, cache lifecycle |
+| `engine/task_manager.py` | task queue and worker |
+| `engine/updater.py` | staging, SHA256, backup, rollback |
+| `engine/gui/chat_window/` | AI chat and AI settings |
+
+### Main entry points
+
+```text
+XTTS Studio.exe
+  → gui.py
+  → engine/gui/main_window.py
+  → engine/gui/layout.py + panels
+
+GENERATE button
+  → engine/gui/generation.py
+  → engine/task_manager.py
+  → engine/tts/run_tts()
+```
+
+### Modular AI settings
+
+AI settings are divided by responsibility:
+
+```text
+engine/gui/chat_window/chat_settings.py        facade
+engine/gui/chat_window/engine/settings_window.py
+engine/gui/chat_window/engine/settings_api.py
+engine/gui/chat_window/engine/settings_local.py
+engine/gui/chat_window/engine/settings_environment.py
+engine/gui/chat_window/engine/settings_general.py
+engine/gui/chat_window/engine/settings_context.py
+```
+
+`chat_settings.py` keeps the existing `open_gpt_settings` import while specialized modules build individual pages.
+
+---
+
+## Development and tests
+
+Configuration is stored in `pyproject.toml`:
+
+- Black and Ruff target Python 3.10/3.11;
+- Ruff checks E/F/W; `F821` remains enabled for real undefined names;
+- pytest adds the project root to `pythonpath`;
+- `pytest-timeout` limits one test to 60 seconds.
+
+Run:
+
+```text
+test\run_tests.bat
+```
+
+or from a prepared environment:
+
+```bash
+pytest test
+```
+
+Tests cover the pipeline, chunker, normalizer, updater, environment setup, RVC, task manager, UI modules, and other project areas. The exact count changes with the code; check the current CI run instead of keeping a hard-coded number in documentation.
+
+When refactoring GUI code, keep public facades stable. For example, `chat_settings.py` remains a compatible import/re-export layer even though the settings implementation is split across several files.
 
 ---
 
 ## Requirements
 
-| | CPU | CUDA |
-|---|---|---|
-| OS | Windows 10/11 x64 | same |
-| RAM | 8+ GB | 8+ GB |
-| GPU | — | NVIDIA, 4+ GB VRAM, CC 6.0+ |
+| | Minimum | Comfortable |
+|---|---------|-------------|
+| OS | Windows 10/11 x64 | Windows 10/11 x64 |
+| RAM | 8 GB | 16+ GB for long jobs and local LLM |
+| CPU | modern x64 | more cores reduce waiting time |
+| GPU | not required | NVIDIA, 4+ GB VRAM, CC 6.0+ |
+| Disk | portable build + model storage | extra space for XTTS, RVC, GGUF, and caches |
 
 ---
 
-## Data and config files
+## Licenses
 
-| File | Purpose |
-|------|---------|
-| `settings.json` | session, `quality_params` (including **rvc_***), `quality_settings_last_tab`, theme, language |
-| `gpt_settings.json` | AI providers, keys, models |
-| `word_rules.json` | dictionary |
-| `word_rules_backups/` | dictionary backups |
-| `chat_history.json` / `history.json` | chat / generations (history max 100) |
-| `version.json` / `checksums.txt` | updates |
-| `json/rvc_catalog_seed.json` | offline **★ Curated** catalog |
-| `models/rvc/*.pth`, `*.index` | installed RVC weights and optional feature index |
-| `models/rvc/catalog_cache.json` | disk catalog cache |
-| `models/rvc/.preview_cache/` | short website samples for list-row ▶ preview |
-| `models/rvc/.parameter_preview_cache/<model>/` | locally rendered previews of current Index/Pitch/f0 on the voice reference |
-| `models/rvc/.metadata/*.json` | source/page/preview metadata for downloaded local models |
-| `.llama_broken_backends.json` / `.known_safe_files.json` | backend / diagnostics |
-
----
-
-## Project structure
-
-**Entry point:** `XTTS Studio.exe` → BAT → `python\runtime\python.exe` → `gui.py` → `python\xtts_env`
-
-```text
-XTTS Studio (portable)
-│
-├── gui.py                        ← entry point: launches the interface only
-├── i18n.py                       ← UI localization (RU / EN)
-├── settings.json                 ← session settings (auto)
-├── gpt_settings.json             ← AI provider, keys, models (auto)
-├── word_rules.json               ← pronunciation dictionary
-├── chat_history.json             ← AI chat session history
-├── history.json                  ← generation history
-├── version.json                  ← version and update-system data
-├── env_cache.cfg                 ← environment-scan cache
-├── generate_version_manifest.py  ← generates version manifest for updates
-├── theme_settings.json           ← user theme/color scheme
-├── checksums.txt                 ← SHA256 for update verification
-├── .llama_broken_backends.json   ← broken llama.cpp backends (auto)
-│
-├── engine/                       ═══ TECHNICAL CORE (no tkinter) ═══
-│   │
-│   │   ── generation pipeline ──
-│   ├── tts_runner.py
-│   ├── chunker.py
-│   ├── normalizer.py
-│   ├── word_replacer.py
-│   ├── text_utils.py
-│   ├── smart_pauses.py
-│   ├── prosody_layer.py
-│   ├── de_esser.py
-│   ├── rvc_pipeline.py           ← RVC post-process (rvc-python)
-│   ├── rvc_catalog.py            ← RVC parsing / browse / preview / download / cache
-│   │
-│   │   ── AI module ──
-│   ├── ai_conductor.py
-│   ├── chat_window.py
-│   ├── gpt_client.py
-│   ├── local_llm_client.py
-│   ├── env_setup.py
-│   │
-│   │   ── voice and audio ──
-│   ├── reference_processor.py
-│   ├── voice_manager.py
-│   ├── audio_backend.py
-│   │
-│   │   ── infrastructure ──
-│   ├── task_manager.py
-│   ├── task_models.py
-│   ├── batch_window.py
-│   ├── updater.py
-│   ├── paths.py
-│   ├── settings_store.py
-│   ├── history_store.py
-│   ├── output_naming.py
-│   ├── text_tools.py
-│   └── logging_utils.py
-│
-│   ├── tts/
-│   │   ├── __init__.py           ← generation core
-│   │   ├── cache.py
-│   │   ├── device.py
-│   │   ├── export.py
-│   │   ├── qc.py
-│   │   └── utils.py
-│   │
-│   └── gui/                      ═══ INTERFACE (tkinter / customtkinter) ═══
-│       ├── main_window.py
-│       ├── layout.py
-│       ├── theme.py
-│       ├── theme_manager.py
-│       ├── colors.py
-│       ├── widgets.py
-│       ├── tooltip.py
-│       ├── gradient.py
-│       ├── neon_widgets.py
-│       ├── helpers.py
-│       ├── header_panel.py
-│       ├── voice_panel.py
-│       ├── player.py             ← reference + RVC preview shared pygame player
-│       ├── queue_panel.py
-│       ├── batch_panel.py
-│       ├── chat_panel.py
-│       ├── word_replacer_panel.py
-│       ├── console.py
-│       ├── textbox.py
-│       ├── toolbar.py
-│       ├── statusbar.py
-│       ├── generation.py
-│       ├── presets.py            ← quality presets + parameter-preview button
-│       ├── rvc_model_dropdown.py ← RVC browse / search / preview / cache UI
-│       ├── settings_ui.py
-│       ├── styles_menu.py
-│       ├── updates.py
-│       ├── chat_window.py
-│       ├── ai_conductor.py
-│       ├── ai_status_window.py
-│       ├── history_window.py
-│       ├── output_window.py
-│       ├── batch_window.py
-│       ├── word_replacer_window.py
-│       ├── dialogs.py
-│       └── chat_window/          ═══ modular AI chat ═══
-│           ├── ...
-│           └── engine/
-│
-├── json/
-│   └── rvc_catalog_seed.json     ← offline RVC seed catalog
-│
-├── models/
-│   ├── xtts_v2/                  ← XTTS model (offline)
-│   └── rvc/
-│       ├── *.pth / *.index       ← installed RVC models
-│       ├── catalog_cache.json    ← disk catalog cache
-│       ├── .preview_cache/       ← short website ▶ samples
-│       ├── .parameter_preview_cache/ ← local Index/Pitch/f0 preview WAVs
-│       └── .metadata/            ← source/preview sidecars for local models
-├── library/<voice_name>/         ← voice profiles + embedding cache
-├── outputs/_cache/               ← finished files + chunk cache
-├── logs/
-├── reference/
-├── word_rules_backups/
-├── test/                         ← pytest
-├── tools/
-├── ffmpeg/bin/
-└── python/
-    ├── xtts_env/
-    └── runtime/                  ← Python 3.11 portable
-```
-
-> `engine/gui/chat_window.py` assembles the chat UI; `engine/gui/chat_window/` holds submodules and nested `engine/` for generation/sessions.
-
----
-
-## engine/ modules by area
-
-### Generation pipeline
-
-- `tts_runner` (facade) · `tts/*` · `chunker` · `normalizer` · `word_replacer` · `smart_pauses` / `prosody_layer` (off with Conductor) · `de_esser`.
-- **`rvc_pipeline.py`** — `RVCPostProcessor` / `XTTSWithRVCPipeline` through `rvc-python`.
-- **`rvc_catalog.py`** — Curated/New/Top parsing, live search, website preview, parameter-preview cache, metadata, model downloads, and protected cache cleanup.
-- **`gui/rvc_model_dropdown.py`** — catalog tabs, search, selected-row actions, preview/download/delete, and the 🧹 button.
-- **`gui/presets.py`** — separate ▶ / ■ button for a real preview of current Index/Pitch/f0 on the voice reference.
-- **`gui/player.py`** — shared pygame transport for the voice reference and RVC preview.
-- **`env_core/rvc_setup.py`** — portable RVC install, uninstall, and probe.
-
-### AI
-
-`ai_conductor` · `gpt_client` · `local_llm_client` · chat UI
-
-### Voice
-
-`reference_processor` (trim + SNR) · `voice_manager` · `de_esser`
-
-### Infrastructure
-
-`task_manager` · `history_store` · `updater` · `settings_ui` · `env_core/*`.  
-`i18n.py` contains RU/EN keys for catalogs, preview/playback, parameter preview, and RVC cache cleanup.
-
----
-
-## Development
-
-AI-assisted tooling; pytest in `test/`; utilities in `tools/`.  
-Architecture and UI polish — with Arena.ai Agent Mode and Claude.
-
-Tests: **pytest** in `test/` (`RUN_TESTS.bat`)
-
-platform win32 -- Python 3.11.7, pytest-9.1.1, pluggy-1.6.0
-rootdir: C:\XTTS Studio
-configfile: pyproject.toml
-plugins: timeout-2.4.0
-timeout: 60.0s
-timeout method: thread
-timeout func_only: False
-collected 621 items / 2 skipped
-
----
-
-## Third-party components / licenses
-
-- **XTTS v2** (Coqui) — [CPML](https://coqui.ai/cpml)  
-- Project license: [LICENSE.md](./LICENSE.md)  
-- Community RVC models remain under their own licenses  
+- **XTTS v2** is used under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml).
+- Project code is covered by [LICENSE.md](./LICENSE.md).
+- RVC and GGUF models may have their own licenses. Availability in a catalogue does not imply permission for commercial use.
 
 ---
 
@@ -657,4 +631,4 @@ collected 621 items / 2 skipped
 
 ---
 
-**XTTS Studio** · by EXIZ10TION · [README EN](./README.EN.md) · [README RU](./README.RU.md) · [RU docs](./DOCUMENTATION.RU.md) · [License](./LICENSE.md)
+**XTTS Studio** · by EXIZ10TION · [GitHub](https://github.com/DreamSketcher/XTTS-Studio) · [README EN](./README.md) · [README RU](./README.ru.md) · [License](./LICENSE.md)
