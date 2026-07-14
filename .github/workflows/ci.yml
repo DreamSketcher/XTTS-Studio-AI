@@ -62,6 +62,7 @@ jobs:
           # т.к. requirements.txt выше может частично не установиться (|| true)
           # из-за тяжёлых пакетов (coqui-tts / llama-cpp-python) на голом раннере.
           pip install num2words
+          pip install customtkinter pydub pygame
           pip install pytest pytest-cov pytest-timeout ruff==0.6.9 black==24.10.0
         shell: bash
 
