@@ -1346,12 +1346,15 @@ class RVCModelDropdown:
 
         preview_factory = None
         if preview_available:
-            preview_factory = lambda row: self._build_preview_button(
-                row,
-                local_entry,
-                key,
-                local=True,
-            )
+
+            def preview_factory(row):
+                return self._build_preview_button(
+                    row,
+                    local_entry,
+                    key,
+                    local=True,
+                )
+
         self._row_frame(
             name,
             key,
@@ -1439,12 +1442,15 @@ class RVCModelDropdown:
             label = f"{short}"
         preview_factory = None
         if preview_available:
-            preview_factory = lambda parent: self._build_preview_button(
-                parent,
-                entry,
-                key,
-                local=False,
-            )
+
+            def preview_factory(parent):
+                return self._build_preview_button(
+                    parent,
+                    entry,
+                    key,
+                    local=False,
+                )
+
         row = self._row_frame(
             label,
             key,
