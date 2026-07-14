@@ -143,7 +143,7 @@ A longer passage, showing consistent quality with no length limit.
 
 ## Download
 
-> ⚠️ Google Drive may show *“file too large to scan”* — normal for portable builds.
+> Git Realeases
 
 **[📥 Download XTTS Studio](https://github.com/DreamSketcher/XTTS-Studio/releases/tag/v1)**
 
