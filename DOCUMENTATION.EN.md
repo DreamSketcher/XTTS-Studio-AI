@@ -57,19 +57,13 @@ The application does not always need an internet connection. Internet access is 
 
 ## Quick start
 
-1. Unpack XTTS Studio into a path without Cyrillic characters.
-2. Run `XTTS Studio.exe`.
-3. Select a voice reference of roughly **10–20 seconds**.
-4. Enter your text.
-5. Choose a preset.
-6. Click **🚀 GENERATE**.
-7. The result appears in `outputs/` and in the **🎵 Audio** window.
+1. Run `XTTS Studio.exe`.
+2. Select a voice reference of roughly **10–20 seconds**.
+3. Enter your text.
+4. Choose a preset.
+5. Click **🚀 GENERATE**.
+6. The result appears in `outputs/` and in the **🎵 Audio** window.
 
-```text
-✔ C:\XTTS\
-✔ D:\Apps\XTTS-Studio\
-✘ C:\Новая папка\XTTS\
-```
 
 ### What `XTTS Studio.exe` is
 
