@@ -7,6 +7,8 @@
 клик по которой скрывает или показывает левую панель. Положение панели
 сохраняется в settings.json (ключ left_panel_visible) и восстанавливается
 при следующем запуске.
+
+PATCH 2026-07-15: плавный slide боковой панели через AnimationManager.
 """
 import json
 import os
@@ -83,8 +85,56 @@ def _save_panel_state() -> None:
         pass
 
 
+# ── PATCH 2026-07-15: анимированный toggle ──────────────────────
+
+
+def _animate_left_panel_width(target_width: int, duration_ms: int = 250, on_complete=None):
+    """Плавно меняет ширину left_panel через публичный AnimationManager.animate()."""
+    try:
+        from engine.gui.animation_manager import AnimationManager
+
+        try:
+            left_panel.update_idletasks()
+            start_width = int(left_panel.winfo_width())
+        except Exception:
+            start_width = 1
+        if start_width <= 0:
+            try:
+                start_width = int(left_panel.cget("width"))
+            except Exception:
+                start_width = 1
+
+        def _set_width(value):
+            left_panel.configure(width=max(0, int(round(value))))
+
+        mgr = AnimationManager.get()
+        mgr.animate(
+            target=left_panel,
+            property_setter=_set_width,
+            start=start_width,
+            end=max(0, int(target_width)),
+            duration_ms=duration_ms,
+            easing="ease_out",
+            on_complete=on_complete,
+            animation_id="_sidebar_slide",
+        )
+    except Exception:
+        try:
+            left_panel.configure(width=target_width)
+        except Exception:
+            pass
+        if on_complete:
+            try:
+                on_complete()
+            except Exception:
+                pass
+
+
 def toggle_left_panel(event=None):
-    """Скрывает/показывает левую панель (клик по полосе-переключателю)."""
+    """Скрывает/показывает левую панель (клик по полосе-переключателю).
+
+    PATCH 2026-07-15: плавная анимация ширины вместо pack_forget/pack.
+    """
     global _left_visible
     try:
         preset = _current_layout_preset
@@ -93,52 +143,66 @@ def toggle_left_panel(event=None):
         # симметричный зазор — кнопка визуально по центру
         gutter = 2
 
-        # --- оптимизация против лагов на правой стороне ---
-        # Замораживаем обновление геометрии у main_container на время перекладки
-        try:
-            main_container.pack_propagate(False)
-        except Exception:
-            pass
-
         if _left_visible:
-            left_panel.pack_forget()
-            # стрелка указывает В СТОРОНУ скрытой панели
-            _update_toggle_arrow()
-        else:
-            # показываем панель с учётом стороны
-            # ВАЖНО (фикс лагов правой панели): сначала прячем правую панель (контент),
-            # затем пакуем sidebar, затем toggle, затем контент обратно —
-            # так pack-геометрия не пересчитывает огромный text_box дважды
-            if _sidebar_side == "right":
-                # Снимаем контент и toggle, чтобы вставить sidebar в правильном порядке без "скачков"
+            # PATCH 2026-07-15: плавный slide-out
+            def _after_hide():
+                global _left_visible
                 try:
-                    right_panel.pack_forget()
-                    toggle_strip.pack_forget()
+                    left_panel.pack_forget()
                 except Exception:
                     pass
-                # Пакуем в нужном порядке: контент слева, toggle, sidebar справа
-                right_panel.pack(side="left", fill="both", expand=True)
-                toggle_strip.pack(side="left", fill="y", padx=(gutter, gutter))
+                _left_visible = False
+                _save_panel_state()
+                _update_toggle_arrow()
+                try:
+                    left_panel.pack_propagate(False)
+                except Exception:
+                    pass
+                try:
+                    main_container.update_idletasks()
+                except Exception:
+                    pass
+
+            _animate_left_panel_width(0, duration_ms=250, on_complete=_after_hide)
+        else:
+            # PATCH 2026-07-15: плавный slide-in
+            if _sidebar_side == "right":
+                # Фиксированные элементы справа пакуются ПЕРВЫМИ от правого
+                # края, а expand-контент — последним. Иначе right_panel,
+                # упакованный первым с expand=True, забирает pack-cavity и
+                # перекрывает/вытесняет toggle и раскрываемый sidebar.
+                for widget in (left_panel, toggle_strip, right_panel):
+                    try:
+                        widget.pack_forget()
+                    except Exception:
+                        pass
+                left_panel.pack(side="right", fill="y", padx=(gutter, 0))
+                toggle_strip.pack(side="right", fill="y", padx=(gutter, gutter))
                 try:
                     toggle_strip.pack_propagate(False)
                 except Exception:
                     pass
-                left_panel.pack(side="right", fill="y", padx=(gutter, 0))
+                right_panel.pack(side="left", fill="both", expand=True)
             else:
                 left_panel.pack(side="left", fill="y", padx=(0, gutter), before=toggle_strip)
-            _update_toggle_arrow()
-        _left_visible = not _left_visible
-        _save_panel_state()
 
-        # Размораживаем и принудительно обновляем — убирает "лаг" при правом сайдбаре
-        try:
-            main_container.pack_propagate(True)
-            main_container.update_idletasks()
-            # один быстрый update, без ожидания очереди событий
-            tl = main_container.winfo_toplevel()
-            tl.update_idletasks()
-        except Exception:
-            pass
+            left_panel.configure(width=1)
+            left_panel.pack_propagate(False)
+            left_panel.update_idletasks()
+
+            target_w = preset.get("left_panel_width", 260)
+
+            def _after_show():
+                global _left_visible
+                _left_visible = True
+                _save_panel_state()
+                _update_toggle_arrow()
+                try:
+                    main_container.update_idletasks()
+                except Exception:
+                    pass
+
+            _animate_left_panel_width(target_w, duration_ms=250, on_complete=_after_show)
     except Exception:
         pass
 
@@ -202,13 +266,14 @@ def apply_sidebar_side(side: str) -> bool:
                 pass
 
         if side == "right":
-            # Контент слева, затем toggle, затем сайдбар справа
-            right_panel.pack(side="left", fill="both", expand=True)
-            # toggle_strip между контентом и сайдбаром — симметричные отступы
-            toggle_strip.pack(side="left", fill="y", padx=(gutter, gutter))
-            toggle_strip.pack_propagate(False)
+            # С правой стороны сначала резервируем sidebar и toggle от
+            # правого края. Expand-контент пакуется последним и занимает
+            # только оставшееся пространство слева.
             if _left_visible:
                 left_panel.pack(side="right", fill="y", padx=(gutter, 0))
+            toggle_strip.pack(side="right", fill="y", padx=(gutter, gutter))
+            toggle_strip.pack_propagate(False)
+            right_panel.pack(side="left", fill="both", expand=True)
         else:
             # Сайдбар слева (классика)
             if _left_visible:
@@ -220,6 +285,14 @@ def apply_sidebar_side(side: str) -> bool:
 
         _sidebar_side = side
         _update_toggle_arrow()
+
+        # PATCH 2026-07-15: плавная анимация ширины после repack
+        if _left_visible:
+            left_panel.configure(width=1)
+            left_panel.pack_propagate(False)
+            target_w = preset.get("left_panel_width", 260)
+            _animate_left_panel_width(target_w, duration_ms=200)
+
         # обновляем геометрию
         try:
             main_container.update_idletasks()
@@ -347,17 +420,15 @@ def build_layout(root, preset: dict | None = None, sidebar_side: str | None = No
 
     # ── Восстановление сохранённого положения панели ──
     if not _load_saved_panel_state():
-        # панель была скрыта в прошлой сессии — скрываем без записи в файл
+        # Панель была скрыта в прошлой сессии — скрываем без записи в файл.
+        # Сначала синхронизируем state, затем обновляем любой тип кнопки
+        # через общий helper (CTkButton или fallback tk.Label).
         try:
             left_panel.pack_forget()
-            # стрелка указывает в сторону скрытой панели
-            if _sidebar_side == "right":
-                _toggle_arrow.config(text="◀")
-            else:
-                _toggle_arrow.config(text="▶")
-            _left_visible = False
         except Exception:
             pass
+        _left_visible = False
+        _update_toggle_arrow()
 
     return main_container, left_panel, right_panel
 
@@ -374,6 +445,8 @@ def apply_layout_preset(preset: dict) -> bool:
     На практике left_panel создаётся с pack_propagate(False) (см. build_layout
     выше), поэтому left_panel.configure(width=...) и pack_configure(padx=...)
     у main_container/left_panel/toggle_strip применяются мгновенно и безопасно.
+
+    PATCH 2026-07-15: анимированная смена ширины через AnimationManager.
     """
     global _current_layout_preset
     _current_layout_preset = preset.copy()
@@ -388,11 +461,14 @@ def apply_layout_preset(preset: dict) -> bool:
     except Exception:
         pass
 
-    # 2. Ширина левой панели — теперь применяется live (см. docstring выше)
+    # 2. Ширина левой панели — PATCH 2026-07-15: плавная анимация
     try:
         if left_panel is not None:
             new_width = preset.get("left_panel_width", 260)
-            left_panel.configure(width=new_width)
+            if _left_visible:
+                _animate_left_panel_width(new_width, duration_ms=200)
+            else:
+                left_panel.configure(width=new_width)
             changed = True
     except Exception:
         pass
@@ -408,8 +484,6 @@ def apply_layout_preset(preset: dict) -> bool:
         pass
 
     # 4-5. Симметричный зазор вокруг кнопки-переключателя
-    # Раньше: слева panel_spacing (2px), справа right_panel_left_pad (8px) —
-    # кнопка визуально прижата влево. Теперь — центрируем.
     try:
         spacing = preset.get("panel_spacing", 2)
         right_pad = preset.get("right_panel_left_pad", 8)
@@ -421,7 +495,6 @@ def apply_layout_preset(preset: dict) -> bool:
                 left_panel.pack_configure(padx=(0, gutter))
             changed = True
         if toggle_strip is not None:
-            # симметрично с обеих сторон
             toggle_strip.pack_configure(padx=(gutter, gutter))
             changed = True
     except Exception:

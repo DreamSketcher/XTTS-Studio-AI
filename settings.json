@@ -1,7 +1,7 @@
 {
   "language": "auto",
   "quality": "Высокое качество",
-  "ref_path": "C:\\XTTS Studio\\library\\Диктор Наталья Арсеньева\\normalized.wav",
+  "ref_path": "C:\\XTTS Studio\\library\\Звук Женского диктора на русском языке (1)\\normalized.wav",
   "use_gpt": false,
   "word_replacer_enabled": true,
   "lang_split_enabled": true,
@@ -28,10 +28,7 @@
       "rvc_model": "Не выбрана",
       "rvc_index_rate": 0.75,
       "rvc_pitch_shift": 0,
-      "rvc_f0_method": "rmvpe",
-      "ai_rewrite_enabled": false,
-      "ai_rewrite_context": "",
-      "ai_rewrite_negative": ""
+      "rvc_f0_method": "rmvpe"
     },
     "Нарратив": {
       "qc_enabled": true,
@@ -51,10 +48,7 @@
       "rvc_model": "",
       "rvc_index_rate": 0.85,
       "rvc_pitch_shift": 0,
-      "rvc_f0_method": "rmvpe",
-      "ai_rewrite_enabled": false,
-      "ai_rewrite_context": "",
-      "ai_rewrite_negative": ""
+      "rvc_f0_method": "rmvpe"
     },
     "Динамика": {
       "qc_enabled": true,
@@ -74,10 +68,7 @@
       "rvc_model": "",
       "rvc_index_rate": 0.65,
       "rvc_pitch_shift": 0,
-      "rvc_f0_method": "pm",
-      "ai_rewrite_enabled": false,
-      "ai_rewrite_context": "",
-      "ai_rewrite_negative": ""
+      "rvc_f0_method": "pm"
     },
     "Экспрессия": {
       "qc_enabled": true,
@@ -97,10 +88,7 @@
       "rvc_model": "",
       "rvc_index_rate": 0.75,
       "rvc_pitch_shift": 0,
-      "rvc_f0_method": "harvest",
-      "ai_rewrite_enabled": false,
-      "ai_rewrite_context": "",
-      "ai_rewrite_negative": ""
+      "rvc_f0_method": "harvest"
     }
   },
   "ai_conductor_open_count": 12,
