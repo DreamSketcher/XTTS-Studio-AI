@@ -49,7 +49,9 @@ class TestIsDenseAbbrevChunk:
 class TestAdjustParams:
     def test_list_item_increases_temp(self):
         base = {"temperature": 0.7, "repetition_penalty": 9.0}
-        result = utils._adjust_params_for_chunk(base, chunk_idx=5, total_chunks=10, chunk_text="1. пункт")
+        result = utils._adjust_params_for_chunk(
+            base, chunk_idx=5, total_chunks=10, chunk_text="1. пункт"
+        )
         assert result["temperature"] > 0.7
         assert result["temperature"] <= 0.92
 
@@ -183,7 +185,10 @@ class TestGetEmbedding:
         mock_latent.to.return_value = "latent_to"
         mock_emb = MagicMock()
         mock_emb.to.return_value = "emb_to"
-        mock_tts.synthesizer.tts_model.get_conditioning_latents.return_value = (mock_latent, mock_emb)
+        mock_tts.synthesizer.tts_model.get_conditioning_latents.return_value = (
+            mock_latent,
+            mock_emb,
+        )
 
         monkeypatch.setattr(utils, "torch", mock_torch)
         monkeypatch.setattr(utils, "detect_device", lambda: "cpu")

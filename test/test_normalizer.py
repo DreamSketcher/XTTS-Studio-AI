@@ -64,7 +64,9 @@ class TestYoficator:
     def test_yoficate(self, normalizer):
         assert normalizer._yoficator("еще") == "ещё"
         assert normalizer._yoficator("Еще идет") == "Ещё идёт"
-        assert normalizer._yoficator("моё и твое") == "моё и твое" or "твоё" in normalizer._yoficator("мое и твое")
+        assert normalizer._yoficator(
+            "моё и твое"
+        ) == "моё и твое" or "твоё" in normalizer._yoficator("мое и твое")
 
 
 class TestTimeAndRatio:

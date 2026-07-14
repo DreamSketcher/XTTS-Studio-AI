@@ -101,6 +101,7 @@ class TestLoop:
                 task_manager.running = False
 
             original_task_done = task_manager.q.task_done
+
             def task_done_wrapper():
                 original_task_done()
                 stop_after_one()
@@ -116,7 +117,17 @@ class TestLoop:
         task = Task(text="hello", voice="/tmp/ref.wav")
         task.id = "2"
 
-        def fake_run_tts(text, raw_text, ref_path, status_callback, is_cancelled, speed, language, quality, quality_params):
+        def fake_run_tts(
+            text,
+            raw_text,
+            ref_path,
+            status_callback,
+            is_cancelled,
+            speed,
+            language,
+            quality,
+            quality_params,
+        ):
             return "/tmp/out.wav"
 
         with patch("engine.task_manager.run_tts", side_effect=fake_run_tts):
@@ -128,6 +139,7 @@ class TestLoop:
                 task_manager.running = False
 
             orig_done = task_manager.q.task_done
+
             def wrapper():
                 orig_done()
                 stop_after()
@@ -152,7 +164,10 @@ class TestLoop:
             task_manager.running = True
 
             orig_done = task_manager.q.task_done
-            task_manager.q.task_done = lambda: (orig_done(), setattr(task_manager, "running", False))
+            task_manager.q.task_done = lambda: (
+                orig_done(),
+                setattr(task_manager, "running", False),
+            )
 
             task_manager._loop()
 

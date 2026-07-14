@@ -36,7 +36,11 @@ class TestEnvSetupProxy:
 
     def test_has_read_pip_output(self):
         # важный underscore helper — должен быть явно реэкспортирован
-        assert hasattr(env_setup, "_read_pip_output") or hasattr(env_core, "_read_pip_output") or hasattr(env_core.diagnostics, "_read_pip_output")
+        assert (
+            hasattr(env_setup, "_read_pip_output")
+            or hasattr(env_core, "_read_pip_output")
+            or hasattr(env_core.diagnostics, "_read_pip_output")
+        )
 
     def test_star_imports_work(self):
         # from engine.env_core import * уже в env_setup

@@ -39,7 +39,9 @@ class TestVersionParsing:
         assert upd.get_local_version() == "0.0.0"
 
     def test_get_local_version_exists(self, tmp_base_dir):
-        (tmp_base_dir / "version.json").write_text(json.dumps({"version": "2.3.4"}), encoding="utf-8")
+        (tmp_base_dir / "version.json").write_text(
+            json.dumps({"version": "2.3.4"}), encoding="utf-8"
+        )
         assert upd.get_local_version() == "2.3.4"
 
 
@@ -101,14 +103,20 @@ class TestUrlopenRetry:
 class TestCheckUpdate:
     def test_available(self, tmp_base_dir, monkeypatch):
         # local 1.0.0, remote 1.0.1
-        (tmp_base_dir / "version.json").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
+        (tmp_base_dir / "version.json").write_text(
+            json.dumps({"version": "1.0.0"}), encoding="utf-8"
+        )
         monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "abc123")
-        monkeypatch.setattr(upd, "get_remote_version_info", lambda commit_sha=None: {
-            "version": "1.0.1",
-            "files": ["a.py"],
-            "sha256": {},
-            "changelog": "fix"
-        })
+        monkeypatch.setattr(
+            upd,
+            "get_remote_version_info",
+            lambda commit_sha=None: {
+                "version": "1.0.1",
+                "files": ["a.py"],
+                "sha256": {},
+                "changelog": "fix",
+            },
+        )
 
         result = upd.check_update()
         assert result["available"] is True
@@ -116,31 +124,43 @@ class TestCheckUpdate:
         assert result["remote"] == "1.0.1"
 
     def test_not_available(self, tmp_base_dir, monkeypatch):
-        (tmp_base_dir / "version.json").write_text(json.dumps({"version": "2.0.0"}), encoding="utf-8")
+        (tmp_base_dir / "version.json").write_text(
+            json.dumps({"version": "2.0.0"}), encoding="utf-8"
+        )
         monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "sha")
-        monkeypatch.setattr(upd, "get_remote_version_info", lambda commit_sha=None: {"version": "1.0.0"})
+        monkeypatch.setattr(
+            upd, "get_remote_version_info", lambda commit_sha=None: {"version": "1.0.0"}
+        )
 
         result = upd.check_update()
         assert result["available"] is False
 
     def test_needs_manual_reinstall(self, tmp_base_dir, monkeypatch):
-        (tmp_base_dir / "version.json").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
+        (tmp_base_dir / "version.json").write_text(
+            json.dumps({"version": "1.0.0"}), encoding="utf-8"
+        )
         monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "sha")
-        monkeypatch.setattr(upd, "get_remote_version_info", lambda commit_sha=None: {
-            "version": "2.0.0",
-            "min_app_version": "1.5.0",
-            "files": []
-        })
+        monkeypatch.setattr(
+            upd,
+            "get_remote_version_info",
+            lambda commit_sha=None: {"version": "2.0.0", "min_app_version": "1.5.0", "files": []},
+        )
 
         result = upd.check_update()
         assert result["needs_manual_reinstall"] is True
 
     def test_error_handling(self, tmp_base_dir, monkeypatch):
-        monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: (_ for _ in ()).throw(Exception("network")))
+        monkeypatch.setattr(
+            upd, "_get_latest_commit_sha", lambda: (_ for _ in ()).throw(Exception("network"))
+        )
         # get_remote_version_info will be called with commit_sha None? Actually check_update gets commit_sha via _get_latest_commit_sha, so if that throws, get_remote_version_info still called?
         # В check_update commit_sha вызывается отдельно, если он кинет — info получается через get_remote_version_info который сам вызывает _get_latest_commit_sha снова.
         # Для теста проще заставить get_remote_version_info кидать.
-        monkeypatch.setattr(upd, "get_remote_version_info", lambda commit_sha=None: (_ for _ in ()).throw(Exception("fail")))
+        monkeypatch.setattr(
+            upd,
+            "get_remote_version_info",
+            lambda commit_sha=None: (_ for _ in ()).throw(Exception("fail")),
+        )
 
         result = upd.check_update()
         assert result["available"] is False
@@ -165,7 +185,7 @@ class TestDownloadToStaging:
             def read(self, size=-1):
                 if self._pos >= len(content):
                     return b""
-                chunk = content[self._pos:self._pos + size]
+                chunk = content[self._pos : self._pos + size]
                 self._pos += len(chunk)
                 return chunk
 
@@ -216,7 +236,9 @@ class TestDownloadToStaging:
         monkeypatch.setattr(upd, "_urlopen_with_retry", lambda url, timeout=30: SimpleResp())
         monkeypatch.setattr(upd.time, "sleep", lambda x: None)
 
-        result = upd._download_to_staging("file.py", expected_sha256=wrong_sha, sha_mismatch_retries=0)
+        result = upd._download_to_staging(
+            "file.py", expected_sha256=wrong_sha, sha_mismatch_retries=0
+        )
         assert result is False
 
     def test_cancelled_during_download(self, tmp_base_dir, monkeypatch):
@@ -230,7 +252,7 @@ class TestDownloadToStaging:
             def read(self, size=-1):
                 if self.pos >= len(content):
                     return b""
-                chunk = content[self.pos:self.pos + 8192]
+                chunk = content[self.pos : self.pos + 8192]
                 self.pos += len(chunk)
                 return chunk
 
@@ -245,7 +267,9 @@ class TestDownloadToStaging:
 
         cancelled = {"cancelled": True}
         with pytest.raises(InterruptedError):
-            upd._download_to_staging("file.py", expected_sha256=expected_sha, cancelled_flag=cancelled)
+            upd._download_to_staging(
+                "file.py", expected_sha256=expected_sha, cancelled_flag=cancelled
+            )
 
 
 class TestBackupAndMove:
@@ -286,8 +310,15 @@ class TestBackupAndMove:
         (base / "file.py").write_text("new version", encoding="utf-8")
         (base / "_update_backup").mkdir()
         (base / "_update_backup" / "file.py").write_text("old version", encoding="utf-8")
-        (base / "_update_backup" / "version.json").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
-        marker = {"old_version": "1.0.0", "new_version": "2.0.0", "files": ["file.py"], "removed_files": []}
+        (base / "_update_backup" / "version.json").write_text(
+            json.dumps({"version": "1.0.0"}), encoding="utf-8"
+        )
+        marker = {
+            "old_version": "1.0.0",
+            "new_version": "2.0.0",
+            "files": ["file.py"],
+            "removed_files": [],
+        }
         (base / "_update_pending.json").write_text(json.dumps(marker), encoding="utf-8")
 
         result = upd.rollback_update()
@@ -306,7 +337,9 @@ class TestBackupAndMove:
         assert upd.check_startup_health() == "ok"
 
         # первый запуск
-        (Path(tmp_base_dir) / "_update_pending.json").write_text(json.dumps({"attempt": 0, "files": []}), encoding="utf-8")
+        (Path(tmp_base_dir) / "_update_pending.json").write_text(
+            json.dumps({"attempt": 0, "files": []}), encoding="utf-8"
+        )
         assert upd.check_startup_health() == "first_attempt"
         data = json.loads((Path(tmp_base_dir) / "_update_pending.json").read_text(encoding="utf-8"))
         assert data["attempt"] == 1
@@ -392,4 +425,6 @@ class TestApplyUpdateIntegration:
             sha_mismatch_delay=0,
         )
         assert result is False
-        assert not (base / "_update_staging").exists() or not any((base / "_update_staging").rglob("*"))
+        assert not (base / "_update_staging").exists() or not any(
+            (base / "_update_staging").rglob("*")
+        )

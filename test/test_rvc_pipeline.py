@@ -36,6 +36,7 @@ class TestRVCPostProcessorPaths:
         proc = RVCPostProcessor(models_dir=str(tmp_path), device="cpu:0")
         # мок rvc_python чтобы импорт прошёл, и тогда проверка файла сработает
         import sys, types
+
         fake_mod = types.ModuleType("rvc_python.infer")
         fake_mod.RVCInference = MagicMock()
         monkeypatch.setitem(sys.modules, "rvc_python.infer", fake_mod)
@@ -57,6 +58,7 @@ class TestRunInferenceViaLib:
 
         # мокаем отсутствие rvc_python
         import sys
+
         # удаляем если есть
         monkeypatch.delitem(sys.modules, "rvc_python.infer", raising=False)
         monkeypatch.delitem(sys.modules, "rvc_python", raising=False)
@@ -92,6 +94,7 @@ class TestRunInferenceViaLib:
 
         # мок модуля rvc_python.infer
         import sys, types
+
         fake_module = types.ModuleType("rvc_python.infer")
         fake_module.RVCInference = mock_infer
         monkeypatch.setitem(sys.modules, "rvc_python.infer", fake_module)
@@ -124,6 +127,7 @@ class TestRunInferenceViaLib:
         (tmp_path / "model.pth").write_text("fake")
 
         import sys, types
+
         mock_infer = MagicMock()
         mock_instance = MagicMock()
         mock_infer.return_value = mock_instance
@@ -169,7 +173,9 @@ class TestRunInferenceViaCli:
         import subprocess
 
         def fake_run(*a, **kw):
-            raise subprocess.CalledProcessError(returncode=1, cmd="rvc", output="fail", stderr="error")
+            raise subprocess.CalledProcessError(
+                returncode=1, cmd="rvc", output="fail", stderr="error"
+            )
 
         monkeypatch.setattr("subprocess.run", fake_run)
 

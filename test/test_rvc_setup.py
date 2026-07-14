@@ -37,7 +37,11 @@ class TestBuildConstraints:
 
         monkeypatch.setattr("importlib.metadata.version", fake_version)
 
-        frozen = {"torch": "torch==2.2.2", "numpy": "numpy==1.26.4", "unknown_pkg": "unknown_pkg==1.0.0"}
+        frozen = {
+            "torch": "torch==2.2.2",
+            "numpy": "numpy==1.26.4",
+            "unknown_pkg": "unknown_pkg==1.0.0",
+        }
         lines = rvc._build_rvc_constraints(frozen, tmp_env["site"])
         assert any("torch==2.2.2+cu118" in l for l in lines)
         assert any("numpy==1.26.4" in l for l in lines)
@@ -67,7 +71,9 @@ class TestDetectTorchVariant:
         assert variant2 == "cpu"
 
     def test_not_installed(self, tmp_env, monkeypatch):
-        monkeypatch.setattr("importlib.metadata.version", lambda x: (_ for _ in ()).throw(Exception()))
+        monkeypatch.setattr(
+            "importlib.metadata.version", lambda x: (_ for _ in ()).throw(Exception())
+        )
         assert rvc._detect_installed_torch_variant(tmp_env["site"]) is None
 
 
@@ -97,7 +103,10 @@ class TestDetectTorchBuild:
     def test_not_installed_fallback_cpu(self, tmp_env, monkeypatch):
         monkeypatch.setattr(rvc, "_detect_installed_torch_variant", lambda sp: None)
         # мок _pick_torch_variant
-        monkeypatch.setattr("engine.env_core.torch_setup._pick_torch_variant", lambda gpu: ("cpu", "https://download.pytorch.org/whl/cpu"))
+        monkeypatch.setattr(
+            "engine.env_core.torch_setup._pick_torch_variant",
+            lambda gpu: ("cpu", "https://download.pytorch.org/whl/cpu"),
+        )
         monkeypatch.setattr("engine.env_core.cpu_gpu.detect_gpu", lambda: {"vendor": "unknown"})
 
         variant, url = rvc.detect_torch_build(tmp_env["site"])
@@ -110,7 +119,8 @@ class TestReadRequiresDist:
         dist_info = site / "somepackage-1.0.dist-info"
         dist_info.mkdir()
         (dist_info / "METADATA").write_text(
-            "Name: somepackage\nRequires-Dist: numpy>=1.0\nRequires-Dist: torch==2.2.2; extra == \"dev\"\nRequires-Dist: librosa\n", encoding="utf-8"
+            'Name: somepackage\nRequires-Dist: numpy>=1.0\nRequires-Dist: torch==2.2.2; extra == "dev"\nRequires-Dist: librosa\n',
+            encoding="utf-8",
         )
 
         deps = rvc._read_requires_dist("somepackage")
@@ -134,7 +144,10 @@ class TestRunPipCapture:
             return mock_proc
 
         monkeypatch.setattr(rvc.subprocess, "Popen", fake_popen)
-        monkeypatch.setattr("engine.env_core.diagnostics._read_pip_output", lambda proc, cb: cb("line1") if cb else None)
+        monkeypatch.setattr(
+            "engine.env_core.diagnostics._read_pip_output",
+            lambda proc, cb: cb("line1") if cb else None,
+        )
 
         rc, output = rvc._run_pip_capture(["pip", "install"], {}, progress_cb=lambda x: None)
         assert rc == 0

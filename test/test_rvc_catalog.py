@@ -73,17 +73,27 @@ class TestLoadJson:
 
 class TestCleanDownloadUrl:
     def test_clean(self):
-        assert rvc._clean_download_url("https://huggingface.co/model/resolve/main/model.pth%3Fdownload%3Dtrue") == \
-               "https://huggingface.co/model/resolve/main/model.pth"
+        assert (
+            rvc._clean_download_url(
+                "https://huggingface.co/model/resolve/main/model.pth%3Fdownload%3Dtrue"
+            )
+            == "https://huggingface.co/model/resolve/main/model.pth"
+        )
 
-        assert rvc._clean_download_url("https://example.com/file.zip?download=true") == \
-               "https://example.com/file.zip"
+        assert (
+            rvc._clean_download_url("https://example.com/file.zip?download=true")
+            == "https://example.com/file.zip"
+        )
 
-        assert rvc._clean_download_url("https://huggingface.co/user/model/blob/main/model.pth") == \
-               "https://huggingface.co/user/model/resolve/main/model.pth"
+        assert (
+            rvc._clean_download_url("https://huggingface.co/user/model/blob/main/model.pth")
+            == "https://huggingface.co/user/model/resolve/main/model.pth"
+        )
 
-        assert rvc._clean_download_url("https://voice-model.com/model/abc") == \
-               "https://voice-models.com/model/abc"
+        assert (
+            rvc._clean_download_url("https://voice-model.com/model/abc")
+            == "https://voice-models.com/model/abc"
+        )
 
     def test_empty(self):
         assert rvc._clean_download_url("") == ""
@@ -107,17 +117,27 @@ class TestSafeFilename:
     def test_guess_filename(self):
         assert rvc._guess_filename("Model", "https://example.com/model.pth", "1") == "model.pth"
         assert rvc._guess_filename("Model", "https://example.com/model.zip", "1").endswith(".zip")
-        assert rvc._guess_filename("Model", "https://huggingface.co/user/model/resolve/main/model", "1").endswith(".zip")
-        assert rvc._guess_filename("Model", "https://drive.google.com/file/d/abc/view", "1").endswith(".zip")
+        assert rvc._guess_filename(
+            "Model", "https://huggingface.co/user/model/resolve/main/model", "1"
+        ).endswith(".zip")
+        assert rvc._guess_filename(
+            "Model", "https://drive.google.com/file/d/abc/view", "1"
+        ).endswith(".zip")
 
 
 class TestIsDirectDownloadable:
     def test_direct(self):
-        assert rvc._is_direct_downloadable("https://huggingface.co/user/model/resolve/main/model.pth") is True
+        assert (
+            rvc._is_direct_downloadable("https://huggingface.co/user/model/resolve/main/model.pth")
+            is True
+        )
         assert rvc._is_direct_downloadable("https://example.com/file.zip") is True
         assert rvc._is_direct_downloadable("https://example.com/file.pth") is True
         assert rvc._is_direct_downloadable("https://drive.google.com/file/d/abc123/view") is True
-        assert rvc._is_direct_downloadable("https://drive.google.com/uc?export=download&id=abc") is True
+        assert (
+            rvc._is_direct_downloadable("https://drive.google.com/uc?export=download&id=abc")
+            is True
+        )
 
     def test_not_direct(self):
         assert rvc._is_direct_downloadable("https://drive.google.com/drive/folders/abc") is False
@@ -125,7 +145,10 @@ class TestIsDirectDownloadable:
         assert rvc._is_direct_downloadable("") is False
 
     def test_gdrive_id(self):
-        assert rvc._gdrive_file_id("https://drive.google.com/file/d/1ABC-123_xyz/view") == "1ABC-123_xyz"
+        assert (
+            rvc._gdrive_file_id("https://drive.google.com/file/d/1ABC-123_xyz/view")
+            == "1ABC-123_xyz"
+        )
         assert rvc._gdrive_file_id("https://drive.google.com/uc?id=ABC123") == "ABC123"
         assert rvc._gdrive_file_id("https://example.com") is None
 
@@ -152,7 +175,13 @@ class TestParseVmTable:
         assert "huggingface" in rows[0]["download"]
 
     def test_row_to_entry(self):
-        row = {"mid": "123", "title": "My Model", "author": "John", "size": "100 MB", "download": "https://example.com/model.pth"}
+        row = {
+            "mid": "123",
+            "title": "My Model",
+            "author": "John",
+            "size": "100 MB",
+            "download": "https://example.com/model.pth",
+        }
         entry = rvc._row_to_entry(row)
         assert entry["id"] == "vm_123"
         assert entry["name"] == "My Model"
@@ -222,7 +251,9 @@ class TestCatalogLoading:
         assert catalog[0]["id"] == "seed1"
 
         # кэш имеет приоритет над seed
-        cache_data = [{"id": "cache1", "name": "Cache Model", "url": "http://example.com/cache.pth"}]
+        cache_data = [
+            {"id": "cache1", "name": "Cache Model", "url": "http://example.com/cache.pth"}
+        ]
         (rvc_dir / "catalog_cache.json").write_text(json.dumps(cache_data), encoding="utf-8")
         # сбрасываем in-memory кэш
         rvc._local_catalog_cache = None
@@ -244,7 +275,12 @@ class TestSearchCatalog:
     def test_search_local(self, tmp_rvc_dirs):
         json_dir = tmp_rvc_dirs["json_dir"]
         seed_data = [
-            {"id": "1", "name": "Naruto Voice", "url": "http://example.com/naruto.pth", "author": "John"},
+            {
+                "id": "1",
+                "name": "Naruto Voice",
+                "url": "http://example.com/naruto.pth",
+                "author": "John",
+            },
             {"id": "2", "name": "Goku Voice", "url": "http://example.com/goku.pth"},
         ]
         (json_dir / "rvc_catalog_seed.json").write_text(json.dumps(seed_data), encoding="utf-8")
@@ -298,7 +334,12 @@ class TestZipExtraction:
 
 class TestDownloadModel:
     def test_not_downloadable_returns_false(self, tmp_rvc_dirs):
-        entry = {"id": "test", "name": "Test", "url": "https://drive.google.com/drive/folders/abc", "downloadable": False}
+        entry = {
+            "id": "test",
+            "name": "Test",
+            "url": "https://drive.google.com/drive/folders/abc",
+            "downloadable": False,
+        }
         assert rvc.download_model(entry) is False
 
     def test_download_pth_mocked(self, tmp_rvc_dirs, monkeypatch):

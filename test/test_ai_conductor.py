@@ -131,8 +131,22 @@ class TestValidateMap:
 
     def test_clamping_upper_bounds(self):
         data = [
-            {"temperature": 1.5, "top_p": 2.0, "repetition_penalty": 20, "length_penalty": 5, "speed": 2.0, "pause_after_ms": 5000},
-            {"temperature": 0.6, "top_p": 0.8, "repetition_penalty": 9, "length_penalty": 1.0, "speed": 1.0, "pause_after_ms": 5000},
+            {
+                "temperature": 1.5,
+                "top_p": 2.0,
+                "repetition_penalty": 20,
+                "length_penalty": 5,
+                "speed": 2.0,
+                "pause_after_ms": 5000,
+            },
+            {
+                "temperature": 0.6,
+                "top_p": 0.8,
+                "repetition_penalty": 9,
+                "length_penalty": 1.0,
+                "speed": 1.0,
+                "pause_after_ms": 5000,
+            },
         ]
         result = _validate_map(data, 2)
         assert result is not None
@@ -224,7 +238,7 @@ class TestConductIntegrationWithMock:
         # подменяем engine.gpt_client
         monkeypatch.setitem(sys.modules, "engine.gpt_client", fake_gpt)
         # также для относительного импорта engine.ai_conductor -> .gpt_client
-        #Нужно подсунуть модуль как engine.gpt_client уже есть, from .gpt_client попробует относительный,
+        # Нужно подсунуть модуль как engine.gpt_client уже есть, from .gpt_client попробует относительный,
         # но он найдёт через sys.modules
 
         from engine.ai_conductor import conduct

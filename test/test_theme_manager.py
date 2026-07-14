@@ -25,7 +25,10 @@ class TestLoadAndSave:
 
     def test_load_merges_existing(self, tmp_theme_file: Path):
         # запишем кастом
-        tmp_theme_file.write_text(json.dumps({"font_base_size": 18, "sidebar_side": "right"}, ensure_ascii=False), encoding="utf-8")
+        tmp_theme_file.write_text(
+            json.dumps({"font_base_size": 18, "sidebar_side": "right"}, ensure_ascii=False),
+            encoding="utf-8",
+        )
         theme = tm.load_theme()
         assert theme["font_base_size"] == 18
         assert theme["sidebar_side"] == "right"
@@ -34,7 +37,10 @@ class TestLoadAndSave:
         assert "presets" in theme
 
     def test_save_read_modify_write(self, tmp_theme_file: Path):
-        tmp_theme_file.write_text(json.dumps({"ui_theme": "light", "custom_key": 123}, ensure_ascii=False), encoding="utf-8")
+        tmp_theme_file.write_text(
+            json.dumps({"ui_theme": "light", "custom_key": 123}, ensure_ascii=False),
+            encoding="utf-8",
+        )
         tm.save_theme({"font_base_size": 20})
         data = json.loads(tmp_theme_file.read_text(encoding="utf-8"))
         assert data["ui_theme"] == "light"  # сохранён
@@ -78,7 +84,9 @@ class TestLayoutPresets:
         assert "wide" in presets
 
         # добавим кастомный через файл
-        tmp_theme_file.write_text(json.dumps({"presets": {"custom": {"left_panel_width": 999}}}), encoding="utf-8")
+        tmp_theme_file.write_text(
+            json.dumps({"presets": {"custom": {"left_panel_width": 999}}}), encoding="utf-8"
+        )
         presets = tm.get_layout_presets()
         assert "custom" in presets
         assert presets["custom"]["left_panel_width"] == 999
@@ -159,7 +167,9 @@ class TestSidebarAndToolbar:
         assert tm.get_toolbar_order() == tm.DEFAULT_TOOLBAR_ORDER
 
         # дубликаты и мусор фильтруются, недостающие добавляются
-        tmp_theme_file.write_text(json.dumps({"toolbar_order": ["file", "file", "invalid", "ai"]}), encoding="utf-8")
+        tmp_theme_file.write_text(
+            json.dumps({"toolbar_order": ["file", "file", "invalid", "ai"]}), encoding="utf-8"
+        )
         order = tm.get_toolbar_order()
         assert order.count("file") == 1
         assert "invalid" not in order
@@ -201,7 +211,10 @@ class TestHeaderRainbow:
         assert style["mode"] == "hsv"
 
         # colors dedup and hex normalization
-        style = tm._normalize_rainbow_style({"colors": ["#FF0000", "ff0000", " #00ff00 ", "invalid", "#0000ff"]}, tm.DEFAULT_HEADER_RAINBOW_STYLE)
+        style = tm._normalize_rainbow_style(
+            {"colors": ["#FF0000", "ff0000", " #00ff00 ", "invalid", "#0000ff"]},
+            tm.DEFAULT_HEADER_RAINBOW_STYLE,
+        )
         assert len(style["colors"]) == 3  # dedup после lower, invalid отброшен
         assert "#ff0000" in style["colors"]
 

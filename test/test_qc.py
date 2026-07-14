@@ -3,6 +3,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
+
 try:
     import numpy as np
 except ImportError:
@@ -106,12 +107,18 @@ class TestValidateDuration:
     def test_normal_duration_ok(self):
         rng = np.random.default_rng(1)
         wav = (rng.normal(0, 0.1, size=24000 * 2)).astype(np.float32)
-        assert _validate_duration(wav, "одно два три четыре пять шесть семь восемь девять десять") is False
+        assert (
+            _validate_duration(wav, "одно два три четыре пять шесть семь восемь девять десять")
+            is False
+        )
 
     def test_too_short_for_words(self):
         rng = np.random.default_rng(2)
         wav = (rng.normal(0, 0.1, size=int(24000 * 0.5))).astype(np.float32)
-        assert _validate_duration(wav, "одно два три четыре пять шесть семь восемь девять десять") is True
+        assert (
+            _validate_duration(wav, "одно два три четыре пять шесть семь восемь девять десять")
+            is True
+        )
 
     def test_too_long_for_words(self):
         rng = np.random.default_rng(3)
@@ -148,6 +155,7 @@ class TestNormalizeNumpyAudio:
         data = np.zeros(1000, dtype=np.float32)
         out = _normalize_numpy_audio(data)
         import numpy.testing
+
         np.testing.assert_array_equal(out, data)
 
     def test_normalizes_gain(self):
@@ -192,10 +200,14 @@ class TestAdaptiveTrim:
     def test_auto_mode_no_trim_if_no_silence(self):
         seg = MagicMock()
         seg.__len__.return_value = 1000
+
         def loud_slice(_):
             m = MagicMock()
             m.dBFS = -20.0
             return m
-        seg.__getitem__.side_effect = lambda s: loud_slice(s) if isinstance(s, slice) else MagicMock(dBFS=-20.0)
+
+        seg.__getitem__.side_effect = lambda s: (
+            loud_slice(s) if isinstance(s, slice) else MagicMock(dBFS=-20.0)
+        )
         out = _adaptive_trim(seg, chunk_text="Привет.", base_ms=100, mode="auto", range_ms=30)
         assert out is not None

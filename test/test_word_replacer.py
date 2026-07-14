@@ -99,7 +99,9 @@ class TestAddRemove:
         assert replacer.get_category("hello") == "custom"
         assert replacer.flat_rules["hello"] == "привет"
         # файл на диске сохранился
-        assert json.loads(tmp_rules.read_text(encoding="utf-8"))["custom"]["hello"]["text"] == "привет"
+        assert (
+            json.loads(tmp_rules.read_text(encoding="utf-8"))["custom"]["hello"]["text"] == "привет"
+        )
 
     def test_add_rule_occurrences_increment_same_category(self, replacer: WordReplacer):
         replacer.add_rule("test", "тест1", category="custom")

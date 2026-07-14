@@ -36,7 +36,9 @@ class TestValidateText:
 class TestValidateLanguage:
     def test_empty(self):
         with pytest.raises(ValidationError):
-            TTSValidator.validate_language("",)
+            TTSValidator.validate_language(
+                "",
+            )
 
     def test_not_string(self):
         with pytest.raises(ValidationError):

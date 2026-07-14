@@ -127,7 +127,9 @@ class TestBuildInstallCmd:
         assert "cpu" in str(cmd) or "-v" in cmd
 
     def test_cuda(self, tmp_paths):
-        cmd = ls._build_install_cmd("cuda", "https://abetlen.github.io/llama-cpp-python/whl/cu122", str(tmp_paths["site"]))
+        cmd = ls._build_install_cmd(
+            "cuda", "https://abetlen.github.io/llama-cpp-python/whl/cu122", str(tmp_paths["site"])
+        )
         assert "--extra-index-url" in cmd
         assert "cu122" in " ".join(cmd)
 
@@ -168,7 +170,9 @@ class TestSmokeTest:
             return MagicMock(returncode=0, stdout="SMOKE_OK", stderr="")
 
         monkeypatch.setattr(ls.subprocess, "run", fake_run)
-        result = ls.smoke_test_gpu_init("cuda", model_path=str(tmp_paths["base"] / "models" / "model.gguf"))
+        result = ls.smoke_test_gpu_init(
+            "cuda", model_path=str(tmp_paths["base"] / "models" / "model.gguf")
+        )
         assert result["ok"] is True
 
     def test_smoke_failure_mocked(self, tmp_paths, monkeypatch):
@@ -208,7 +212,10 @@ class TestStartupState:
     def test_interrupted(self, tmp_paths, monkeypatch):
         ls._save_checkpoint("downloading", {"backend": "cuda"})
         monkeypatch.setattr(ls, "llama_cpp_status", lambda: {"installed": False})
-        monkeypatch.setattr("engine.env_core.diagnostics.get_install_activity_status", lambda: {"target_dir_files": 10})
+        monkeypatch.setattr(
+            "engine.env_core.diagnostics.get_install_activity_status",
+            lambda: {"target_dir_files": 10},
+        )
 
         state = ls.get_startup_install_state()
         assert state["state"] == "interrupted"
@@ -216,7 +223,9 @@ class TestStartupState:
 
     def test_installed(self, tmp_paths, monkeypatch):
         ls._save_checkpoint("downloading")
-        monkeypatch.setattr(ls, "llama_cpp_status", lambda: {"installed": True, "path": "/fake/path"})
+        monkeypatch.setattr(
+            ls, "llama_cpp_status", lambda: {"installed": True, "path": "/fake/path"}
+        )
 
         state = ls.get_startup_install_state()
         assert state["state"] == "installed"

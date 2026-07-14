@@ -20,7 +20,9 @@ class TestGetPauseMs:
 
     def test_list_item_next(self, engine):
         # следующий — list item
-        assert engine.get_pause_ms("Обычный текст.", next_chunk="2. второй") == engine.list_item_pause
+        assert (
+            engine.get_pause_ms("Обычный текст.", next_chunk="2. второй") == engine.list_item_pause
+        )
         assert engine.get_pause_ms("Текст", next_chunk="- груша") == engine.list_item_pause
 
     def test_punctuation_base(self, engine):

@@ -37,7 +37,7 @@ class TestDetectCpu:
     def test_detect_with_cpuinfo(self, monkeypatch):
         fake_info = {
             "brand_raw": "Intel(R) Core(TM) i7",
-            "flags": ["fpu", "avx", "avx2", "fma", "f16c", "sse"]
+            "flags": ["fpu", "avx", "avx2", "fma", "f16c", "sse"],
         }
         fake_cpuinfo = MagicMock()
         fake_cpuinfo.get_cpu_info.return_value = fake_info
@@ -84,6 +84,7 @@ class TestDetectGpuNvidia:
 
     def test_nvidia_cuda_version_parse(self, monkeypatch):
         out = "|   CUDA Version: 11.8     |"
+
         def fake_run(*a, **kw):
             return MagicMock(returncode=0, stdout=out)
 
@@ -118,10 +119,15 @@ class TestDetectGpuNvidia:
         assert "Radeon" in result["name"]
 
     def test_get_vram_from_registry(self, monkeypatch):
-        registry_json = json.dumps([
-            {"DriverDesc": "NVIDIA GeForce RTX 3060", "HardwareInformation.qwMemorySize": 12884901888},
-            {"DriverDesc": "Intel UHD", "HardwareInformation.qwMemorySize": 1073741824}
-        ])
+        registry_json = json.dumps(
+            [
+                {
+                    "DriverDesc": "NVIDIA GeForce RTX 3060",
+                    "HardwareInformation.qwMemorySize": 12884901888,
+                },
+                {"DriverDesc": "Intel UHD", "HardwareInformation.qwMemorySize": 1073741824},
+            ]
+        )
 
         def fake_run(*a, **kw):
             return MagicMock(returncode=0, stdout=registry_json)

@@ -35,13 +35,22 @@ def mock_styles_deps(monkeypatch):
     monkeypatch.setattr(sm, "quality_var", quality_var)
     monkeypatch.setattr(sm, "save_settings", save_settings)
     monkeypatch.setattr(sm, "styles_btn", styles_btn)
-    monkeypatch.setattr(sm, "PRESET_DESCRIPTIONS", {
-        "Нарратив": "Нарративный стиль",
-        "Динамика": "Динамичный",
-        "Экспрессия": "Экспрессивный",
-    })
+    monkeypatch.setattr(
+        sm,
+        "PRESET_DESCRIPTIONS",
+        {
+            "Нарратив": "Нарративный стиль",
+            "Динамика": "Динамичный",
+            "Экспрессия": "Экспрессивный",
+        },
+    )
 
-    yield {"root": root, "quality_var": quality_var, "save_settings": save_settings, "styles_btn": styles_btn}
+    yield {
+        "root": root,
+        "quality_var": quality_var,
+        "save_settings": save_settings,
+        "styles_btn": styles_btn,
+    }
 
 
 class TestInit:
@@ -84,6 +93,7 @@ class TestOpenStylesMenu:
         # проверяем что пресеты определены в файле
         # читаем исходник styles_menu.py — там должны быть 3 пресета
         import pathlib
+
         content = pathlib.Path(sm.__file__).read_text(encoding="utf-8")
         assert "Нарратив" in content
         assert "Динамика" in content

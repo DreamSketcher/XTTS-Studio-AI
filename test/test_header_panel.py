@@ -51,6 +51,7 @@ class TestSwitchUiLang:
 
         # создаём фейковые модули для gpt_client и chat_window
         import sys, types
+
         fake_gpt = types.ModuleType("engine.gpt_client")
         fake_gpt.refresh_i18n_labels = MagicMock()
         monkeypatch.setitem(sys.modules, "engine.gpt_client", fake_gpt)
@@ -70,6 +71,7 @@ class TestSwitchUiLang:
         monkeypatch.setattr("tkinter.messagebox.showinfo", MagicMock())
 
         import sys, types
+
         fake_gpt = types.ModuleType("engine.gpt_client")
         fake_gpt.refresh_i18n_labels = MagicMock()
         monkeypatch.setitem(sys.modules, "engine.gpt_client", fake_gpt)
@@ -86,6 +88,7 @@ class TestRainbowEnabled:
         # изолируемся от реального theme_settings.json на диске разработчика,
         # чтобы тест не зависел от текущих личных настроек темы
         import engine.gui.theme_manager as tm
+
         monkeypatch.setattr(tm, "THEME_FILE", str(tmp_path / "theme.json"))
 
         # симулируем отсутствие theme_manager через исключение в импорте.
@@ -93,6 +96,7 @@ class TestRainbowEnabled:
         # name="engine.gui" и fromlist=("theme_manager",) — проверка должна
         # учитывать оба варианта, иначе патч тихо не сработает.
         import builtins
+
         original_import = builtins.__import__
 
         def fake_import(name, globals=None, locals=None, fromlist=(), level=0, *args, **kwargs):
@@ -107,6 +111,7 @@ class TestRainbowEnabled:
     def test_is_rainbow_enabled_true(self, monkeypatch, tmp_path):
         # используем реальный theme_manager с временным файлом
         import engine.gui.theme_manager as tm
+
         theme_file = tmp_path / "theme.json"
         monkeypatch.setattr(tm, "THEME_FILE", str(theme_file))
         tm.set_header_rainbow(True)
@@ -132,6 +137,7 @@ class TestLoadRainbowStyle:
     def test_load_fallback(self, monkeypatch):
         # без theme_manager должен вернуть дефолт
         import builtins
+
         orig_import = builtins.__import__
 
         def fake_import(name, *args, **kwargs):
@@ -145,6 +151,7 @@ class TestLoadRainbowStyle:
 
     def test_load_from_tm(self, monkeypatch, tmp_path):
         import engine.gui.theme_manager as tm
+
         theme_file = tmp_path / "theme.json"
         monkeypatch.setattr(tm, "THEME_FILE", str(theme_file))
         tm.set_header_rainbow_style({"speed_ms": 80, "saturation": 0.5})
@@ -156,14 +163,30 @@ class TestLoadRainbowStyle:
 
 class TestStyleSignature:
     def test_signature(self):
-        style = {"speed_ms": 40, "saturation": 1.0, "brightness": 1.0, "hue_offset": 0.0, "spread": 1.0, "mode": "hsv", "colors": ["#ff0000"]}
+        style = {
+            "speed_ms": 40,
+            "saturation": 1.0,
+            "brightness": 1.0,
+            "hue_offset": 0.0,
+            "spread": 1.0,
+            "mode": "hsv",
+            "colors": ["#ff0000"],
+        }
         sig = hp._style_signature(style)
         assert isinstance(sig, tuple)
         assert sig[0] == 40
         assert "#ff0000" in sig[6]
 
     def test_signature_none_uses_global(self):
-        hp._rainbow_style = {"speed_ms": 40, "saturation": 1.0, "brightness": 1.0, "hue_offset": 0.0, "spread": 1.0, "mode": "hsv", "colors": []}
+        hp._rainbow_style = {
+            "speed_ms": 40,
+            "saturation": 1.0,
+            "brightness": 1.0,
+            "hue_offset": 0.0,
+            "spread": 1.0,
+            "mode": "hsv",
+            "colors": [],
+        }
         sig = hp._style_signature(None)
         assert isinstance(sig, tuple)
 
@@ -192,6 +215,7 @@ class TestBuildRainbowFramesNoPIL:
     def test_no_pil_returns_empty(self, monkeypatch):
         # мокаем отсутствие PIL
         import sys
+
         # удаляем PIL если есть
         monkeypatch.delitem(sys.modules, "PIL", raising=False)
         monkeypatch.delitem(sys.modules, "PIL.Image", raising=False)
@@ -212,7 +236,19 @@ class TestBuildRainbowFramesNoPIL:
             pytest.skip("PIL not installed")
 
         # вызываем с маленьким текстом
-        frames = hp._build_rainbow_frames("XTTS", 12, style={"saturation": 1.0, "brightness": 1.0, "hue_offset": 0.0, "spread": 1.0, "mode": "hsv", "colors": []}, n_frames=4)
+        frames = hp._build_rainbow_frames(
+            "XTTS",
+            12,
+            style={
+                "saturation": 1.0,
+                "brightness": 1.0,
+                "hue_offset": 0.0,
+                "spread": 1.0,
+                "mode": "hsv",
+                "colors": [],
+            },
+            n_frames=4,
+        )
         assert isinstance(frames, list)
 
 

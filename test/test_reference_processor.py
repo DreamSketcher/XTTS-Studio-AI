@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 try:
     import numpy as np
 except ImportError:
@@ -33,6 +34,7 @@ class TestAdaptiveSilenceTrimmer:
     def test_trim_silence(self):
         trimmer = AdaptiveSilenceTrimmer()
         import array
+
         sr = 24000
         n = int(sr * 0.5)
         t = np.arange(n) / sr
@@ -54,6 +56,7 @@ class TestAdaptiveSilenceTrimmer:
         trimmer.hard_limit_ms = 50
         silent = AudioSegment.silent(duration=500)
         import array
+
         sr = 24000
         n = int(sr * 0.5)
         t = np.arange(n) / sr
@@ -86,6 +89,7 @@ class TestSNRAnalyzer:
     def test_clean_tone_high_snr(self):
         analyzer = SNRAnalyzer()
         import array
+
         sr = 24000
         silence_duration = 200
         tone_duration = 800
@@ -112,6 +116,7 @@ class TestSNRAnalyzer:
         rng = np.random.default_rng(0)
         noise = (rng.normal(0, 0.1, size=n) * (2**15 - 1)).astype(np.int16)
         import array
+
         noisy_seg = AudioSegment(
             data=array.array("h", noise.tolist()).tobytes(),
             sample_width=2,
@@ -189,22 +194,29 @@ class TestReferenceProcessor:
         src.write_text("fake")
         from unittest.mock import MagicMock
         import unittest.mock as mock
+
         monkeypatch = MagicMock()
         # use direct patch via attributes
         proc.save_original_copy = lambda fp, vd: str(vd / "orig.mp3")
-        proc.convert_to_wav = lambda fp, vd, target_sample_rate=24000, mono=True: str(vd / "converted.wav")
+        proc.convert_to_wav = lambda fp, vd, target_sample_rate=24000, mono=True: str(
+            vd / "converted.wav"
+        )
         proc.process_audio = lambda fp, vd, target_dBFS=-16.0: str(vd / "normalized.wav")
         with patch("engine.reference_processor.AudioSegment.from_file") as mock_from:
             mock_seg = MagicMock()
             mock_from.return_value = mock_seg
-            proc.snr_analyzer.analyze = MagicMock(return_value={"snr_db": 15, "quality": "good", "warning": None})
+            proc.snr_analyzer.analyze = MagicMock(
+                return_value={"snr_db": 15, "quality": "good", "warning": None}
+            )
             result = proc.process_reference(str(src), backup=True)
             assert result.endswith("normalized.wav")
 
     def test_snr_callback(self, tmp_library, tmp_path):
         called = []
+
         def callback(result):
             called.append(result)
+
         proc = ReferenceProcessor(backup_dir=str(tmp_library), snr_callback=callback)
         src = tmp_path / "input.wav"
         src.write_text("fake wav")
@@ -216,7 +228,9 @@ class TestReferenceProcessor:
         with patch("engine.reference_processor.AudioSegment.from_file") as mock_from:
             mock_seg = MagicMock()
             mock_from.return_value = mock_seg
-            proc.snr_analyzer.analyze = MagicMock(return_value={"snr_db": 20, "quality": "excellent", "warning": None})
+            proc.snr_analyzer.analyze = MagicMock(
+                return_value={"snr_db": 20, "quality": "excellent", "warning": None}
+            )
             proc.process_reference(str(src))
             assert len(called) == 1
             assert called[0]["quality"] == "excellent"

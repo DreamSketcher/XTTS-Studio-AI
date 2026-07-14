@@ -67,6 +67,7 @@ def mock_deps(tmp_path: Path, monkeypatch):
 
     # textbox
     import engine.gui.textbox as textbox_mod
+
     textbox_mod.text_font_size = {"v": 14}
 
     # Инициализируем зависимости
@@ -111,7 +112,10 @@ class TestSaveSettings:
         """Критичный баг №8 — смена языка стирала ui_theme."""
         path = mock_deps["settings_path"]
         # Предзапишем файл с ui_theme
-        path.write_text(json.dumps({"ui_theme": "light", "some_other": 123}, ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(
+            json.dumps({"ui_theme": "light", "some_other": 123}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
         settings_ui.save_settings()
 
@@ -210,6 +214,7 @@ class TestApplySettings:
         assert mock_deps["ui_lang_var"]._value == "en"
         # set_language из i18n должен был вызваться — проверим через get_language
         from i18n import get_language
+
         assert get_language() == "en"
         # вернём обратно
         settings_ui.apply_settings({"ui_language": "ru"})
@@ -241,7 +246,18 @@ class TestApplySettings:
         mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_context"] = MockVar("")
         mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_negative"] = MockVar("")
 
-        settings_ui.apply_settings({"ai_rewrite_enabled": True, "ai_rewrite_context": "epic", "ai_rewrite_negative": "boring"})
+        settings_ui.apply_settings(
+            {
+                "ai_rewrite_enabled": True,
+                "ai_rewrite_context": "epic",
+                "ai_rewrite_negative": "boring",
+            }
+        )
         assert mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_enabled"]._value is True
-        assert mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_context"]._value == "epic"
-        assert mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_negative"]._value == "boring"
+        assert (
+            mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_context"]._value == "epic"
+        )
+        assert (
+            mock_deps["quality_params"]["Высокое качество"]["ai_rewrite_negative"]._value
+            == "boring"
+        )

@@ -42,9 +42,11 @@ class TestBuildProviderChain:
 
     def test_active_not_available_excluded(self, monkeypatch):
         monkeypatch.setattr(gpt_client, "get_provider", lambda: "groq")
+
         # groq без ключа, openrouter с ключом
         def avail(pid):
             return pid == "openrouter"
+
         monkeypatch.setattr(gpt_client, "_provider_available", avail)
         monkeypatch.setattr(gpt_client, "get_hidden_providers", lambda: set())
         monkeypatch.setattr(gpt_client, "list_custom_providers", lambda: [])
@@ -82,8 +84,10 @@ class TestBuildProviderChain:
     def test_active_custom_provider(self, monkeypatch):
         # активный — кастомный
         monkeypatch.setattr(gpt_client, "get_provider", lambda: "my_custom")
+
         def avail(pid):
             return pid in ("my_custom", "groq")
+
         monkeypatch.setattr(gpt_client, "_provider_available", avail)
         monkeypatch.setattr(gpt_client, "get_hidden_providers", lambda: set())
         monkeypatch.setattr(gpt_client, "list_custom_providers", lambda: [{"id": "my_custom"}])
@@ -94,7 +98,9 @@ class TestBuildProviderChain:
 
 class TestProviderAvailable:
     def test_builtin_with_key(self, monkeypatch):
-        monkeypatch.setattr(gpt_client, "get_api_key", lambda pid=None: "sk-123" if pid == "groq" else "")
+        monkeypatch.setattr(
+            gpt_client, "get_api_key", lambda pid=None: "sk-123" if pid == "groq" else ""
+        )
         assert _provider_available("groq") is True
         assert _provider_available("proxy") is False
 
@@ -172,7 +178,9 @@ class TestCallWithChain:
         monkeypatch.setattr(gpt_client, "_build_provider_chain", lambda: ["groq", "proxy"])
         monkeypatch.setattr(gpt_client, "get_model", lambda pid: "m")
         monkeypatch.setattr(gpt_client, "get_fallback_model", lambda pid: "m")
-        monkeypatch.setattr(gpt_client, "_call_api", lambda *a, **kw: (_ for _ in ()).throw(GroqNetworkError("net")))
+        monkeypatch.setattr(
+            gpt_client, "_call_api", lambda *a, **kw: (_ for _ in ()).throw(GroqNetworkError("net"))
+        )
 
         with pytest.raises(AIUnavailable, match="Нет подключения"):
             _call_with_chain([{"role": "user", "content": "hi"}])
@@ -210,9 +218,13 @@ class TestChainDiagnostics:
     def test_diagnostics_structure(self, monkeypatch):
         monkeypatch.setattr(gpt_client, "get_provider", lambda: "groq")
         monkeypatch.setattr(gpt_client, "get_hidden_providers", lambda: set())
-        monkeypatch.setattr(gpt_client, "get_api_key", lambda pid=None: "key" if pid == "groq" else "")
+        monkeypatch.setattr(
+            gpt_client, "get_api_key", lambda pid=None: "key" if pid == "groq" else ""
+        )
         monkeypatch.setattr(gpt_client, "get_model", lambda pid=None: f"{pid}_model")
-        monkeypatch.setattr(gpt_client, "list_custom_providers", lambda: [{"id": "custom1", "label": "Custom"}])
+        monkeypatch.setattr(
+            gpt_client, "list_custom_providers", lambda: [{"id": "custom1", "label": "Custom"}]
+        )
         monkeypatch.setattr(gpt_client, "_build_provider_chain", lambda: ["groq"])
 
         diag = get_chain_diagnostics()

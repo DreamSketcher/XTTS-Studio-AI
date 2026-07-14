@@ -78,7 +78,9 @@ class TestCache:
 
 class TestParseRequirements:
     def test_parse(self, tmp_base):
-        (tmp_base / "requirements.txt").write_text("numpy==1.26.4\ntorch==2.2.2\n# comment\n", encoding="utf-8")
+        (tmp_base / "requirements.txt").write_text(
+            "numpy==1.26.4\ntorch==2.2.2\n# comment\n", encoding="utf-8"
+        )
         reqs = diag.parse_requirements_txt()
         assert "numpy" in reqs
         assert "torch" in reqs
@@ -127,6 +129,7 @@ class TestDetectTorchSuffix:
         for f in site.iterdir():
             if f.is_dir():
                 import shutil
+
                 shutil.rmtree(f)
         dist_info = site / "torch-2.2.2+cpu.dist-info"
         dist_info.mkdir()
@@ -140,13 +143,16 @@ class TestDetectTorchSuffix:
         for f in site.iterdir():
             if f.is_dir():
                 import shutil
+
                 shutil.rmtree(f)
         assert diag._detect_installed_torch_suffix() is None
 
 
 class TestAvCompat:
     def test_torchvision_error_is_av_related(self):
-        assert diag._torchvision_error_is_av_related("module 'av' has no attribute 'logging'") is True
+        assert (
+            diag._torchvision_error_is_av_related("module 'av' has no attribute 'logging'") is True
+        )
         assert diag._torchvision_error_is_av_related("av.logging error") is True
         assert diag._torchvision_error_is_av_related("some other error") is False
         assert diag._torchvision_error_is_av_related(None) is False

@@ -151,15 +151,20 @@ class TestBatchWindowInit:
 
     def test_open_batch_window_does_not_crash_with_mocked_tk(self, mock_deps):
         # Мокаем всё tkinter чтобы окно не пыталось создать реальный display
-        with patch("engine.batch_window.tk.Toplevel") as mock_toplevel, \
-             patch("engine.batch_window.tk.Frame") as mock_frame, \
-             patch("engine.batch_window.tk.Label") as mock_label, \
-             patch("engine.batch_window.tk.Button") as mock_button, \
-             patch("engine.batch_window.tk.StringVar", return_value=MagicMock(get=lambda: "", set=lambda x: None)), \
-             patch("engine.batch_window.tk.Canvas") as mock_canvas, \
-             patch("engine.batch_window.tk.Scrollbar") as mock_scroll, \
-             patch("engine.batch_window.filedialog.askdirectory", return_value=""), \
-             patch("engine.batch_window.filedialog.askopenfilenames", return_value=[]):
+        with (
+            patch("engine.batch_window.tk.Toplevel") as mock_toplevel,
+            patch("engine.batch_window.tk.Frame") as mock_frame,
+            patch("engine.batch_window.tk.Label") as mock_label,
+            patch("engine.batch_window.tk.Button") as mock_button,
+            patch(
+                "engine.batch_window.tk.StringVar",
+                return_value=MagicMock(get=lambda: "", set=lambda x: None),
+            ),
+            patch("engine.batch_window.tk.Canvas") as mock_canvas,
+            patch("engine.batch_window.tk.Scrollbar") as mock_scroll,
+            patch("engine.batch_window.filedialog.askdirectory", return_value=""),
+            patch("engine.batch_window.filedialog.askopenfilenames", return_value=[]),
+        ):
 
             # Настройка моков для canvas
             mock_canvas_instance = MagicMock()

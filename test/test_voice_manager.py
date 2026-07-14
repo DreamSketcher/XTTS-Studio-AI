@@ -72,7 +72,9 @@ class TestVoiceManagerScan:
 
     def test_scan_handles_list_error(self, tmp_library, monkeypatch):
         vm = VoiceManager(base_dir=str(tmp_library))
-        monkeypatch.setattr(os, "listdir", lambda x: (_ for _ in ()).throw(PermissionError("no access")))
+        monkeypatch.setattr(
+            os, "listdir", lambda x: (_ for _ in ()).throw(PermissionError("no access"))
+        )
         voices = vm.scan_voices()
         assert voices == []
 
@@ -157,9 +159,11 @@ class TestRelativeBaseDir:
         # временно меняем cwd и проверяем что VoiceManager создаёт папку рядом с engine
         # Проще: создаём VoiceManager с абсолютным путём и проверяем что относительный тоже работает
         import engine.voice_manager as vm_mod
+
         base_path = os.path.join(os.path.dirname(os.path.abspath(vm_mod.__file__)), rel_dir)
         # очистим если существует
         import shutil
+
         if os.path.exists(base_path):
             shutil.rmtree(base_path)
 

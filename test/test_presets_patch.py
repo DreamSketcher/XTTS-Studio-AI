@@ -1,4 +1,5 @@
 import pytest
+
 try:
     import customtkinter
 except ImportError:
@@ -10,7 +11,11 @@ except ImportError:
     pass
 
 
-from engine.gui.presets_patch import DEFAULT_RVC_PRESET_VALUES, PresetManagerPatch, PresetWindowUIController
+from engine.gui.presets_patch import (
+    DEFAULT_RVC_PRESET_VALUES,
+    PresetManagerPatch,
+    PresetWindowUIController,
+)
 
 
 class TestDefaultValues:
@@ -59,7 +64,13 @@ class TestSanitizePreset:
         assert sanitized["rvc_enable"] is False
 
     def test_already_has_rvc(self):
-        preset = {"rvc_enable": True, "rvc_model": "model.pth", "rvc_index_rate": 0.9, "rvc_pitch_shift": 2, "rvc_f0_method": "crepe"}
+        preset = {
+            "rvc_enable": True,
+            "rvc_model": "model.pth",
+            "rvc_index_rate": 0.9,
+            "rvc_pitch_shift": 2,
+            "rvc_f0_method": "crepe",
+        }
         sanitized = PresetManagerPatch.sanitize_preset(preset)
         assert sanitized["rvc_enable"] is True
         assert sanitized["rvc_model"] == "model.pth"
@@ -112,7 +123,13 @@ class TestUIController:
             "combo_rvc_f0": MockWidget(),
         }
         ctrl = PresetWindowUIController(widgets)
-        preset = {"rvc_enable": True, "rvc_model": "my.pth", "rvc_index_rate": 0.88, "rvc_pitch_shift": 3, "rvc_f0_method": "harvest"}
+        preset = {
+            "rvc_enable": True,
+            "rvc_model": "my.pth",
+            "rvc_index_rate": 0.88,
+            "rvc_pitch_shift": 3,
+            "rvc_f0_method": "harvest",
+        }
 
         ctrl.load_preset_to_widgets(preset)
 
@@ -126,7 +143,13 @@ class TestUIController:
     def test_load_preset_disabled(self):
         widgets = {"chk_rvc": MockWidget()}
         ctrl = PresetWindowUIController(widgets)
-        preset = {"rvc_enable": False, "rvc_model": "", "rvc_index_rate": 0.75, "rvc_pitch_shift": 0, "rvc_f0_method": "rmvpe"}
+        preset = {
+            "rvc_enable": False,
+            "rvc_model": "",
+            "rvc_index_rate": 0.75,
+            "rvc_pitch_shift": 0,
+            "rvc_f0_method": "rmvpe",
+        }
 
         ctrl.load_preset_to_widgets(preset)
         assert widgets["chk_rvc"].selected is False
@@ -134,7 +157,13 @@ class TestUIController:
     def test_load_preset_model_not_chosen(self):
         widgets = {"combo_rvc_model": MockWidget()}
         ctrl = PresetWindowUIController(widgets)
-        preset = {"rvc_enable": False, "rvc_model": "", "rvc_index_rate": 0.75, "rvc_pitch_shift": 0, "rvc_f0_method": "rmvpe"}
+        preset = {
+            "rvc_enable": False,
+            "rvc_model": "",
+            "rvc_index_rate": 0.75,
+            "rvc_pitch_shift": 0,
+            "rvc_f0_method": "rmvpe",
+        }
         ctrl.load_preset_to_widgets(preset)
         assert widgets["combo_rvc_model"].get() == "Не выбрана"
 

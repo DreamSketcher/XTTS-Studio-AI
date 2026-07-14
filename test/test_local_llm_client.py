@@ -37,7 +37,9 @@ class TestModelFiles:
 
     def test_checkpoint_save_load_clear(self, tmp_settings):
         filename = "test.gguf"
-        llc._save_download_checkpoint(filename, offset=1234, total=5000, url="http://example.com/model.gguf")
+        llc._save_download_checkpoint(
+            filename, offset=1234, total=5000, url="http://example.com/model.gguf"
+        )
         data = llc._load_download_checkpoint(filename)
         assert data["offset"] == 1234
         assert data["total"] == 5000
@@ -86,7 +88,9 @@ class TestInstalledModelsRegistry:
         assert len(llc.list_installed_models()) == 1
 
     def test_active_model(self, tmp_settings):
-        llc._save_installed_models([{"id": "a", "path": "/tmp/a.gguf"}, {"id": "b", "path": "/tmp/b.gguf"}])
+        llc._save_installed_models(
+            [{"id": "a", "path": "/tmp/a.gguf"}, {"id": "b", "path": "/tmp/b.gguf"}]
+        )
         llc.set_active_model_id("a")
         assert llc.get_active_model_id() == "a"
         active = llc.get_active_model()
@@ -138,7 +142,7 @@ class TestDownloadModel:
             def read(self, size=-1):
                 if size == -1:
                     size = len(content) - self._pos
-                chunk = content[self._pos:self._pos + size]
+                chunk = content[self._pos : self._pos + size]
                 self._pos += len(chunk)
                 return chunk
 
@@ -148,7 +152,9 @@ class TestDownloadModel:
             def __exit__(self, *a):
                 return False
 
-        monkeypatch.setattr(llc.urllib.request, "urlopen", lambda req, timeout=0, context=None: FakeResponse())
+        monkeypatch.setattr(
+            llc.urllib.request, "urlopen", lambda req, timeout=0, context=None: FakeResponse()
+        )
 
         progress = []
         dest = llc.download_model(url, filename, progress_cb=lambda s: progress.append(s))
@@ -171,7 +177,7 @@ class TestDownloadModel:
                 # эмулируем медленное чтение
                 if self._pos >= len(content):
                     return b""
-                chunk = content[self._pos:self._pos + 8192]
+                chunk = content[self._pos : self._pos + 8192]
                 self._pos += len(chunk)
                 return chunk
 
@@ -269,7 +275,7 @@ class TestDownloadModel:
         monkeypatch.setattr(llc, "_MAX_DOWNLOAD_RETRIES", 3)
 
         # Первый вызов кинет URLError и должен ретрайнуться
-        # Второй вызов вернёт FailOnceResponse который внутри read кинет URLError снова? 
+        # Второй вызов вернёт FailOnceResponse который внутри read кинет URLError снова?
         # Для простоты проверим что ретрай логика не падает с InterruptedError
         try:
             llc.download_model(url, filename)

@@ -167,6 +167,7 @@ class TestRefreshVoiceList:
 
         # мок voice_manager
         from engine.voice_manager import VoiceManager
+
         vm = VoiceManager(base_dir=str(tmp_library))
 
         # мок listbox

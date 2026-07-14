@@ -1,4 +1,5 @@
 import pytest
+
 try:
     import numpy as np
 except ImportError:
@@ -47,13 +48,22 @@ class TestDeEsserArray:
         low = np.sin(2 * np.pi * 200 * t) * 0.3
         high = np.sin(2 * np.pi * 6000 * t) * 0.7
         arr = (low + high).astype(np.float32)
-        ds = DeEsser(sample_rate=sr, low_hz=4000, high_hz=9000, threshold=0.1, intensity=1.0, max_reduction_db=9.0)
+        ds = DeEsser(
+            sample_rate=sr,
+            low_hz=4000,
+            high_hz=9000,
+            threshold=0.1,
+            intensity=1.0,
+            max_reduction_db=9.0,
+        )
         out = ds.process_array(arr, sr)
+
         def band_energy(signal):
             spec = np.fft.rfft(signal)
             freqs = np.fft.rfftfreq(len(signal), d=1.0 / sr)
             mask = (freqs >= 4000) & (freqs <= 9000)
             return np.sum(np.abs(spec[mask]) ** 2)
+
         energy_in = band_energy(arr)
         energy_out = band_energy(out)
         assert energy_out <= energy_in * 1.1
@@ -96,9 +106,10 @@ class TestDeEsserSegment:
         n_samples = int(sr * duration_ms / 1000)
         t = np.arange(n_samples) / sr
         arr = (np.sin(2 * np.pi * 6000 * t) * 0.9).astype(np.float32)
-        max_val = float(2 ** 15 - 1)
+        max_val = float(2**15 - 1)
         arr_int = (arr * max_val).astype(np.int16)
         import array
+
         seg = AudioSegment(
             data=array.array("h", arr_int.tolist()).tobytes(),
             sample_width=2,

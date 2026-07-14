@@ -27,7 +27,13 @@ class Task:
 class TestSaveHistory:
     def test_creates_file(self, tmp_history_file: Path):
         assert not tmp_history_file.exists()
-        task = Task(text="hello", voice="/path/to/voice123/ref.wav", quality="High", output_path="/out/file.wav", stats={"time_sec": 10, "chunks": 5})
+        task = Task(
+            text="hello",
+            voice="/path/to/voice123/ref.wav",
+            quality="High",
+            output_path="/out/file.wav",
+            stats={"time_sec": 10, "chunks": 5},
+        )
         hs._save_history(task)
         assert tmp_history_file.exists()
         data = json.loads(tmp_history_file.read_text(encoding="utf-8"))

@@ -23,20 +23,26 @@ class TestParseCudaVersion:
 
 class TestPickTorchVariant:
     def test_pref_cpu(self, monkeypatch):
-        monkeypatch.setattr("engine.settings_store.load_settings", lambda: {"torch_device_preference": "cpu"})
+        monkeypatch.setattr(
+            "engine.settings_store.load_settings", lambda: {"torch_device_preference": "cpu"}
+        )
         gpu_info = {"vendor": "nvidia", "cuda_version": "12.2"}
         variant, url = ts._pick_torch_variant(gpu_info)
         assert variant == "cpu"
 
     def test_pref_gpu_not_broken(self, monkeypatch):
-        monkeypatch.setattr("engine.settings_store.load_settings", lambda: {"torch_device_preference": "gpu"})
+        monkeypatch.setattr(
+            "engine.settings_store.load_settings", lambda: {"torch_device_preference": "gpu"}
+        )
         monkeypatch.setattr(ts, "get_broken_torch_variants", lambda: set())
         gpu_info = {"vendor": "nvidia", "cuda_version": "12.2"}
         variant, url = ts._pick_torch_variant(gpu_info)
         assert variant == "cu118"
 
     def test_pref_gpu_broken(self, monkeypatch):
-        monkeypatch.setattr("engine.settings_store.load_settings", lambda: {"torch_device_preference": "gpu"})
+        monkeypatch.setattr(
+            "engine.settings_store.load_settings", lambda: {"torch_device_preference": "gpu"}
+        )
         monkeypatch.setattr(ts, "get_broken_torch_variants", lambda: {"cu118"})
         gpu_info = {"vendor": "nvidia", "cuda_version": "12.2"}
         # если cu118 сломан, но pref gpu, код всё равно вернёт cu118? В _pick_torch_variant проверяет broken только для pref gpu?
