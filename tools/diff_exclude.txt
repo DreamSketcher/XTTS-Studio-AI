@@ -1,0 +1,4 @@
+# One protected path per line, e.g.:
+# python/
+# models/
+# requirements.txt
