@@ -54,8 +54,11 @@ def mock_deps(tmp_path):
     use_gpt_var = MockVar(False)
     lang_var = MockVar("ru")
 
-    normalize_fn = lambda x: x.strip()
-    clean_path_fn = lambda x: x.strip()
+    def normalize_fn(x):
+        return x.strip()
+
+    def clean_path_fn(x):
+        return x.strip()
 
     bw.init(
         root=MagicMock(),
