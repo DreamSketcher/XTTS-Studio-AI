@@ -56,13 +56,13 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-            pip install -r requirements.txt || true
+            pip install -r requirements.txt
           fi
           # Лёгкие зависимости, которые нужны тестам напрямую. Ставятся явно,
           # т.к. requirements.txt выше может частично не установиться (|| true)
           # из-за тяжёлых пакетов (coqui-tts / llama-cpp-python) на голом раннере.
           pip install num2words
-          pip install customtkinter pydub pygame
+          pip install numpy customtkinter pydub pygame
           pip install pytest pytest-cov pytest-timeout ruff==0.6.9 black==24.10.0
         shell: bash
 
