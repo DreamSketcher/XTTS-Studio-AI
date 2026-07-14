@@ -9,6 +9,7 @@
 import ctypes
 import json
 import os
+import sys
 
 import customtkinter as ctk
 
@@ -85,6 +86,9 @@ def apply_theme():
 
 def set_dark_titlebar(root):
     """Тёмный/светлый заголовок окна (Windows) в зависимости от темы."""
+    if sys.platform != "win32":
+        return
+
     root.update()
     hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
     DWMWA_USE_IMMERSIVE_DARK_MODE = 20

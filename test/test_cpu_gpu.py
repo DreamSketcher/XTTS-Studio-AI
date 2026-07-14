@@ -22,8 +22,12 @@ class TestEnsureCpuinfo:
         assert result is True
 
     def test_ensure_installs_when_missing(self, monkeypatch):
-        # убираем cpuinfo из sys.modules
-        monkeypatch.delitem(sys.modules, "cpuinfo", raising=False)
+        # sys.modules["cpuinfo"] = None форсирует ImportError при импорте,
+        # даже если пакет физически установлен в окружении (важно для CI,
+        # где py-cpuinfo стоит через requirements.txt). Простой delitem не
+        # подходит: реальный import cpuinfo успешно переимпортируется заново
+        # и никогда не доходит до ветки pip install, которую тестируем.
+        monkeypatch.setitem(sys.modules, "cpuinfo", None)
 
         def fail_run(*a, **kw):
             raise Exception("pip fail")
