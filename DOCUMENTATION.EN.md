@@ -22,11 +22,12 @@ This guide explains how to use XTTS Studio, what actually affects the result, an
 9. [Queue, history, and batch processing](#queue-history-and-batch-processing)
 10. [AI features and offline use](#ai-features-and-offline-use)
 11. [CPU, CUDA, and performance](#cpu-cuda-and-performance)
-12. [Files, caches, and settings](#files-caches-and-settings)
-13. [Troubleshooting](#troubleshooting)
-14. [Project architecture](#project-architecture)
-15. [Development and tests](#development-and-tests)
-16. [Licenses](#licenses)
+12. [System environment and recovery](#system-environment-and-recovery)
+13. [Files, caches, and settings](#files-caches-and-settings)
+14. [Troubleshooting](#troubleshooting)
+15. [Project architecture](#project-architecture)
+16. [Development and tests](#development-and-tests)
+17. [Licenses](#licenses)
 
 ---
 
@@ -57,13 +58,19 @@ The application does not always need an internet connection. Internet access is 
 
 ## Quick start
 
-1. Run `XTTS Studio.exe`.
-2. Select a voice reference of roughly **10–20 seconds**.
-3. Enter your text.
-4. Choose a preset.
-5. Click **🚀 GENERATE**.
-6. The result appears in `outputs/` and in the **🎵 Audio** window.
+1. Unpack XTTS Studio into a path without Cyrillic characters.
+2. Run `XTTS Studio.exe`.
+3. Select a voice reference of roughly **10–20 seconds**.
+4. Enter your text.
+5. Choose a preset.
+6. Click **🚀 GENERATE**.
+7. The result appears in `outputs/` and in the **🎵 Audio** window.
 
+```text
+✔ C:\XTTS\
+✔ D:\Apps\XTTS-Studio\
+✘ C:\Новая папка\XTTS\
+```
 
 ### What `XTTS Studio.exe` is
 
@@ -448,6 +455,222 @@ Practical advice:
 
 ---
 
+## System environment and recovery
+
+XTTS Studio does not use system Python. Managed packages are installed into:
+
+```text
+python/xtts_env/Lib/site-packages
+```
+
+Build files and the shared pip cache live in `python/temp` and `python/pip_cache`. Torch, RVC, and llama.cpp use these locations together, so multiple installers must not run at the same time.
+
+The public facade is `engine/env_core/__init__.py`. It re-exports hardware detection, Torch/llama.cpp/RVC installers, diagnostics, cleanup, and recovery.
+
+| Area | Main public API |
+|------|-----------------|
+| Hardware | `detect_cpu`, `detect_gpu`, `PYTHON_EXE`, `PROJECT_ROOT` |
+| Torch | `install_torch`, `uninstall_torch`, `torch_status`, `cancel_install_torch`, checkpoints, broken variants |
+| llama.cpp | `install_llama_cpp`, `uninstall_llama_cpp`, `llama_cpp_status`, `resolve_backend`, startup state |
+| RVC | `install_rvc`, `uninstall_rvc`, `rvc_status` |
+| Diagnostics | `run_full_diagnostics`, `scan_for_garbage`, `finalize_deletion`, `run_error_recovery`, cache helpers |
+
+### CPU and GPU detection
+
+`engine/env_core/cpu_gpu.py` collects hardware information without importing heavy ML libraries.
+
+**CPU**
+
+- uses `py-cpuinfo`;
+- can install that small pure-Python package into the bundled `site-packages` if it is missing;
+- reads CPU name and AVX, AVX2, FMA/FMA3, and F16C flags;
+- these flags control which instructions are disabled for a local CPU build of `llama-cpp-python`.
+
+**GPU**
+
+- NVIDIA is detected through `nvidia-smi`;
+- GPU name, reported CUDA version, and VRAM are collected;
+- AMD/Intel are detected through PowerShell/WMI;
+- AMD/Intel VRAM is also read from the 64-bit registry value because `Win32_VideoController.AdapterRAM` is limited to 32 bits.
+
+An AMD/Intel GPU does not provide CUDA. In this project Torch GPU acceleration means NVIDIA CUDA, while local llama.cpp may separately use Vulkan on AMD/Intel.
+
+### Torch installation
+
+`engine/env_core/torch_setup.py` manages a matching package set:
+
+```text
+torch       2.2.2
+torchaudio  2.2.2
+torchvision 0.17.2
+```
+
+Available variants:
+
+- `cu118` — NVIDIA CUDA 11.8;
+- `cpu` — universal CPU build.
+
+Variant selection:
+
+1. respect the saved CPU/GPU preference;
+2. require NVIDIA with reported CUDA 11.8 or newer;
+3. skip variants previously marked broken;
+4. force CPU when CUDA is requested on a non-NVIDIA machine.
+
+The installer:
+
+- uses a shared install lock so two pip processes cannot modify the environment concurrently;
+- stores its stage in `.torch_install_checkpoint.json` and supports resume;
+- removes previous `torch*`, `functorch`, `triton`, and `nvidia_*` target folders;
+- uses the local `python/pip_cache`;
+- verifies import in a separate process;
+- requires `torch.cuda.is_available() == True` for the CUDA variant;
+- marks a failed variant broken and falls back to CPU;
+- records the successful variant in `.torch_installed_variant.json`.
+
+`cancel_install_torch()` terminates the active pip process and releases the install lock. `clean_torch_cache()` removes shared temp/pip cache and the Torch checkpoint.
+
+**Real case:** a CUDA wheel installs but the driver/GPU still makes `torch.cuda.is_available()` false. The application records `cu118` in `.torch_broken_variants.json` and installs the CPU build instead of keeping a non-working GPU setup.
+
+### Local llama.cpp installation
+
+`engine/env_core/llama_setup.py` chooses its backend independently from Torch:
+
+| Hardware | Preferred backend |
+|----------|-------------------|
+| NVIDIA + CUDA | CUDA prebuilt wheel |
+| AMD / Intel | Vulkan prebuilt wheel |
+| no suitable GPU or backend marked broken | CPU build |
+
+The CPU variant may be built from source. `build_cmake_args()` disables AVX/AVX2/FMA/F16C instructions that the detected CPU does not support, and compilation uses the available cores.
+
+`llama_cpp_status()` first checks package integrity (`__init__.py`, `llama.py`, `llama_cache.py`), then imports it in a separate process. An incomplete directory is treated as an interrupted installation, not a working package.
+
+Installation has two verification stages:
+
+1. import `llama_cpp` in a separate process;
+2. `smoke_test_gpu_init()` for a GPU backend: actually create `Llama(..., n_gpu_layers=-1)` with an available GGUF model.
+
+If a CUDA/Vulkan wheel imports but crashes during real model initialization, that backend is recorded in `.llama_broken_backends.json` and installation falls back to CPU. This test is stronger than a plain `import llama_cpp`.
+
+Interrupted state is stored in `.llama_install_checkpoint.json`; the successful backend is stored in `.llama_installed_backend.json`. An orphan checkpoint is cleared automatically when the library already works.
+
+During a long CPU build, a watchdog checks file activity. “No files changed recently” is a possible-stall warning, not an automatic cancellation.
+
+### RVC environment installation
+
+`engine/env_core/rvc_setup.py` installs `rvc-python` and its dependency tree into the same portable environment.
+
+Why this is more involved than a normal `pip install`:
+
+- fairseq often requires compilation on Windows;
+- old dependency metadata contains incompatible strict pins;
+- `pip --target` does not always recognize Torch already present in the target;
+- a naive install could download multi-gigabyte CUDA Torch again;
+- the running application may temporarily lock `.pyd`/DLL files.
+
+The installer:
+
+- detects the installed Torch build (`cpu` or `cu118`) and reuses the same package index;
+- creates dynamic constraints from versions actually present in `site-packages`;
+- installs `rvc-python --no-deps`, then reads real `Requires-Dist` entries from its METADATA;
+- uses prebuilt fairseq wheels for Windows Python 3.10/3.11/3.12 when available;
+- avoids installing the obsolete `dataclasses` backport over Python 3.11;
+- installs fairseq/sacrebleu dependencies separately while preserving shared `portalocker`;
+- force-restores compatible NumPy and PyYAML;
+- retries without `--upgrade` after WinError 5 to avoid overwriting locked files;
+- can install up to six discovered missing modules;
+- finally verifies `from rvc_python.infer import RVCInference` in a separate process.
+
+`uninstall_rvc()` removes RVC/fairseq-specific packages but intentionally leaves `portalocker` because it is a shared dependency.
+
+**Real case:** RVC is installed into a CPU environment. Dynamic constraints pin the existing `torch+cpu`, preventing pip from replacing it with `cu118` and downloading several gigabytes again.
+
+### Full diagnostics
+
+`run_full_diagnostics()` checks 11 components in **one isolated subprocess**:
+
+```text
+critical:
+  numpy, torch, torchaudio, torchvision, TTS,
+  soundfile, pygame, customtkinter, num2words
+
+optional:
+  llama_cpp, rvc_python
+```
+
+An optional component can simply be absent. That is a normal state and does not block base XTTS startup. `get_optional_status()` distinguishes `ok`, `not_installed`, and `broken`; only the last state should be reported as an actual failure.
+
+Isolation is also important for recovery. Importing Torch/TTS inside the GUI process may keep `.pyd` and DLL files locked on Windows; a finished subprocess releases them before pip repair begins.
+
+If NumPy fails, dependent Torch/TTS checks are marked `SKIPPED`: repair the root cause before reinstalling everything else.
+
+A fully successful result is cached in `.env_diagnostics_cache.json`. The cache remains valid only while these values match:
+
+- Python executable path;
+- `site-packages` mtime;
+- number of entries in `site-packages`.
+
+Before probing, diagnostics removes an accidentally installed `dataclasses` backport that can shadow the Python 3.11 standard library and break Torch, torchvision, and pip itself.
+
+`clear_diagnostics_cache()` forces the next check to run again. `clean_pip_download_cache()` removes the shared `python/temp` and `python/pip_cache` for Torch, RVC, and llama.cpp; it must not be used during an active installation.
+
+### Garbage scan and quarantine
+
+`scan_for_garbage(mode="fast" | "deep")` does not delete candidates immediately.
+
+Flow:
+
+1. run baseline diagnostics;
+2. scan `python/temp`, `python/pip_cache`, `logs`, `__pycache__`, `.pytest_cache`, and known temporary extensions;
+3. exclude `models`, `outputs`, `library`, `reference`, and `.git` from the broad project scan;
+4. move candidates to `python/xtts_env/Quarantine`;
+5. run diagnostics again;
+6. restore files automatically and mark them unsafe if a new failure appears;
+7. permanently remove only the confirmed list through `finalize_deletion()`.
+
+**Fast** mode reuses the known-safe cache and skips new unknown files.  
+**Deep** mode tests the full candidate set through quarantine and post-scan diagnostics.
+
+Safe/unsafe/deleted history is stored in `.known_safe_files.json` and later used by recovery.
+
+### Dependency recovery
+
+`run_error_recovery()` maps deletion history to packages and pinned versions from `requirements.txt`, then checks the live environment before installing anything. A working package is not reinstalled merely because an old deletion record still exists.
+
+Special cases:
+
+- RVC recovery delegates to specialized `install_rvc()`;
+- Torch variant is inferred from installed metadata and saved backend state;
+- working Torch is not downloaded again while repairing SoundFile or torchvision;
+- incompatible PyAV (`av.logging`) is repaired before/after torchvision;
+- pip exit code 0 is not enough — imports are tested again;
+- the shadowing `dataclasses` backport is removed both before and after recovery;
+- full output is stored in `logs/recovery_pip_output.log`.
+
+**Real case:** garbage cleanup removed an `av`-related file and torchvision stopped importing. Recovery repairs the compatible PyAV build and checks `av.logging`; if torchvision imports again, its wheel is not downloaded unnecessarily.
+
+### Important environment files
+
+| Path | Purpose |
+|------|---------|
+| `.env_diagnostics_cache.json` | cache of a fully successful diagnostics run |
+| `.known_safe_files.json` | scanner safe/unsafe/deleted history |
+| `.torch_install_checkpoint.json` | interrupted Torch installation stage |
+| `.torch_installed_variant.json` | last successful `cpu` / `cu118` selection |
+| `.torch_broken_variants.json` | Torch variants that automatic selection should skip |
+| `.llama_install_checkpoint.json` | llama.cpp installation stage |
+| `.llama_installed_backend.json` | last successful llama.cpp backend |
+| `.llama_broken_backends.json` | CUDA/Vulkan backends that failed verification |
+| `python/temp/` | temporary pip/build files |
+| `python/pip_cache/` | shared installer download cache |
+| `python/xtts_env/Quarantine/` | temporary isolation for deletion candidates |
+| `logs/recovery_pip_output.log` | complete recovery log |
+
+Do not delete a checkpoint file during an active installation: it is needed for resume and interrupted-stage diagnostics.
+
+---
+
 ## Files, caches, and settings
 
 | Path | Purpose | Safe to delete manually? |
@@ -459,12 +682,17 @@ Practical advice:
 | `gpt_settings.json` | AI providers, models, and keys | only if you are ready to configure them again |
 | `word_rules.json` | pronunciation dictionary | avoid without a backup |
 | `history.json` | last 100 generations | yes; history is cleared |
-| `library/<voice>/` | normalized voice files and embedding data | use the UI when possible |
+| `library/<voice>/` | `normalized.wav`, converted audio, and embedding cache; the source file may remain at its original path | use the UI when possible |
 | `outputs/` | finished audio | yes, after saving needed files elsewhere |
 | `outputs/_cache/` | chunk cache | yes; repeated generation becomes slower |
 | `models/rvc/` | RVC models and related caches | remove models through the RVC browser |
-| `models/` | also contains local LLM files | do not delete blindly |
-| `logs/` | diagnostic logs | yes, when no investigation is needed |
+| `models/` | XTTS, RVC, and local GGUF files | do not delete blindly |
+| `.env_diagnostics_cache.json` | cache of successful diagnostics | yes; the next check will be full |
+| `.known_safe_files.json` | quarantine/safe/unsafe/deleted history | do not remove before recovery |
+| `.torch_*`, `.llama_*` | checkpoints and selected/broken backends | do not remove during installation or investigation |
+| `python/temp/`, `python/pip_cache/` | shared installer temp and cache | clear through the UI, never during installation |
+| `python/xtts_env/Quarantine/` | files temporarily isolated by the scanner | do not delete manually before diagnostics finishes |
+| `logs/` | diagnostics and recovery logs | yes, when no investigation is needed |
 
 Quality presets are saved as a complete tree. Theme and other independent keys should survive changes to language or voice because `settings_ui.save_settings()` uses read-modify-write.
 
@@ -510,6 +738,22 @@ An error such as `invalid load key, '<'` usually means an HTML page was saved in
 
 This is expected for XTTS, RVC, and local LLM. Test a short sentence, close heavy applications, or enable CUDA on a compatible NVIDIA GPU.
 
+### GPU was selected, but the application fell back to CPU
+
+Check runtime verification, not only wheel installation. Torch requires `torch.cuda.is_available() == True`; a llama.cpp GPU backend must actually open a GGUF model with `n_gpu_layers=-1`. A failed variant is marked broken so it is not selected automatically again.
+
+### Torch or llama.cpp installation was interrupted
+
+Do not delete the checkpoint manually. Open environment settings: the installer can identify the stage and offer resume. If the package already works, an orphan checkpoint is cleaned automatically.
+
+### Diagnostics says RVC or llama.cpp is not installed
+
+These are optional components. Their absence is not a base-XTTS failure. Install RVC only for voice conversion and llama.cpp only for local AI.
+
+### Something stopped importing after garbage cleanup
+
+The scanner uses quarantine and post-move diagnostics before permanent deletion. Do not manually delete `python/xtts_env/Quarantine`: files may need to be restored automatically. If deletion was already confirmed, run recovery and inspect `logs/recovery_pip_output.log`.
+
 ### A cloud AI provider does not respond
 
 Check the API key, selected model, provider availability, and VPN requirements. For a fully local workflow, select a GGUF model or disable AI.
@@ -529,7 +773,12 @@ Code is separated by responsibility:
 | `gui.py` | application entry and startup checks |
 | `engine/tts/` | generation pipeline, QC, export, and cache |
 | `engine/gui/` | main window and user-facing panels |
-| `engine/env_core/` | diagnostics and torch / llama.cpp / RVC installation |
+| `engine/env_core/__init__.py` | public system-environment facade |
+| `engine/env_core/cpu_gpu.py` | CPU flags and GPU vendor/CUDA/VRAM detection |
+| `engine/env_core/torch_setup.py` | Torch install, resume, verification, and CPU fallback |
+| `engine/env_core/llama_setup.py` | CPU/CUDA/Vulkan selection, smoke test, and llama.cpp fallback |
+| `engine/env_core/rvc_setup.py` | Windows-safe `rvc-python`/fairseq installation |
+| `engine/env_core/diagnostics.py` | isolated probes, cache, quarantine, and recovery |
 | `engine/reference_processor.py` | reference preparation and SNR |
 | `engine/normalizer.py` | text normalization |
 | `engine/chunker.py` | safe text splitting |
@@ -576,7 +825,7 @@ engine/gui/chat_window/engine/settings_context.py
 
 Configuration is stored in `pyproject.toml`:
 
-- Black and Ruff target Python 3.11;
+- Black and Ruff target Python 3.10/3.11;
 - Ruff checks E/F/W; `F821` remains enabled for real undefined names;
 - pytest adds the project root to `pythonpath`;
 - `pytest-timeout` limits one test to 60 seconds.
