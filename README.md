@@ -50,6 +50,24 @@ Core synthesis does not send the reference or text to a cloud service. A network
 
 ---
 
+## Why XTTS Studio
+
+- **Local core:** normal XTTS/RVC generation does not upload your reference or text.
+- **Portable:** no separate Python installation or manual environment assembly.
+- **Long-form workflow:** chunking, queue, QC, cache, and history are built for more than one short sentence.
+- **RVC is part of the workflow:** catalogue, demos, parameter preview, downloads, and cache cleanup are in the same UI.
+- **AI is optional:** use cloud providers, a local GGUF model, or no AI at all.
+- **The application maintains its environment:** diagnostics, quarantine, recovery, checkpoints, and CPU fallback.
+- **Normal updates do not require the full archive:** the updater downloads changed files, verifies SHA256, and can roll back.
+
+### More than another XTTS wrapper
+
+The project is not only a button around `TTS.api`. It handles the less glamorous parts of a portable desktop application: reference preparation, dependency health, recovery before heavy GUI imports, safe backup/rollback updates, and useful generation history.
+
+It also does not promise that every reference or RVC model will sound good. The practical order is: **clean reference → short XTTS test → preset tuning → only then RVC and AI**.
+
+---
+
 ## What you can do
 
 ### 🎤 Clone a voice
@@ -139,15 +157,44 @@ History keeps the latest 100 generations. Every card has a waveform: play, stop,
   <img src="images/preset-settings.PNG" width="45%" alt="Preset settings" />
 </p>
 
+<!--
+Optional README improvement: one 20–30 second GIF.
+Flow: select a voice → enter a short text → Generate → open the finished WAV.
+When `images/quick-start.gif` exists, this is the best place to show it.
+-->
+
+---
+
+## What is inside
+
+| Component | Responsibility |
+|-----------|----------------|
+| **XTTS v2** | speech synthesis and cloning from a short reference |
+| **PyTorch** | CPU/CUDA inference |
+| **RVC / fairseq** | optional timbre conversion |
+| **FFmpeg + pydub + SoundFile** | audio conversion, reading, merge, and export |
+| **llama.cpp** | local GGUF models for AI chat and Conductor |
+| **Tkinter + CustomTkinter** | desktop interface |
+| **pygame** | reference, history, and RVC-preview playback |
+| **env_core** | hardware detection, installation, diagnostics, quarantine, and recovery |
+
+Heavy optional components are installed into portable `python/xtts_env`, not system Python.
+
 ---
 
 ## Installation
 
 1. Download the portable archive from [GitHub Releases](https://github.com/DreamSketcher/XTTS-Studio/releases).
-2. Run `XTTS Studio.exe`.
-3. Select a reference and generate a short test sentence.
-4. Start a chapter or batch only after the short test succeeds.
+2. Unpack it into a path without Cyrillic characters.
+3. Run `XTTS Studio.exe`.
+4. Select a reference and generate a short test sentence.
+5. Start a chapter or batch only after the short test succeeds.
 
+```text
+✔ C:\XTTS\
+✔ D:\Apps\XTTS-Studio\
+✘ C:\Новая папка\XTTS\
+```
 
 The build runs on CPU immediately. For a compatible NVIDIA GPU, install the CUDA variant through **⚙ Settings → Acceleration**.
 
