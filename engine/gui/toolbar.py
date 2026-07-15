@@ -201,7 +201,12 @@ def build_toolbar(text_card):
         chat_btn.grid(row=0, column=0, sticky="ew", padx=(_TB_PAD_X, _TB_PAD_X))
         ToolTip(chat_btn, t("tip_ai_assistant"))
         _ai_s = load_settings()
-        _ai_active = _ai_s.get("ai_conductor_enabled", False)
+        # Три разных цвета в зависимости от того, какой режим AI активен —
+        # см. ai_conductor.get_ai_indicator_color().
+        _ai_indicator_fg = ai_conductor.get_ai_indicator_color(
+            _ai_s.get("ai_conductor_enabled", False),
+            _ai_s.get("ai_rewrite_enabled", False),
+        )
         ai_btn = create_neon_button(
             ai_inner,
             t("btn_ai_conductor"),
@@ -209,7 +214,7 @@ def build_toolbar(text_card):
             font_size=_TB_FONT_SIZE,
             height=28,
             bg=Colors.AI_GROUP_BG,
-            fg=Colors.AI_ACCENT if _ai_active else Colors.TEXT_DIM,
+            fg=_ai_indicator_fg,
             button_id="ai",
         )
         ai_btn.grid(row=0, column=1, sticky="ew", padx=(0, _TB_PAD_X))

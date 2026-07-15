@@ -52,6 +52,10 @@ class TextChunker:
     # =========================
     def _split_sentences(self, text):
         text = text.replace("...", "<ELL>")
+        # 🔥 FIX: схлопываем случайно задвоенные знаки препинания ("он..", "!!", "?!"),
+        # оставшиеся после копипаста/OCR — иначе такой артефакт создаёт ложную границу
+        # предложения и отрывает перечисление от вводной фразы (см. "он.. ходьбу, лодку...")
+        text = re.sub(r"([.!?])\1+", r"\1", text)
         # Регулярное выражение с негативным просмотром назад (negative lookbehind),
         # чтобы предотвратить ложную разбивку предложений на инициалах вроде "А. С. Пушкин"
         parts = re.split(r"(?<!\b[A-ZА-ЯЁ])(?<=[.!?])\s+", text)
@@ -72,11 +76,28 @@ class TextChunker:
         return any(c.endswith(" " + tok) or c == tok for tok in self.bad_end_tokens)
 
     # =========================
+    # ENUMERATION DETECTION
+    # =========================
+    def _is_enumeration(self, text: str) -> bool:
+        """
+        Плотное перечисление (много однородных элементов через запятую,
+        почти без других знаков разрыва) — статистически проблемная для XTTS
+        структура: авторегрессивный декодер склонен "рваться"/повторяться на
+        длинной монотонной последовательности "слово, слово, слово...".
+        """
+        commas = text.count(",")
+        strong = len(re.findall(r"[.!?;:—]", text))
+        return commas >= 5 and commas > strong * 2
+
+    # =========================
     # SCORE CUT POSITION
     # =========================
-    def _score(self, text, pos):
+    def _score(self, text, pos, is_enum=False):
         char = text[pos] if pos < len(text) else ""
-        dist = abs(pos - self.target_size)
+        # 🔥 FIX: для плотных перечислений режем чаще и короче — даём XTTS больше
+        # "точек передышки" вместо одного длинного монотонного чанка
+        target = self.target_size * 0.6 if is_enum else self.target_size
+        dist = abs(pos - target)
 
         score = 0
 
@@ -89,7 +110,7 @@ class TextChunker:
         elif char == ":":
             score += 65
         elif char == ",":
-            score += 20
+            score += 75 if is_enum else 20
 
         score -= dist * 0.25
         return score
@@ -100,6 +121,8 @@ class TextChunker:
     def _split_long(self, text):
         if len(text) <= self.max_size:
             return [text]
+
+        is_enum = self._is_enumeration(text)
 
         out = []
         remaining = text
@@ -115,7 +138,7 @@ class TextChunker:
                 if pos < self.min_size:
                     continue
 
-                candidates.append((pos, self._score(remaining, pos)))
+                candidates.append((pos, self._score(remaining, pos, is_enum)))
 
             if candidates:
                 best = max(candidates, key=lambda x: x[1])

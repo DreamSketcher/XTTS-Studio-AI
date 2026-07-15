@@ -98,19 +98,62 @@ if "%BLOCKED%"=="1" (
 
 pushd "%PROJECT_ROOT%"
 
+set "USE_3WAY=0"
+
 echo Checking if the diff applies cleanly...
-git apply --check "%DIFF_PATH%"
-if errorlevel 1 (
+git apply --check "%DIFF_PATH%" 2>nul
+if not errorlevel 1 goto :apply_ok
+
+rem ---- possible cause 1: this diff was already applied earlier ----
+echo First check failed - checking if this diff is already applied...
+git apply --check --reverse "%DIFF_PATH%" 2>nul
+if not errorlevel 1 (
     echo.
-    echo ERROR: diff does not apply cleanly to current files.
-    echo The file may already be modified, or the diff is stale.
+    echo This diff appears to be ALREADY APPLIED - the target files
+    echo already contain these changes, there is nothing to do.
+    echo.
+    set /p "SKIPCHOICE=Move it to applied\ without touching any files? (y/n): "
+    if /i "!SKIPCHOICE!"=="y" (
+        popd
+        move "%DIFF_PATH%" "%APPLIED_DIR%\%SELECTED%" >nul
+        echo Moved to: %APPLIED_DIR%\%SELECTED%
+        pause
+        exit /b 0
+    )
     popd
     pause
     exit /b 1
 )
 
+rem ---- possible cause 2: file shifted slightly, but a 3-way merge
+rem      can still resolve it using the blobs recorded in the diff
+rem      (only works if this repo's history still has those blobs) ----
+echo Not already applied - checking if a 3-way merge can resolve it...
+git apply --check --3way "%DIFF_PATH%" 2>nul
+if not errorlevel 1 (
+    echo 3-way merge can resolve this - will apply with --3way.
+    set "USE_3WAY=1"
+    goto :apply_ok
+)
+
+echo.
+echo ERROR: diff does not apply cleanly to current files, even with
+echo a 3-way merge attempt. The file may be modified in a way that
+echo conflicts with this diff, or the diff is stale.
+echo.
+echo Git's diagnostic output:
+git apply --check "%DIFF_PATH%"
+popd
+pause
+exit /b 1
+
+:apply_ok
 echo Diff is valid, applying...
-git apply "%DIFF_PATH%"
+if "%USE_3WAY%"=="1" (
+    git apply --3way "%DIFF_PATH%"
+) else (
+    git apply "%DIFF_PATH%"
+)
 if errorlevel 1 (
     echo ERROR while applying the diff.
     popd
