@@ -447,9 +447,7 @@ def set_ai_pulse(active: bool):
             params.get("ai_rewrite_enabled", tk.BooleanVar()).get()
             for params in quality_params.values()
         )
-        ai_btn.config(
-            bg=Colors.AI_GROUP_BG, fg=get_ai_indicator_color(conductor_on, rewrite_on)
-        )
+        ai_btn.config(bg=Colors.AI_GROUP_BG, fg=get_ai_indicator_color(conductor_on, rewrite_on))
         return
     _ai_pulse_active["v"] = True
     _ai_pulse_active["state"] = False

@@ -363,9 +363,11 @@ def run_tts(
             send(
                 "generate",
                 30,
-                "AI Conductor анализирует текст..."
-                if ai_conductor_enabled
-                else "AI переписывает текст...",
+                (
+                    "AI Conductor анализирует текст..."
+                    if ai_conductor_enabled
+                    else "AI переписывает текст..."
+                ),
             )
             chunks_wr = [
                 (
@@ -429,7 +431,11 @@ def run_tts(
                         from ..ai_conductor import _fallback_params
 
                         conductor_map = _fallback_params(chunks)
-            elif ai_conductor_enabled and isinstance(conductor_result, dict) and "chunks" in conductor_result:
+            elif (
+                ai_conductor_enabled
+                and isinstance(conductor_result, dict)
+                and "chunks" in conductor_result
+            ):
                 # rewrite_enabled=False, но conduct() всё же вернул словарь —
                 # берём только параметры чанков, rewritten_text игнорируем.
                 conductor_map = conductor_result["chunks"]
