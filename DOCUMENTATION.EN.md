@@ -921,6 +921,43 @@ engine/gui/chat_window/engine/settings_context.py
 
 ---
 
+## UI performance and animation quality
+
+The UI uses one `AnimationManager`, event-driven timers, and adaptive motion profiles. No 60-FPS loop runs while idle. High-frequency progress/status events are rate-limited, and worker results reach Tk through `UIThreadBridge`.
+
+### Motion profiles
+
+Choose a profile under **AI Chat → Settings → Theme customizer → Motion and effects**:
+
+| Profile | Purpose |
+|---|---|
+| `ultra` | maximum decorative animation rate |
+| `balanced` | recommended; may temporarily slow effects when measured frame p95 is poor |
+| `performance` | minimal decorative updates |
+| `reduced` | reduced motion for comfort and slower systems |
+| `off` | visual transitions disabled |
+
+Set `XTTS_UI_PERF=1` to show a developer overlay with last/avg/p95 frame time, dropped frames, and active animations. It is disabled by default.
+
+
+---
+
+## Security and supply chain
+
+- `version.json` is signed with Ed25519 (`version.json.sig`) and verified before JSON parsing;
+- updater paths are confined to the application root and every update file requires SHA-256;
+- API credentials are protected by Windows DPAPI with legacy plaintext migration;
+- RVC `.pth` checkpoints require explicit user trust bound to the exact SHA-256;
+- embedding cache uses `weights_only=True` and strict schema validation;
+- cloud AI endpoints require HTTPS; HTTP is allowed only for loopback;
+- CI enforces the runtime dependency baseline with `pip-audit`;
+- the CycloneDX SBOM is published as `sbom.cdx.json`;
+- the release workflow requires valid EXE Authenticode and byte-identical double archive builds.
+
+See [SECURITY.md](./SECURITY.md), [PRIVACY.md](./PRIVACY.md), and [SECURITY_BASELINE.md](./SECURITY_BASELINE.md). The current EXE must not be described as Authenticode-signed until the owner's real code-signing certificate is applied.
+
+---
+
 ## Development and tests
 
 Configuration is stored in `pyproject.toml`:
