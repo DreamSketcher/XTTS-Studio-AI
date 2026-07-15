@@ -75,6 +75,7 @@ PACKAGE_PIP_SPEC = {
     "pygame": "pygame",
     "customtkinter": "customtkinter",
     "num2words": "num2words",
+    "cryptography": "cryptography==49.0.0",
     "llama_cpp": "llama-cpp-python",
     "soundfile": "soundfile",
     "rvc_python": "rvc-python",
@@ -644,6 +645,7 @@ class EnvSettingsWindow(ctk.CTkToplevel):
             "pygame": "Pygame (воспроизведение)",
             "customtkinter": "CustomTkinter (виджеты)",
             "num2words": "num2words (нормализация)",
+            "cryptography": "Cryptography (подпись обновлений)",
             "llama_cpp": "Llama-cpp (локальные чаты)",
             "rvc_python": "RVC-python (клон-фильтр)",
         }
@@ -658,6 +660,7 @@ class EnvSettingsWindow(ctk.CTkToplevel):
             "pygame": "pygame",
             "customtkinter": "customtkinter",
             "num2words": "num2words",
+            "cryptography": "cryptography==49.0.0",
             "llama_cpp": "llama-cpp-python",
             "rvc_python": "rvc-python",
         }

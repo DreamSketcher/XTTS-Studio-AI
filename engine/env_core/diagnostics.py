@@ -41,6 +41,7 @@ CRITICAL_COMPONENTS = {
     "pygame",
     "customtkinter",
     "num2words",
+    "cryptography",
 }
 # ОПЦИОНАЛЬНЫЕ: дополнительные фичи (локальный LLM-чат, конвертация голоса).
 # Их отсутствие — это НОРМАЛЬНОЕ состояние по умолчанию (пользователь просто
@@ -609,14 +610,21 @@ try:
 except Exception as e:
     results['num2words'] = str(e)
 
-# 10. llama_cpp
+# 10. cryptography (Ed25519 update verification + protected release tooling)
+try:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    results['cryptography'] = (Ed25519PublicKey is not None)
+except Exception as e:
+    results['cryptography'] = str(e)
+
+# 11. llama_cpp
 try:
     import llama_cpp
     results['llama_cpp'] = True
 except Exception as e:
     results['llama_cpp'] = str(e)
 
-# 11. rvc_python
+# 12. rvc_python
 try:
     from rvc_python.infer import RVCInference
     results['rvc_python'] = True
@@ -638,6 +646,7 @@ print("SUB_RESULT=" + json.dumps(results))
         "pygame",
         "customtkinter",
         "num2words",
+        "cryptography",
         "llama_cpp",
         "rvc_python",
     )
@@ -1357,6 +1366,7 @@ def run_error_recovery(progress_cb=None) -> list:
         "pygame": "pygame==2.6.1",
         "customtkinter": "customtkinter==6.0.0",
         "num2words": "num2words==0.5.14",
+        "cryptography": "cryptography==49.0.0",
         "llama_cpp": "llama-cpp-python",
         "soundfile": "soundfile==0.14.0",
         "rvc_python": "rvc-python",

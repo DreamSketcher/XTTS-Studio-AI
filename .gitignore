@@ -58,6 +58,9 @@ Thumbs.db
 secrets.json
 keys/
 api_keys.json
+*-signing-private.pem
+*.pfx
+*.p12
 update_github.bat
 
 # =========================
