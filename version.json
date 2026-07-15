@@ -2,6 +2,7 @@
   "version": "1.1.228",
   "files": [
     ".pre-commit-config.yaml",
+    "AUDIT_REPORT_RU.md",
     "DOCUMENTATION.EN.md",
     "DOCUMENTATION.RU.md",
     "PRIVACY.md",
@@ -138,7 +139,9 @@
     "json/rvc_catalog_seed.json",
     "pyproject.toml",
     "requirements.txt",
-    "sbom.cdx.json"
+    "sbom.cdx.json",
+    "update_manifest_public.pem",
+    "version.json.sig"
   ],
   "changelog": "- RVC: постобработка голоса после XTTS (на каждый чанк) — index rate, pitch, f0 (rmvpe/harvest/pm/crepe)\n- RVC: установка rvc-python в portable-окружение (Windows: prebuilt fairseq, без ручной компиляции)\n- RVC: каталог моделей — офлайн seed (json/rvc_catalog_seed.json), кэш, поиск/скачивание (HF; best-effort Google Drive)\n- RVC: выпадающий список моделей в настройках пресета (локальные 🗑, загрузка ⬇, отмена ✕, страница 🔗)\n- Настройки пресета: вкладки RVC · Обрезка · Вывод · XTTS (панель вкладок закреплена сверху, не уезжает при скролле)\n- Настройки пресета: ползунок trim вместе с режимом; де-эссер на вкладке «Вывод»; параметры XTTS отдельно\n- Сохранение RVC и параметров пресета между сессиями (quality_params в settings.json); запоминается последняя вкладка\n- Документация: README и DOCUMENTATION на RU/EN; справочник функций (API) на RU/EN\n- Единая сборка вместо CPU/CUDA-версий: CUDA по желанию в Настройках под конкретное железо\n- Самопроверка torch при запуске: кэш или переустановка совместимой версии\n- Диагностика и Устранение ошибок: проверка библиотек, карантин мусора, автопереустановка сломанных пакетов\n- Редизайн UI, конструктор тем, раскладка и панели\n- Автообновление: staged-загрузка, SHA256, бэкап и rollback; min_app_version для полной переустановки\n- Локальные LLM: автоскан окружения, каталог моделей, своя модель из папки\n- Исправления и оптимизация",
   "sha256": {
