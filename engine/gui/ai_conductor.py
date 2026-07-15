@@ -31,6 +31,25 @@ _conductor_warning_session_resolved = False
 _conductor_warning_pending = False
 
 
+def get_ai_indicator_color(conductor_enabled: bool, rewrite_enabled: bool) -> str:
+    """
+    Цвет кнопки 🤖 AI зависит от того, какой режим включён — три
+    разительно разных цвета, чтобы состояние читалось с одного взгляда,
+    без открытия окна кондуктора:
+      • оба выключены   → TEXT_DIM      (тускло — AI не участвует)
+      • только rewrite  → ACCENT        (синий — идёт переработка текста)
+      • только conductor → TEXT_WARNING (янтарный — идёт подбор параметров XTTS)
+      • оба включены    → AI_ACCENT     (фирменный фиолетовый — полный режим)
+    """
+    if conductor_enabled and rewrite_enabled:
+        return Colors.AI_ACCENT
+    if conductor_enabled:
+        return Colors.TEXT_WARNING
+    if rewrite_enabled:
+        return Colors.ACCENT
+    return Colors.TEXT_DIM
+
+
 def _set_placeholder(text_widget, placeholder):
     """Показать серую подсказку-плейсхолдер в отключённом (disabled) поле."""
     text_widget.config(state="normal")
@@ -420,11 +439,17 @@ def set_ai_pulse(active: bool):
             root.after_cancel(_ai_pulse_active.get("after_id", None))
         except Exception:
             pass
-        enabled = any(
+        conductor_on = any(
             params.get("ai_conductor_enabled", tk.BooleanVar()).get()
             for params in quality_params.values()
         )
-        ai_btn.config(bg=Colors.AI_GROUP_BG, fg=Colors.AI_ACCENT if enabled else Colors.TEXT_DIM)
+        rewrite_on = any(
+            params.get("ai_rewrite_enabled", tk.BooleanVar()).get()
+            for params in quality_params.values()
+        )
+        ai_btn.config(
+            bg=Colors.AI_GROUP_BG, fg=get_ai_indicator_color(conductor_on, rewrite_on)
+        )
         return
     _ai_pulse_active["v"] = True
     _ai_pulse_active["state"] = False

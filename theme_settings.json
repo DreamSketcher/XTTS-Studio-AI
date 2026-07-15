@@ -67,8 +67,8 @@
   },
   "layout": "classic",
   "audio_repeat_one": true,
-  "console_visible": false,
-  "console_scroll_pos": 0.0,
+  "console_visible": true,
+  "console_scroll_pos": 0.6666666666666666,
   "sidebar_side": "left",
   "toolbar_order": [
     "file",

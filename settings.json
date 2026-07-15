@@ -91,7 +91,7 @@
       "rvc_f0_method": "harvest"
     }
   },
-  "ai_conductor_open_count": 12,
+  "ai_conductor_open_count": 16,
   "ai_conductor_warning_dismissed": true,
   "ui_theme": "light",
   "left_panel_visible": true,

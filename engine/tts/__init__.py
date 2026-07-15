@@ -334,22 +334,39 @@ def run_tts(
             breath_length="medium",
         )
         # #4: process_chunks учитывает контекст серий list-item чанков
+        # Два независимых флага: ai_conductor_enabled управляет параметрами
+        # синтеза (temperature/pause/speed), ai_rewrite_enabled — переработкой
+        # текста (стиль + негатив-промпт). Раньше rewrite работал только
+        # вместе с conductor'ом — теперь каждый включается отдельно.
         ai_conductor_enabled = bool((quality_params or {}).get("ai_conductor_enabled", False))
+        rewrite_enabled = bool((quality_params or {}).get("ai_rewrite_enabled", False))
+        rewrite_context = str((quality_params or {}).get("ai_rewrite_context", "")).strip()
+        rewrite_negative = str((quality_params or {}).get("ai_rewrite_negative", "")).strip()
+        # Реально дёргаем AI под rewrite, только если есть что перерабатывать —
+        # иначе conduct() просто вернёт параметры, которые потом всё равно
+        # выбросим, зря потратив вызов.
+        need_ai_call = ai_conductor_enabled or (rewrite_enabled and bool(rewrite_context))
 
         if ai_conductor_enabled:
-            chunks = chunks_before_prosody  # prosody пропускается
+            chunks = chunks_before_prosody  # prosody пропускается — паузы даст кондуктор
         else:
             chunks = prosody_engine.process_chunks(chunks_before_prosody, lang=lang_detected)
 
         send("chunking", 30)
 
-        # AI Conductor — один вызов на весь текст до старта генерации
+        # AI Conductor / Rewrite — один вызов на весь текст до старта генерации
         conductor_map = None
-        if ai_conductor_enabled:
+        if need_ai_call:
             from ..ai_conductor import conduct
 
             send("ai_conductor_on", None)  # ← пульсация сразу при старте
-            send("generate", 30, "AI Conductor анализирует текст...")
+            send(
+                "generate",
+                30,
+                "AI Conductor анализирует текст..."
+                if ai_conductor_enabled
+                else "AI переписывает текст...",
+            )
             chunks_wr = [
                 (
                     word_replacer.apply(c)
@@ -358,9 +375,6 @@ def run_tts(
                 )
                 for c in chunks
             ]
-            rewrite_enabled = bool((quality_params or {}).get("ai_rewrite_enabled", False))
-            rewrite_context = str((quality_params or {}).get("ai_rewrite_context", "")).strip()
-            rewrite_negative = str((quality_params or {}).get("ai_rewrite_negative", "")).strip()
 
             conductor_result = conduct(
                 text,
@@ -372,7 +386,7 @@ def run_tts(
                 rewrite_negative=rewrite_negative,
             )
 
-            # Если кондуктор вернул rewrite — перестраиваем текст и чанки.
+            # Если пришёл rewrite — перестраиваем текст и чанки.
             # ВАЖНО: применяем rewritten_text ТОЛЬКО если rewrite_enabled=True —
             # не полагаемся на одну лишь форму ответа conduct(), чтобы уровень 1
             # (параметры) и уровень 2 (rewrite) оставались независимыми даже если
@@ -386,7 +400,14 @@ def run_tts(
                 send("normalized_text", None, text_msg=text)
                 chunks_before_prosody = chunker.chunk_text(text)
                 chunk_map = _build_chunk_text_map(text, chunks_before_prosody)
-                chunks = chunks_before_prosody
+                if ai_conductor_enabled:
+                    chunks = chunks_before_prosody  # паузы/параметры даст кондуктор
+                else:
+                    # Только переработка текста, без кондуктора параметров —
+                    # паузы/просодия на новых чанках идут как обычно.
+                    chunks = prosody_engine.process_chunks(
+                        chunks_before_prosody, lang=lang_detected
+                    )
                 chunks_wr = [
                     (
                         word_replacer.apply(c)
@@ -398,23 +419,28 @@ def run_tts(
                     )
                     for c in chunks
                 ]
-                conductor_map = conductor_result["chunks"]
-                # Если длина чанков изменилась — кондуктор переназначает параметры
-                if len(conductor_map) != len(chunks):
-                    print(
-                        f"[Conductor] Rewrite changed chunk count {len(conductor_map)}→{len(chunks)}, re-conducting"
-                    )
-                    from ..ai_conductor import _fallback_params
+                if ai_conductor_enabled:
+                    conductor_map = conductor_result["chunks"]
+                    # Если длина чанков изменилась — кондуктор переназначает параметры
+                    if len(conductor_map) != len(chunks):
+                        print(
+                            f"[Conductor] Rewrite changed chunk count {len(conductor_map)}→{len(chunks)}, re-conducting"
+                        )
+                        from ..ai_conductor import _fallback_params
 
-                    conductor_map = _fallback_params(chunks)
-            elif isinstance(conductor_result, dict) and "chunks" in conductor_result:
+                        conductor_map = _fallback_params(chunks)
+            elif ai_conductor_enabled and isinstance(conductor_result, dict) and "chunks" in conductor_result:
                 # rewrite_enabled=False, но conduct() всё же вернул словарь —
                 # берём только параметры чанков, rewritten_text игнорируем.
                 conductor_map = conductor_result["chunks"]
-            else:
+            elif ai_conductor_enabled:
                 conductor_map = conductor_result
 
-            if conductor_map is None:
+            if ai_conductor_enabled and conductor_map is None:
+                send("ai_conductor_off", None)
+            elif not ai_conductor_enabled:
+                # Rewrite-only режим не использует conductor_map вообще —
+                # пульсацию гасим сразу после ответа AI.
                 send("ai_conductor_off", None)
 
         output_dir = path("outputs")
