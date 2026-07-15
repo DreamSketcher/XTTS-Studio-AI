@@ -3,6 +3,9 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("cryptography", reason="release signing test dependency is not installed")
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 

@@ -42,7 +42,7 @@ if exist "%SELF%\test_updater.py" (
     set "TESTDIR=%SELF%\test"
 )
 
-set "PYTHONPATH=%ROOT%;%PYTHONPATH%"
+set "PYTHONPATH=%ROOT%\python\xtts_env\Lib\site-packages;%ROOT%;%PYTHONPATH%"
 set "PYTEST_LOG=%SELF%\result\pytest_report.txt"
 
 if not exist "%SELF%\result" mkdir "%SELF%\result"
@@ -87,6 +87,25 @@ if errorlevel 1 (
         )
     ) else (
         echo Cannot run tests without pytest. Exiting.
+        pause
+        exit /b 1
+    )
+)
+
+REM =============================================
+REM  Security runtime dependency (Ed25519 updater tests)
+REM =============================================
+"%PY%" -c "import cryptography" >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [SETUP] Installing required security package cryptography==49.0.0...
+    if exist "%ROOT%\python\xtts_env\Lib\site-packages" (
+        "%PY%" -m pip install cryptography==49.0.0 --target "%ROOT%\python\xtts_env\Lib\site-packages" --upgrade
+    ) else (
+        "%PY%" -m pip install cryptography==49.0.0
+    )
+    if errorlevel 1 (
+        echo [ERROR] Failed to install cryptography. Signature tests cannot run.
         pause
         exit /b 1
     )

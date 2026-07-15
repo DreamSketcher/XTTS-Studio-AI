@@ -13,6 +13,7 @@
 """
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -32,8 +33,17 @@ for _stream in (sys.stdout, sys.stderr):
             pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BUNDLED_SITE_PACKAGES = os.path.join(BASE_DIR, "python", "xtts_env", "Lib", "site-packages")
+if os.path.isdir(BUNDLED_SITE_PACKAGES) and BUNDLED_SITE_PACKAGES not in sys.path:
+    sys.path.insert(0, BUNDLED_SITE_PACKAGES)
+
 VERSION_PATH = os.path.join(BASE_DIR, "version.json")
 CHECKSUMS_PATH = os.path.join(BASE_DIR, "checksums.txt")
+SIGNATURE_PATH = os.path.join(BASE_DIR, "version.json.sig")
+# These files describe/sign the payload and must never be members of that same
+# payload. In particular, including version.json.sig creates an impossible
+# self-referential checksum that becomes stale immediately after signing.
+SELF_GENERATED_FILES = {"version.json", "version.json.sig", "checksums.txt"}
 
 
 def sha256_of_file(path: str) -> str:
@@ -86,11 +96,22 @@ def main():
         default=None,
         help="Текст changelog (если не указан — берётся текущий из version.json)",
     )
+    parser.add_argument(
+        "--signing-key",
+        default=os.environ.get("XTTS_UPDATE_SIGNING_KEY"),
+        help="Ed25519 private key. Также читается из XTTS_UPDATE_SIGNING_KEY.",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(VERSION_PATH):
         print(f"Не найден {VERSION_PATH}")
         sys.exit(1)
+    if os.path.exists(SIGNATURE_PATH) and not args.signing_key:
+        print(
+            "[!] version.json.sig существует: изменение manifest без новой подписи запрещено. "
+            "Передайте --signing-key или XTTS_UPDATE_SIGNING_KEY."
+        )
+        sys.exit(2)
 
     with open(VERSION_PATH, "r", encoding="utf-8") as f:
         manifest = json.load(f)
@@ -99,6 +120,13 @@ def main():
     if not files:
         print("В version.json нет списка files — нечего хэшировать.")
         sys.exit(1)
+    excluded_generated = [path for path in files if path in SELF_GENERATED_FILES]
+    files = [path for path in files if path not in SELF_GENERATED_FILES]
+    manifest["files"] = files
+    if excluded_generated:
+        print(
+            "[i] Исключены self-generated release-файлы: " + ", ".join(sorted(excluded_generated))
+        )
 
     sha256_map = {}
     missing = []
@@ -128,7 +156,9 @@ def main():
     newly_removed = old_files - new_files_set
     # Если файл когда-то был помечен как удалённый, а потом снова появился
     # в проекте — убираем его из списка "на удаление" (самоисправление).
-    removed_files = sorted((existing_removed | newly_removed) - new_files_set)
+    removed_files = sorted(
+        ((existing_removed | newly_removed) - new_files_set) - SELF_GENERATED_FILES
+    )
 
     if newly_removed:
         print("\n[i] Новые файлы, пропавшие из списка (будут удалены у клиентов при обновлении):")
@@ -146,6 +176,21 @@ def main():
 
     with open(VERSION_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    if args.signing_key:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from engine.update_signing import canonical_manifest_bytes
+
+        with open(args.signing_key, "rb") as key_file:
+            key = serialization.load_pem_private_key(key_file.read(), password=None)
+        if not isinstance(key, Ed25519PrivateKey):
+            raise TypeError("update signing key must be Ed25519")
+        with open(VERSION_PATH, "rb") as manifest_file:
+            signature = key.sign(canonical_manifest_bytes(manifest_file.read()))
+        with open(SIGNATURE_PATH, "wb") as signature_file:
+            signature_file.write(base64.b64encode(signature) + b"\n")
+        print("  version.json.sig: Ed25519 подпись обновлена")
 
     with open(CHECKSUMS_PATH, "w", encoding="utf-8") as f:
         f.write(f"XTTS Studio — контрольные суммы SHA256 для версии {args.version}\n")
