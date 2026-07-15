@@ -140,6 +140,17 @@ History keeps the latest 100 generations. Every card has a waveform: play, stop,
 - persistent quality-preset settings;
 - normal Ctrl+A/C/V/X/Z/Y and context menu in API-key fields.
 
+### Performance and security
+
+- event-driven animation scheduling keeps no 60-FPS timer alive while idle;
+- `ultra / balanced / performance / reduced / off` profiles affect visual motion only;
+- the update manifest is verified with Ed25519 and SHA-256 before application;
+- API credentials are protected by Windows DPAPI;
+- unsigned RVC `.pth` checkpoints require explicit trust bound to SHA-256;
+- the project publishes a CycloneDX SBOM plus security and privacy policies.
+
+See **[Security](./SECURITY.md)** · **[Privacy](./PRIVACY.md)** · **[Dependency baseline](./SECURITY_BASELINE.md)**.
+
 ### Screenshots
 
 <p align="center">

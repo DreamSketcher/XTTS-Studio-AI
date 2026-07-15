@@ -140,6 +140,17 @@ XTTS Studio запускает XTTS v2 локально и собирает во
 - настройки пресетов сохраняются между сессиями;
 - API-ключи поддерживают обычные Ctrl+A/C/V/X/Z/Y и контекстное меню.
 
+### Производительность и безопасность
+
+- event-driven анимации не держат 60-FPS таймер в простое;
+- профили `ultra / balanced / performance / reduced / off` управляют только визуальными эффектами;
+- update manifest проверяется по Ed25519 и SHA-256 до применения;
+- API-ключи защищаются Windows DPAPI;
+- неподписанные RVC `.pth` требуют явного подтверждения доверия, привязанного к SHA-256;
+- проект публикует CycloneDX SBOM и security/privacy policy.
+
+Подробнее: **[безопасность](./SECURITY.md)** · **[приватность](./PRIVACY.md)** · **[dependency baseline](./SECURITY_BASELINE.md)**.
+
 ### Скриншоты
 
 <p align="center">
