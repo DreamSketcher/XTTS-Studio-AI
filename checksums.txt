@@ -1,8 +1,9 @@
-XTTS Studio — контрольные суммы SHA256 для версии 1.1.228
+XTTS Studio — контрольные суммы SHA256 для версии 1.1.300
 Проверка (Windows PowerShell): certutil -hashfile "имя_файла" SHA256
 Проверка (Linux/macOS): sha256sum имя_файла
 
 eb207f3e22bf3216adebfb371a5428e216a3d93513ee791288642faebe2ed6f5  .pre-commit-config.yaml
+c10b1f7552725a953adc22f6978051a3cf339739df307556a3af944ce472bee8  AUDIT_REPORT_RU.md
 a44da995db0915f962df24f8920cb9a5c9583b4ebe4b4bd0fdbc7d4b7a009548  DOCUMENTATION.EN.md
 1b27210746e48823e44da370a0b79db6fbe6a3431f6e2153c069bd190823d10e  DOCUMENTATION.RU.md
 3e080153b11a7551a6371b91c511f93624afb8bb85d7c52c0b9493c235ca6371  PRIVACY.md
@@ -140,3 +141,5 @@ bec10a0686e29f80c928aa7bf2ab8b035f461efbd388a41189c15712b3c63235  json/rvc_catal
 0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92  pyproject.toml
 9dca9816876bc672e0dd78e3725d765856311535f38771c05d55c83259027068  requirements.txt
 389cc7dec71ad8eb7f3e3619fa3d043026c909b39560ae4217c5a94b79a62224  sbom.cdx.json
+051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587  update_manifest_public.pem
+34220d0f263c803f893a83b5e9d4dfe052e4d99e8ab2f10c5123350a2cb395f1  version.json.sig
