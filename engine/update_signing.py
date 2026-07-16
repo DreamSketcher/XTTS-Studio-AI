@@ -15,7 +15,7 @@ if _BUNDLED_SITE_PACKAGES.is_dir() and str(_BUNDLED_SITE_PACKAGES) not in sys.pa
 # placed in a portable build. Rotate only through a separately authenticated
 # application release.
 UPDATE_MANIFEST_PUBLIC_KEY_PEM = b"""-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAgQpSKuteEEMxT8VNCTGZtlwkZttf8bu+BxsBjyJFaiA=
+MCowBQYDK2VwAyEAs2MB/Gjt5xMydVGLkFLxgV56iuYnNlPfRFZ4uQMAwDM=
 -----END PUBLIC KEY-----
 """
 

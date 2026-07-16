@@ -261,7 +261,7 @@
     "engine/tts/qc.py": "b002caf446630d38da71edd1fd78407b4b5ccbe02e02ad7a7875d4196b188451",
     "engine/tts/utils.py": "d3fe6e4fe020b4d29d5f046e6c03c64e348fc25d2b5f3e2b20e7702b1623d4d9",
     "engine/tts_runner.py": "cce1a0c70d0f53f7bb54a842876e9a3e0139fc10f7b686781408d7659bc2e180",
-    "engine/update_signing.py": "6615272fb1a6093034920c56c6e24d30a105560acf8d4a1e39e62d578b72d67a",
+    "engine/update_signing.py": "b4f196322a66093b9ba54a3dddf5e2d8344584db5b22b7e671795bf265e7944e",
     "engine/updater.py": "6eaeb7aab35bae18d4cc34ef08b496b17351298e4fd9ba200b110ca54278afe7",
     "engine/validation.py": "aec43f0a57e39d257b69690200fe053e0ec6a8bed705059fc633d3c55f264409",
     "engine/voice_manager.py": "bfeb24ef48e43bf23bcee625307a47ae7d93e83e28423ca30996646cabe307ce",
@@ -273,7 +273,7 @@
     "pyproject.toml": "0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92",
     "requirements.txt": "4984fb232a9e15055f1f788527a41a58603b2fc541a668e42dcac17a4d150e98",
     "sbom.cdx.json": "1b65d377103400103b7a186e57dd5f5c52714509129b6c2c0457e673eab1801b",
-    "update_manifest_public.pem": "051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587",
+    "update_manifest_public.pem": "9fd7b2f76e1bfb33dd8748e95c510b33275570ca381be89d89cbcc5c884e76a4",
     "engine/atomic_write.py": "d75565100418801ed321d9921701d387418a799cc2c3fd2c05d919f2d3e45dd0",
     "docs/REFACTOR_REPORT.md": "e3cd8af5dda285d23fb74927cf2d649d8d6084093170f5f2a8b9f2a930223650"
   },
