@@ -27,6 +27,8 @@ def test_self_generated_release_files_are_excluded(tmp_path):
         cwd=root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=30,
     )
     assert result.returncode == 0, result.stderr + result.stdout
