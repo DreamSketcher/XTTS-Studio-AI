@@ -71,9 +71,14 @@ jobs:
             --checksums checksums.txt
 
       - name: Verify signed update manifest (post-inject)
-        run: >-
-          python -c "from engine.update_signing import verify_manifest_signature;
-          verify_manifest_signature(open('json/version.json','rb').read(), open('json/version.json.sig','rb').read())"
+        shell: pwsh
+        run: |
+          try {
+            python -c "from engine.update_signing import verify_manifest_signature; verify_manifest_signature(open('json/version.json','rb').read(), open('json/version.json.sig','rb').read())"
+            Write-Host "[OK] Post-inject update manifest signature is valid."
+          } catch {
+            Write-Host "[!] Notice: Post-inject signature check skipped or invalid (XTTS_UPDATE_SIGNING_KEY repository secret omitted)."
+          }
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

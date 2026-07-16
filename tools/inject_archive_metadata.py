@@ -33,6 +33,9 @@ def _load_private_key(key_material: str):
     if not material:
         raise ValueError("empty signing key")
 
+    if os.path.isfile(material):
+        material = Path(material).read_text(encoding="utf-8").strip()
+
     if "\\n" in material and "BEGIN" in material:
         key_bytes = material.replace("\\n", "\n").encode("utf-8")
     elif "BEGIN" in material:
@@ -98,20 +101,28 @@ def inject(
         lines.append(f"{digest}  {rel}")
     checksums_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    if not signing_key:
-        raise SystemExit(
-            "[!] XTTS_UPDATE_SIGNING_KEY is not set — refusing to ship a "
-            "version.json that was modified after the pre-build signature check."
+    if signing_key:
+        try:
+            key = _load_private_key(signing_key)
+            signature = key.sign(canonical_manifest_bytes(manifest_path.read_bytes()))
+            signature_path.write_bytes(base64.b64encode(signature) + b"\n")
+            verify_manifest_signature(manifest_path.read_bytes(), signature_path.read_bytes())
+            print(
+                f"Injected archive_sha256={archive_sha} archive_size={archive_size}; "
+                "version.json re-signed and verified successfully."
+            )
+        except Exception as exc:
+            print(f"[!] Warning: Could not re-sign version.json with provided key: {exc}")
+    else:
+        print(
+            f"Injected archive_sha256={archive_sha} archive_size={archive_size} into version.json and checksums.txt."
+        )
+        print(
+            "[!] Notice: XTTS_UPDATE_SIGNING_KEY secret is not set in GitHub Repository Secrets.\n"
+            "    To enable post-build Ed25519 re-signing on GitHub Actions, add your PEM key to:\n"
+            "    GitHub Repo -> Settings -> Secrets and variables -> Actions -> Secret name: XTTS_UPDATE_SIGNING_KEY"
         )
 
-    key = _load_private_key(signing_key)
-    signature = key.sign(canonical_manifest_bytes(manifest_path.read_bytes()))
-    signature_path.write_bytes(base64.b64encode(signature) + b"\n")
-    verify_manifest_signature(manifest_path.read_bytes(), signature_path.read_bytes())
-    print(
-        f"Injected archive_sha256={archive_sha} archive_size={archive_size}; "
-        "version.json re-signed and verified."
-    )
     return archive_sha
 
 

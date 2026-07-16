@@ -1,4 +1,4 @@
-XTTS Studio — контрольные суммы SHA256 для версии 1.1.317
+XTTS Studio — контрольные суммы SHA256 для версии 1.1.318
 Проверка (Windows PowerShell): certutil -hashfile "имя_файла" SHA256
 Проверка (Linux/macOS): sha256sum имя_файла
 
@@ -17,7 +17,7 @@ b81995a1fa52a3f50dabaf0f3cd02fc967bea64737638098ae6585d807f83536  docs/SECURITY.
 17e0241ac4ed6f623eeb475ce36e81475bd686b47a31c2c57c67c971345b89cb  docs/SECURITY_BASELINE.md
 896be38470a69d25be6c0214be050ad9127398b6d018820d7ccfbe85712f147d  docs/demo_video_storyboard_template.html
 664956686128e0d1d12fcad5a4042beef34113c1e1ad9ce8a55f9a04f34bb7ae  docs/workflows/ci.yml
-e1351332d6e7edfbbacdacfe2f552aa81cec288cf895d1b992ae838a7acce2bd  docs/workflows/release.yml
+81d42ebd2ec93534b8c7810b8af5ea1f0d73f8496ba5530dc59a2a11b4a74f79  docs/workflows/release.yml
 12598a2a1b4528477da794e6b51692b6d3a87b0e499e19358d1e3c4591c15fac  engine/__init__.py
 fa9ecad488da650f320cc6f3d6f8eab7348c3214bfac921cf08993c49b8aef5e  engine/ai_conductor.py
 d75565100418801ed321d9921701d387418a799cc2c3fd2c05d919f2d3e45dd0  engine/atomic_write.py

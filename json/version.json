@@ -1,5 +1,5 @@
 {
-  "version": "1.1.317",
+  "version": "1.1.318",
   "files": [
     ".gitattributes",
     ".pre-commit-config.yaml",
@@ -164,7 +164,7 @@
     "docs/SECURITY_BASELINE.md": "17e0241ac4ed6f623eeb475ce36e81475bd686b47a31c2c57c67c971345b89cb",
     "docs/demo_video_storyboard_template.html": "896be38470a69d25be6c0214be050ad9127398b6d018820d7ccfbe85712f147d",
     "docs/workflows/ci.yml": "664956686128e0d1d12fcad5a4042beef34113c1e1ad9ce8a55f9a04f34bb7ae",
-    "docs/workflows/release.yml": "e1351332d6e7edfbbacdacfe2f552aa81cec288cf895d1b992ae838a7acce2bd",
+    "docs/workflows/release.yml": "81d42ebd2ec93534b8c7810b8af5ea1f0d73f8496ba5530dc59a2a11b4a74f79",
     "engine/__init__.py": "12598a2a1b4528477da794e6b51692b6d3a87b0e499e19358d1e3c4591c15fac",
     "engine/ai_conductor.py": "fa9ecad488da650f320cc6f3d6f8eab7348c3214bfac921cf08993c49b8aef5e",
     "engine/atomic_write.py": "d75565100418801ed321d9921701d387418a799cc2c3fd2c05d919f2d3e45dd0",
@@ -431,5 +431,8 @@
     "unified_function_reference.RU.md",
     "update_signing.py",
     "word_rules.json"
-  ]
+  ],
+  "archive_sha256": "434fed8579ea273cf209ac2bc54dbe02381622d06704ed79f5c7a3b2e4202a6a",
+  "archive_url": "https://github.com/DreamSketcher/XTTS-Studio-AI/releases/latest/download/XTTS-Studio-portable.zip",
+  "archive_size": 1726173
 }
