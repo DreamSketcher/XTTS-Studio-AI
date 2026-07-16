@@ -90,3 +90,8 @@ word_rules_backups/
 *.wav
 *.mp3
 *.flac
+
+# Binary artifact - build output, should not be tracked
+XTTS Studio.exe
+*.exe
+AUDIT_REPORT.md
