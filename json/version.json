@@ -1,5 +1,5 @@
 {
-  "version": "1.1.312",
+  "version": "1.1.313",
   "files": [
     ".gitattributes",
     ".pre-commit-config.yaml",
@@ -138,6 +138,7 @@
     "generate_version_manifest.py",
     "gui.py",
     "i18n.py",
+    "json/release_config.json",
     "json/rvc_catalog_seed.json",
     "json/sbom.cdx.json",
     "json/settings.json",
@@ -176,7 +177,7 @@
     "engine/env_core/diagnostics.py": "1662ba88fd63eeef56e81dea9d5876c00e500c2fda3d70b971cd1bdd5b9cbbc3",
     "engine/env_core/llama_setup.py": "b741c96dbabbb1ca4dfa35658d938c3f2bbd514d9a21a2890cca6a213d8857b3",
     "engine/env_core/rvc_setup.py": "6b109874d64d4cff7166afa70218994d564ecac8635d70b96f3780ceae5aa6d7",
-    "engine/env_core/torch_setup.py": "fcd7e838c1ea3107a7e37f01138ead3f24256045a7bd59f9e72d8821aee220e2",
+    "engine/env_core/torch_setup.py": "70dda58396a2733dd4ffe4e1e45fc93f07ea2532978d5ff13ddd4e5ba32bdb87",
     "engine/env_setup.py": "a9333a996350207ca5149443a53161f6c32ffc4fdc30607451174d5992748fe5",
     "engine/error_report.py": "774e3c190c96f3ec3122eda3403699b643cdb318ee54cd9fb74dfbd053e08791",
     "engine/gpt_client.py": "ae6a92a20cd24c465ebb6f10d3bdcc1037cbab7c74bdb6867b2abe5694e5f473",
@@ -285,6 +286,7 @@
     "generate_version_manifest.py": "fb18efd3df1bc249c9d24a3a07c8d1563640485ba143275b893467ed71f37145",
     "gui.py": "87e3cc53d078b4002648a2802ea4557ef83eafd4c85fcc64d172b7cfccfb7cc2",
     "i18n.py": "74c68d4a75ddf3680cd29749fc617ce8a143840cfec874ad00210e7d8e2d3e77",
+    "json/release_config.json": "54c0e9635402e2ebfeb704182cc96f412ec1453cfcd69dc3dca3f81109153da6",
     "json/rvc_catalog_seed.json": "bec10a0686e29f80c928aa7bf2ab8b035f461efbd388a41189c15712b3c63235",
     "json/sbom.cdx.json": "f7db562695ccff0d00eeb898d71e6273534ac7bea5a0e04322ca07579c701372",
     "json/settings.json": "052577ca2b8231d16f9c39b671974fc51f95d5a9535502f6ca3f4318b8cd862d",

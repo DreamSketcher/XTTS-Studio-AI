@@ -19,9 +19,9 @@ SITE_PACKAGES = os.path.join(PROJECT_ROOT, "python", "xtts_env", "Lib", "site-pa
 PORTABLE_TEMP_DIR = os.path.join(PROJECT_ROOT, "python", "temp")
 PORTABLE_CACHE_DIR = os.path.join(PROJECT_ROOT, "python", "pip_cache")
 
-TORCH_VERSION = "2.11.0"
-TORCHAUDIO_VERSION = "2.11.0"
-TORCHVISION_VERSION = "0.26.0"
+TORCH_VERSION = "2.2.2"
+TORCHAUDIO_VERSION = "2.2.2"
+TORCHVISION_VERSION = "0.17.2"
 
 TORCH_MIN_CUDA = (12, 8)
 

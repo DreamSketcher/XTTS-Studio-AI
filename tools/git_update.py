@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-git_update.py — Менеджер Git для XTTS Studio AI.
+git_update.py — Менеджер Git для XTTS Studio.
 Разместите в папке tools/ и запускайте через git_update.bat.
 
 Безопасный рабочий процесс: stash локальных изменений → pull/rebase → restore →
@@ -21,6 +21,7 @@ GENERATE_FILES_SCRIPT = PROJECT_ROOT / "tools" / "rebuild_release_files.py"
 GENERATE_MANIFEST_SCRIPT = PROJECT_ROOT / "generate_version_manifest.py"
 VERSION_JSON_PATH = PROJECT_ROOT / "json" / "version.json"
 SIGNATURE_PATH = PROJECT_ROOT / "json" / "version.json.sig"
+RELEASE_CONFIG_PATH = PROJECT_ROOT / "json" / "release_config.json"
 DEFAULT_SIGNING_KEY = PROJECT_ROOT / "keys" / "XTTS-Studio-signing-private.pem"
 FALLBACK_SIGNING_KEY = Path(r"C:\XTTS Signing Keys\XTTS-Studio-signing-private.pem")
 REGENERATED_RELEASE_FILES = {
@@ -78,6 +79,60 @@ def _suggest_next_version(version_str: str) -> str:
         return ""
 
 
+def load_release_profile(profile_name: str | None = None) -> dict:
+    """Загружает конфигурацию профиля релиза (release / dev) из json/release_config.json."""
+    defaults = {
+        "release": {
+            "sign": True,
+            "generate_sbom": True,
+            "generate_sha": True,
+            "create_tag": True,
+            "push": True,
+        },
+        "dev": {
+            "sign": False,
+            "generate_sbom": False,
+            "generate_sha": False,
+            "create_tag": False,
+            "push": True,
+        },
+    }
+    target_profile = profile_name or "release"
+    if RELEASE_CONFIG_PATH.is_file():
+        try:
+            data = json.loads(RELEASE_CONFIG_PATH.read_text(encoding="utf-8"))
+            profiles = data.get("profiles", {})
+            if not profile_name:
+                target_profile = data.get("default_profile", "release")
+            if target_profile in profiles:
+                cfg = dict(defaults.get(target_profile, {}))
+                cfg.update(profiles[target_profile])
+                cfg["name"] = target_profile
+                return cfg
+        except Exception as exc:
+            print(f"  [!] Ошибка чтения release_config.json: {exc}")
+
+    cfg = dict(defaults.get(target_profile, defaults["release"]))
+    cfg["name"] = target_profile
+    return cfg
+
+
+def _create_emergency_backup(reason: str = "backup") -> None:
+    """Создаёт аварийную точку восстановления (stash и/или локальный git tag) перед опасными действиями."""
+    timestamp = time.strftime("%Y_%m_%d_%H%M%S")
+    msg = f"XTTS emergency backup ({reason}) {timestamp}"
+
+    if _working_tree_dirty():
+        res = git("stash", "push", "-u", "-m", msg)
+        if res.returncode == 0:
+            print(f'  [Backup] Создан emergency stash: "{msg}"')
+
+    tag_name = f"emergency_backup_{timestamp}"
+    res = git("tag", tag_name)
+    if res.returncode == 0:
+        print(f"  [Backup] Создан emergency локальный тег: {tag_name}")
+
+
 def _read_current_changelog() -> str:
     if not VERSION_JSON_PATH.exists():
         return ""
@@ -121,17 +176,13 @@ def _prompt_changelog(current: str) -> str:
     return "\n".join(lines)
 
 
-def update_version_manifest():
+def update_version_manifest(profile: dict | None = None):
     """
     Пересобирает список файлов в version.json, предлагает обновить changelog
     и генерирует контрольные суммы SHA256 для текущего релиза.
-
-    Возвращает:
-      - строку версии при успешном обновлении
-      - "SKIP", если пользователь решил не оформлять этот коммит как релиз
-        (например, при отправке тестовых или вспомогательных файлов)
-      - None при ошибке (отсутствие скриптов, пустая версия, ошибка генерации)
     """
+    profile = profile or load_release_profile()
+
     do_release = (
         input(
             "\n  Обновить версию и пересчитать SHA256 контрольные суммы для этого коммита? (y/n, Enter=y): "
@@ -145,13 +196,16 @@ def update_version_manifest():
         )
         return "SKIP"
 
-    signing_key = get_signing_key()
-    if signing_key is None:
-        print("  [ОШИБКА] Не найден приватный Ed25519 signing key.")
-        print(f"            Ожидаемый путь: {DEFAULT_SIGNING_KEY}")
-        print("            Либо задайте XTTS_UPDATE_SIGNING_KEY.")
-        print("  Release manifest не будет изменён.")
-        return None
+    if profile.get("sign"):
+        signing_key = get_signing_key()
+        if signing_key is None:
+            print("  [ОШИБКА] Не найден приватный Ed25519 signing key.")
+            print(f"            Ожидаемый путь: {DEFAULT_SIGNING_KEY}")
+            print("            Либо задайте XTTS_UPDATE_SIGNING_KEY.")
+            print("  Release manifest не будет изменён.")
+            return None
+    else:
+        signing_key = None
 
     # Collect all release input before touching version.json.
     current_version = _read_current_version()
@@ -183,6 +237,12 @@ def update_version_manifest():
         print("  [ОШИБКА] Сбой выполнения rebuild_release_files.py.")
         return None
 
+    if profile.get("generate_sbom"):
+        generate_sbom_script = PROJECT_ROOT / "tools" / "generate_sbom.py"
+        if generate_sbom_script.exists():
+            print("  Генерация SBOM (CycloneDX 1.5)...")
+            run_python_script(generate_sbom_script, [])
+
     if not GENERATE_MANIFEST_SCRIPT.exists():
         print(f"  [ОШИБКА] Файл {GENERATE_MANIFEST_SCRIPT} не найден.")
         return None
@@ -192,9 +252,9 @@ def update_version_manifest():
         version,
         "--changelog",
         changelog,
-        "--signing-key",
-        str(signing_key),
     ]
+    if signing_key:
+        args += ["--signing-key", str(signing_key)]
     if min_app_version:
         args += ["--min-app-version", min_app_version]
 
@@ -646,10 +706,81 @@ def verify_release_state() -> bool:
 # ----------------------------------------------------------------
 
 
-def do_update() -> None:
-    branch = get_branch()
+def do_preview_release(profile_name: str | None = None) -> None:
+    """Dry-run предпросмотр релиза без записи изменений на диск."""
     print("\n" + "=" * 50)
-    print("  ОБНОВЛЕНИЕ (UPDATE)")
+    print("  ПРЕДПРОСМОТР РЕЛИЗА (RELEASE PREVIEW / DRY-RUN)")
+    print("=" * 50)
+
+    profile = load_release_profile(profile_name)
+    print(f"\n[Профиль: {profile['name'].upper()}]")
+    print(f"  - Подпись Ed25519: {'ВКЛ' if profile.get('sign') else 'ВЫКЛ'}")
+    print(f"  - Генерация SBOM : {'ВКЛ' if profile.get('generate_sbom') else 'ВЫКЛ'}")
+    print(f"  - Расчёт SHA256  : {'ВКЛ' if profile.get('generate_sha') else 'ВЫКЛ'}")
+    print(f"  - Создание тега  : {'ВКЛ' if profile.get('create_tag') else 'ВЫКЛ'}")
+    print(f"  - Пуш на GitHub  : {'ВКЛ' if profile.get('push') else 'ВЫКЛ'}")
+
+    current_ver = _read_current_version()
+    next_ver = _suggest_next_version(current_ver) or "1.1.306"
+
+    file_count = "?"
+    try:
+        from tools.rebuild_release_files import git_paths, included
+
+        files = [
+            p for p in git_paths() if included(p) and (PROJECT_ROOT / Path(*p.split("/"))).is_file()
+        ]
+        file_count = len(files)
+    except Exception:
+        pass
+
+    signing_key = get_signing_key()
+    if signing_key:
+        try:
+            key_rel = signing_key.relative_to(PROJECT_ROOT)
+        except ValueError:
+            key_rel = signing_key
+        key_status = f"[OK] Ключ найден ({key_rel})"
+    else:
+        key_status = "[!] Не найден (подпись будет пропущена в dev режиме)"
+
+    print("\nБудет изменено / пересобрано:")
+    if profile.get("generate_sha"):
+        print("  + json/version.json")
+        print("  + checksums.txt")
+    if profile.get("sign"):
+        print("  + json/version.json.sig")
+    if profile.get("generate_sbom"):
+        print("  + json/sbom.cdx.json")
+
+    print("\nБудет создан релизный тег:")
+    if profile.get("create_tag"):
+        print(f"  + v{next_ver} (по умолчанию от текущей версии {current_ver})")
+    else:
+        print("  - Тег создаваться не будет (отключено в профиле)")
+
+    print("\nФайлов в составе payload:")
+    print(f"  {file_count} файлов")
+
+    print("\nСтатус ключа подписи Ed25519:")
+    print(f"  {key_status}")
+
+    print("\nТекущий статус локальных файлов (git status):")
+    st = git("status", "--short")
+    print(st.stdout if st.stdout.strip() else "  (нет локальных изменений)")
+
+    print("\n" + "=" * 50)
+    print("  [DRY-RUN] Файлы на диске НЕ изменены. Это чистый предпросмотр.")
+    print("=" * 50)
+    input("\nНажмите Enter для продолжения...")
+
+
+def do_update(profile_name: str | None = None) -> None:
+    branch = get_branch()
+    profile = load_release_profile(profile_name)
+
+    print("\n" + "=" * 50)
+    print(f"  ОБНОВЛЕНИЕ (UPDATE) — [Профиль: {profile['name'].upper()}]")
     print("=" * 50)
 
     cleanup_stuck_rebase(verbose=True)
@@ -667,21 +798,21 @@ def do_update() -> None:
         return
 
     print("\n[1/5] Подготовка release manifest (опционально)...")
-    version = update_version_manifest()
+    version = update_version_manifest(profile=profile)
     if version is None:
         print("\n[БЛОКИРОВКА] Manifest/signature не созданы. Push запрещён.")
         input("\nНажмите Enter для продолжения...")
         return
     is_release = version != "SKIP"
 
-    if is_release:
+    if is_release and profile.get("sign"):
         print("\n[2/5] Проверка Ed25519 и SHA256 до коммита...")
         if not verify_release_state():
             print("\n[БЛОКИРОВКА] Невалидный release не будет закоммичен или отправлен.")
             input("\nНажмите Enter для продолжения...")
             return
     else:
-        print("\n[2/5] Non-release push: manifest намеренно не изменялся.")
+        print("\n[2/5] Non-release push / dev профиль: проверка подписи пропущена.")
 
     print("\n[3/5] Один атомарный коммит исходников и release-файлов...")
     add_result = git_show("add", "-A")
@@ -710,6 +841,7 @@ def do_update() -> None:
     print("\n[4/5] Финальная проверка remote перед push...")
     pull, network_error, stuck = git_pull_rebase(branch)
     if pull.returncode != 0:
+        _create_emergency_backup("final_pull_rebase_failed")
         subprocess.run(
             ["git", "rebase", "--abort"],
             cwd=str(PROJECT_ROOT),
@@ -725,7 +857,7 @@ def do_update() -> None:
         input("\nНажмите Enter для продолжения...")
         return
 
-    if is_release:
+    if is_release and profile.get("sign"):
         # Rebase may rewrite commits but must not alter checked-out payload.
         if not verify_release_state():
             print("  [БЛОКИРОВКА] После final rebase release verification не прошла.")
@@ -733,13 +865,14 @@ def do_update() -> None:
             return
 
     print("\n[5/5] Отправка изменений на GitHub...")
-    pushed = git_show("push", "origin", branch)
-    if pushed.returncode != 0:
-        print("  [ОШИБКА] Push не выполнен. Проверяйте сеть и права доступа.")
-        input("\nНажмите Enter для продолжения...")
-        return
+    if profile.get("push", True):
+        pushed = git_show("push", "origin", branch)
+        if pushed.returncode != 0:
+            print("  [ОШИБКА] Push не выполнен. Проверяйте сеть и права доступа.")
+            input("\nНажмите Enter для продолжения...")
+            return
 
-    if is_release and version and version != "SKIP":
+    if is_release and version and version != "SKIP" and profile.get("create_tag", True):
         tag_name = f"v{version}"
         create_tag_confirm = (
             input(
@@ -762,7 +895,6 @@ def do_update() -> None:
                         f"  [!] Ошибка отправки тега {tag_name}. Запустите вручную: git push origin {tag_name}"
                     )
             else:
-                # Если тег уже был локально — пробуем просто отправить
                 push_tag = git_show("push", "origin", tag_name)
                 if push_tag.returncode == 0:
                     print(f"  [OK] Тег {tag_name} отправлен на GitHub! Сборка релиза запущена.")
@@ -770,6 +902,14 @@ def do_update() -> None:
             print(
                 f"  [Инфо] Пропущено создание тега {tag_name}. Изменения отправлены в ветку {branch}, но сборка GitHub Release запущенa не будет."
             )
+
+    print("\nФинальная проверка состояния рабочей директории...")
+    clean_check = git("status", "--porcelain")
+    if not clean_check.stdout.strip():
+        print("  [OK] Working tree clean — рабочая директория полностью чистая.")
+    else:
+        print("  [!] В рабочей директории остались неотслеживаемые изменения:")
+        print(clean_check.stdout)
 
     print("\n" + "=" * 50)
     print(
@@ -1205,13 +1345,17 @@ def do_push_single_file() -> None:
     input("\nНажмите Enter для продолжения...")
 
 
-def menu() -> None:
+def menu(active_profile: str | None = None) -> None:
+    profile = load_release_profile(active_profile)
     print("\n" * 2)
     print("=" * 50)
-    print("       Менеджер Git для XTTS Studio AI")
+    print(f"       Менеджер Git для XTTS Studio AI [{profile['name'].upper()}]")
     print("=" * 50)
     print(f"\nПроект  : {PROJECT_ROOT}")
     print(f"Ветка   : {get_branch()}")
+    print(
+        f"Профиль : {profile['name'].upper()} (sign={profile.get('sign')}, tag={profile.get('create_tag')})"
+    )
 
     # Индикация в меню, если есть зависший процесс rebase/merge
     rebase_merge = PROJECT_ROOT / ".git" / "rebase-merge"
@@ -1224,18 +1368,21 @@ def menu() -> None:
     print("\n" + (r.stdout if r.stdout.strip() else "(чистая рабочая директория — нет изменений)"))
 
     print("\n  [1] Обновление (Update)    — коммит + получение изменений + отправка (pull & push)")
-    print("  [2] Откат (Rollback)       — возврат к более раннему коммиту")
+    print("  [2] Откат (Rollback)       — возврат к коммиту (с автосозданием emergency backup)")
     print(
         "  [3] Игнорируемые (Untrack) — удалить файлы из .gitignore из отслеживания (оставив на диске)"
     )
     print("  [4] Таблетка (Сброс)       — сбросить зависший rebase (.git/rebase-merge)")
     print("  [5] Один файл (Push file)  — коммит + отправка ТОЛЬКО одного файла (без релиза/SHA)")
     print("  [6] Проверка статуса        — Git/remote/stash/signature/SHA256 (read-only)")
+    print(
+        "  [7] Предпросмотр релиза    — Dry-run предпросмотр изменений, тега и файлов (read-only)"
+    )
     print("  [0] Выход (Exit)")
     choice = input("\nВыберите действие: ").strip()
 
     if choice == "1":
-        do_update()
+        do_update(profile_name=profile["name"])
     elif choice == "2":
         do_rollback()
     elif choice == "3":
@@ -1247,19 +1394,41 @@ def menu() -> None:
         do_push_single_file()
     elif choice == "6":
         do_status_check()
+    elif choice == "7":
+        do_preview_release(profile_name=profile["name"])
     elif choice == "0":
         print("До свидания.")
         sys.exit(0)
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Менеджер Git для XTTS Studio AI")
+    parser.add_argument(
+        "--profile",
+        choices=["release", "dev"],
+        default=None,
+        help="Профиль запуска (release / dev)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Запустить предпросмотр релиза (dry-run mode)",
+    )
+    args = parser.parse_args()
+
     if not check_git():
         input("Нажмите Enter для выхода...")
         sys.exit(1)
 
+    if args.dry_run:
+        do_preview_release(profile_name=args.profile)
+        sys.exit(0)
+
     try:
         while True:
-            menu()
+            menu(active_profile=args.profile)
     except KeyboardInterrupt:
         print("\nДо свидания.")
         sys.exit(0)

@@ -111,8 +111,8 @@ class TestCheckpoint:
 class TestBuildCmd:
     def test_build_cmd(self, tmp_path):
         cmd = ts._build_torch_install_cmd("https://download.pytorch.org/whl/cpu", str(tmp_path))
-        assert "torch==2.11.0" in cmd
-        assert "torchaudio==2.11.0" in cmd
+        assert f"torch=={ts.TORCH_VERSION}" in cmd
+        assert f"torchaudio=={ts.TORCHAUDIO_VERSION}" in cmd
         assert "--index-url" in cmd
         assert "--target" in cmd
 

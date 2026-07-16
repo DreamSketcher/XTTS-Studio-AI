@@ -1,0 +1,19 @@
+{
+  "profiles": {
+    "release": {
+      "sign": true,
+      "generate_sbom": true,
+      "generate_sha": true,
+      "create_tag": true,
+      "push": true
+    },
+    "dev": {
+      "sign": false,
+      "generate_sbom": false,
+      "generate_sha": false,
+      "create_tag": false,
+      "push": true
+    }
+  },
+  "default_profile": "release"
+}

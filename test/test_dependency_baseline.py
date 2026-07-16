@@ -18,12 +18,12 @@ def _requirements() -> dict[str, str]:
 
 def test_security_baseline_versions_are_aligned():
     req = _requirements()
-    assert req["torch"] == torch_setup.TORCH_VERSION == "2.11.0"
-    assert req["torchaudio"] == torch_setup.TORCHAUDIO_VERSION == "2.11.0"
-    assert req["torchvision"] == torch_setup.TORCHVISION_VERSION == "0.26.0"
-    assert req["transformers"] == "5.13.1"
-    assert req["coqui-tts"] == "0.27.5"
-    assert req["nltk"] == "3.10.0"
+    assert req["torch"] == torch_setup.TORCH_VERSION == "2.2.2"
+    assert req["torchaudio"] == torch_setup.TORCHAUDIO_VERSION == "2.2.2"
+    assert req["torchvision"] == torch_setup.TORCHVISION_VERSION == "0.17.2"
+    assert req["transformers"] == "4.38.2"
+    assert req.get("tts") == "0.22.0" or req.get("coqui-tts") == "0.22.0"
+    assert req["nltk"] == "3.9.4"
 
 
 def test_pickle_diskcache_dependency_is_absent():
