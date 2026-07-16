@@ -87,7 +87,7 @@ class TestPackageIntegrity:
 class TestCudaIndex:
     def test_cuda_index(self):
         assert ls._cuda_index_from_version("12.2") == "cu122"
-        assert ls._cuda_index_from_version("11.8") == "cu128"
+        assert ls._cuda_index_from_version("11.8") == "cu118"
         assert ls._cuda_index_from_version("") == ""
         assert ls._cuda_index_from_version(None) == ""
 

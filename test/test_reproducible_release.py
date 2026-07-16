@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import json
 from pathlib import Path
 
@@ -17,7 +16,9 @@ def test_same_tree_produces_identical_archive(tmp_path, monkeypatch):
     source = tmp_path / "source"
     source.mkdir()
     (source / "app.py").write_text("print('ok')\n", encoding="utf-8")
-    digest = hashlib.sha256((source / "app.py").read_bytes()).hexdigest()
+    from engine.release_hashing import release_sha256_file
+
+    digest = release_sha256_file(source / "app.py", "app.py")
     manifest = tmp_path / "version.json"
     manifest.write_text(
         json.dumps({"version": "1.0.0", "files": ["app.py"], "sha256": {"app.py": digest}}),
