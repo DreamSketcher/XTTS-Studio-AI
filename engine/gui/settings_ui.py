@@ -89,8 +89,7 @@ def save_settings(extra=None):
         except Exception:
             existing = {}
         existing.update(data)
-        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(existing, f, ensure_ascii=False, indent=2)
+        atomic_write_json(SETTINGS_PATH, existing, ensure_ascii=False, indent=2)
     except Exception:
         pass
 

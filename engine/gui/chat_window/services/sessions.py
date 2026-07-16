@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+from engine.atomic_write import atomic_write_json
 import os
 import threading
 import uuid
@@ -88,8 +89,7 @@ def _save_sessions():
         _enforce_limits()
         data = {"sessions": state._sessions}
         tmp_path = state.HISTORY_FILE + ".tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(tmp_path, data, ensure_ascii=False, indent=2)
         os.replace(tmp_path, state.HISTORY_FILE)
     except Exception as e:
         set_chat_status(t("chat_err_save_history", e))

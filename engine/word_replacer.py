@@ -1,4 +1,5 @@
 import json
+from engine.atomic_write import atomic_write_json
 import os
 import re
 import shutil
@@ -366,8 +367,7 @@ class WordReplacer:
 
     def save(self):
         self._make_backup()
-        with open(self.rules_path, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(self.rules_path, self.data, ensure_ascii=False, indent=2)
 
     def get_words_list(self):
         words = []
