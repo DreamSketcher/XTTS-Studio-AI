@@ -30,6 +30,8 @@ def build(source_root: Path, manifest_path: Path, signature_path: Path, output: 
     verify_manifest_signature(manifest_bytes, signature_path.read_bytes())
     manifest = json.loads(manifest_bytes.decode("utf-8"))
     files, _removed = _validate_manifest_paths(manifest.get("files", []), [])
+    from engine.release_hashing import release_sha256_file
+
     expected = manifest.get("sha256", {})
     missing = []
     mismatched = []
@@ -37,7 +39,7 @@ def build(source_root: Path, manifest_path: Path, signature_path: Path, output: 
         path = source_root / Path(*relative.split("/"))
         if not path.is_file():
             missing.append(relative)
-        elif sha256(path).lower() != str(expected.get(relative, "")).lower():
+        elif release_sha256_file(path, relative).lower() != str(expected.get(relative, "")).lower():
             mismatched.append(relative)
     if missing or mismatched:
         raise RuntimeError(f"release tree invalid; missing={missing}, mismatched={mismatched}")

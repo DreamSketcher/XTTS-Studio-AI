@@ -1,0 +1,32 @@
+# Deterministic release hashes on Windows/Linux.
+# Text payload is always stored and checked out with LF.
+* text=auto eol=lf
+
+# Binary assets and model/archive formats must never be line-normalized.
+*.exe binary
+*.dll binary
+*.pyd binary
+*.so binary
+*.dylib binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.flac binary
+*.ogg binary
+*.m4a binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.gz binary
+*.pth binary
+*.pt binary
+*.index binary
+*.gguf binary
+*.bin binary
+*.npy binary
+*.safetensors binary

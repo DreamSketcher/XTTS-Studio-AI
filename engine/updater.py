@@ -141,7 +141,11 @@ def get_remote_version_info(commit_sha: str = None) -> dict:
         raise RuntimeError(f"Не удалось проверить информацию об обновлении: {e}") from e
 
 
-def _sha256_of_file(path: str) -> str:
+def _sha256_of_file(path: str, relative_path: str = "") -> str:
+    if relative_path:
+        from engine.release_hashing import release_sha256_file
+
+        return release_sha256_file(path, relative_path)
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -337,7 +341,7 @@ def _download_to_staging(
                             break
                         f.write(chunk)
 
-            actual = _sha256_of_file(tmp)
+            actual = _sha256_of_file(tmp, relative_path)
             if actual.lower() != expected_sha256.lower():
                 print(
                     f"[Updater] SHA256 не совпадает для {relative_path} "

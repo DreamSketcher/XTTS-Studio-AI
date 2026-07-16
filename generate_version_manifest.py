@@ -19,6 +19,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 # На Windows стандартный вывод по умолчанию в кодировке консоли (cp1251 на
 # русских системах, cp1252 на англоязычных). print() с кириллицей падает на
@@ -46,12 +47,24 @@ SIGNATURE_PATH = os.path.join(BASE_DIR, "version.json.sig")
 SELF_GENERATED_FILES = {"version.json", "version.json.sig", "checksums.txt"}
 
 
-def sha256_of_file(path: str) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+_TEXT_SUFFIXES = {
+    ".py", ".pyi", ".md", ".txt", ".json", ".toml", ".yaml", ".yml",
+    ".ini", ".cfg", ".bat", ".cmd", ".ps1", ".html", ".htm", ".css",
+    ".js", ".svg",
+}
+_TEXT_NAMES = {".gitignore", ".gitattributes", ".pre-commit-config.yaml", "requirements.txt"}
+
+
+def _is_release_text(relative_path: str) -> bool:
+    name = str(relative_path or "").replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return name in _TEXT_NAMES or Path(name).suffix.lower() in _TEXT_SUFFIXES
+
+
+def sha256_of_file(path: str, relative_path: str = "") -> str:
+    data = Path(path).read_bytes()
+    if relative_path and _is_release_text(relative_path):
+        data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def _get_previous_files_list() -> list:
@@ -135,7 +148,7 @@ def main():
         if not os.path.exists(full):
             missing.append(rel)
             continue
-        sha256_map[rel] = sha256_of_file(full)
+        sha256_map[rel] = sha256_of_file(full, rel)
         print(f"  {rel}: {sha256_map[rel]}")
 
     if missing:
