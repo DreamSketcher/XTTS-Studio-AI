@@ -36,10 +36,10 @@ jobs:
         run: |
           test -s docs/SECURITY.md -o -s SECURITY.md
           test -s docs/PRIVACY.md -o -s PRIVACY.md
-          python tools/generate_sbom.py --output sbom.generated.cdx.json
-          diff -u sbom.cdx.json sbom.generated.cdx.json
-          python -m json.tool sbom.cdx.json > /dev/null
-          python -c "from engine.update_signing import verify_manifest_signature; verify_manifest_signature(open('version.json','rb').read(), open('version.json.sig','rb').read())"
+          python tools/generate_sbom.py --output json/sbom.generated.cdx.json
+          diff -u json/sbom.cdx.json json/sbom.generated.cdx.json
+          python -m json.tool json/sbom.cdx.json > /dev/null
+          python -c "from engine.update_signing import verify_manifest_signature; verify_manifest_signature(open('json/version.json','rb').read(), open('json/version.json.sig','rb').read())"
 
       - name: Enforce runtime vulnerability baseline
         run: |

@@ -197,12 +197,65 @@ def git_show(*args: str) -> subprocess.CompletedProcess:
     )
 
 
+def auto_resolve_structure_conflicts(verbose: bool = True) -> bool:
+    """
+    Таблетка для автоматического разрешения конфликтов структуры
+    (перенос файлов из корня в json/ и docs/).
+    Принудительно берет локальные изменённые файлы (--theirs), удаляет
+    устаревшие дубликаты из корня, индексирует новые пути и чистит stash.
+    """
+    if verbose:
+        print("\n  [Таблетка] Разрешаем конфликты структуры (перенос в json/)...")
+
+    # 1. Принимаем локальную/новую версию с новой структурой
+    git("checkout", "--theirs", ".")
+
+    # 2. Окончательно вычищаем устаревшие дубликаты из корня
+    legacy_root_files = [
+        "version.json",
+        "version.json.sig",
+        "settings.json",
+        "theme_settings.json",
+        "sbom.cdx.json",
+        "PRIVACY.md",
+        "SECURITY.md",
+        "SECURITY_BASELINE.md",
+    ]
+    for rel in legacy_root_files:
+        p = PROJECT_ROOT / rel
+        if p.is_file():
+            try:
+                git("rm", "-f", rel)
+            except Exception:
+                pass
+            if p.is_file():
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+
+    # 3. Добавляем всю новую структуру в индекс
+    git("add", "-A")
+
+    # 4. Сбрасываем застрявший stash при наличии
+    stashes = git("stash", "list")
+    if "xtts-manager-presync-" in (stashes.stdout or ""):
+        git("stash", "drop")
+
+    if verbose:
+        print(
+            "  [Таблетка] [OK] Конфликты разрешены: новая структура json/ принята, старый корень очищен."
+        )
+    return True
+
+
 def cleanup_stuck_rebase(verbose: bool = True) -> bool:
     """
-    Таблетка от зависших состояний Git rebase / merge / cherry-pick.
+    Таблетка от зависших состояний Git rebase / merge / cherry-pick / stash pop.
     Проверяет наличие папок .git/rebase-merge, .git/rebase-apply, REBASE_HEAD и т.д.
     Если они есть, пытается штатно отменить процесс через git rebase --abort / git merge --abort,
-    а также гарантированно очищает блокирующие папки на диске.
+    а также гарантированно очищает блокирующие папки на диске и автоматически разрешает
+    структурные конфликты переноса файлов в json/.
     Возвращает True, если было зависшее состояние и оно очищено.
     """
     rebase_merge = PROJECT_ROOT / ".git" / "rebase-merge"
@@ -210,11 +263,18 @@ def cleanup_stuck_rebase(verbose: bool = True) -> bool:
     rebase_head = PROJECT_ROOT / ".git" / "REBASE_HEAD"
     merge_head = PROJECT_ROOT / ".git" / "MERGE_HEAD"
 
+    status_r = git("status", "--porcelain")
+    status_out = (status_r.stdout or "").lower()
+    has_unmerged = "unmerged" in status_out or any(
+        m in status_out for m in ("uu ", "aa ", "ud ", "du ", "both modified")
+    )
+
     has_stuck = (
         rebase_merge.exists()
         or rebase_apply.exists()
         or rebase_head.exists()
         or merge_head.exists()
+        or has_unmerged
     )
     if not has_stuck:
         r = subprocess.run(["git", "status"], cwd=str(PROJECT_ROOT), capture_output=True, text=True)
@@ -230,8 +290,10 @@ def cleanup_stuck_rebase(verbose: bool = True) -> bool:
         return False
 
     if verbose:
-        print("\n  [Таблетка] Обнаружено незавершённое/зависшее состояние Git (.git/rebase-merge).")
-        print("  [Таблетка] Автоматически отменяем зависший процесс и очищаем блокирующие папки...")
+        print(
+            "\n  [Таблетка] Обнаружено незавершённое/зависшее состояние Git или конфликт структуры."
+        )
+        print("  [Таблетка] Автоматически отменяем зависший процесс и разрешаем конфликты...")
 
     # 1. Попытка штатно отменить через Git
     subprocess.run(
@@ -253,7 +315,11 @@ def cleanup_stuck_rebase(verbose: bool = True) -> bool:
         text=True,
     )
 
-    # 2. Гарантированное удаление директорий/файлов, если Git сам их не удалил
+    # 2. Если остались unmerged paths — автоматически разрешаем в пользу json/ структуры
+    if has_unmerged:
+        auto_resolve_structure_conflicts(verbose=verbose)
+
+    # 3. Гарантированное удаление директорий/файлов, если Git сам их не удалил
     if rebase_merge.exists():
         shutil.rmtree(rebase_merge, ignore_errors=True)
     if rebase_apply.exists():
@@ -503,8 +569,8 @@ def sync_remote_before_build(branch: str) -> bool:
             restored = git_show("stash", "pop")
             if restored.returncode != 0:
                 print("  [ОШИБКА] Конфликт при восстановлении stash.")
-                print("  Stash сохранён. Разрешите конфликт вручную; release ещё не генерировался.")
-                return False
+                print("  [Таблетка] Автоматически разрешаем конфликт структуры (корень → json/)...")
+                auto_resolve_structure_conflicts(verbose=True)
     return True
 
 

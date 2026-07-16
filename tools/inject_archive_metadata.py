@@ -118,8 +118,8 @@ def inject(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive", type=Path, default=Path("XTTS-Studio-portable.zip"))
-    parser.add_argument("--manifest", type=Path, default=Path("version.json"))
-    parser.add_argument("--signature", type=Path, default=Path("version.json.sig"))
+    parser.add_argument("--manifest", type=Path, default=Path("json/version.json"))
+    parser.add_argument("--signature", type=Path, default=Path("json/version.json.sig"))
     parser.add_argument("--checksums", type=Path, default=Path("checksums.txt"))
     parser.add_argument("--archive-url", default=DEFAULT_ARCHIVE_URL)
     parser.add_argument(
@@ -128,13 +128,22 @@ def main():
         help="Ed25519 private key material, or set XTTS_UPDATE_SIGNING_KEY",
     )
     args = parser.parse_args()
+    signing_key = args.signing_key or os.environ.get("XTTS_UPDATE_SIGNING_KEY")
+    if not signing_key:
+        default_key = PROJECT_ROOT / "keys" / "XTTS-Studio-signing-private.pem"
+        win_key = Path(r"C:\XTTS Signing Keys\XTTS-Studio-signing-private.pem")
+        if default_key.is_file():
+            signing_key = str(default_key)
+        elif win_key.is_file():
+            signing_key = str(win_key)
+
     inject(
         archive_path=args.archive,
         manifest_path=args.manifest,
         signature_path=args.signature,
         checksums_path=args.checksums,
         archive_url=args.archive_url,
-        signing_key=args.signing_key,
+        signing_key=signing_key,
     )
 
 

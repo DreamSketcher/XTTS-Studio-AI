@@ -25,10 +25,9 @@ cd /d "%BASE%"
 :: ОКРУЖЕНИЕ: python\runtime\python.exe — реальный интерпретатор.
 :: xtts_env\python.exe — ПУСТЫШКА, никогда не запускается.
 :: Из xtts_env подхватываются только тяжёлые библиотеки через PYTHONPATH.
-:: Без этого все import-проверки ниже (torch, TTS) будут ложно
-:: показывать MISSING, даже если окружение рабочее.
 :: ==========================================
 set "SITE_PACKAGES=%BASE%python\xtts_env\Lib\site-packages"
+if not exist "%SITE_PACKAGES%" mkdir "%SITE_PACKAGES%" 2>nul
 set "PYTHONPATH=%SITE_PACKAGES%"
 
 echo ==================================================
@@ -87,6 +86,9 @@ if exist "%PRIMARY_PY%" (
 echo [SCANNING PROJECT FOR ALL python.exe...]
 echo ------------------------------------------
 
+if exist "%BASE%.venv\Scripts\python.exe" call :SCAN "%BASE%.venv\Scripts\python.exe"
+if exist "%BASE%venv\Scripts\python.exe" call :SCAN "%BASE%venv\Scripts\python.exe"
+
 for /r "%BASE%" %%F in (python.exe) do (
     if %%~zF GTR 0 (
         set /a FOUND_COUNT+=1
@@ -109,7 +111,7 @@ echo.
 :ENV_READY
 if "%BEST_PY%"=="" (
     echo ❌ НЕТ НИ ОДНОГО РАБОЧЕГО Python окружения!
-    echo    Проверьте папку проекта.
+    echo    Установите Python или запустите REPAIR.
     pause
     exit /b 1
 )
@@ -168,9 +170,6 @@ goto MAIN
 
 :: ==========================================
 :: ПРИНУДИТЕЛЬНОЕ ВОССТАНОВЛЕНИЕ С GITHUB
-:: Работает независимо от gui.py — качает все файлы
-:: заново, игнорируя проверку версии. Спасает, если
-:: обновление сломало запуск приложения.
 :: ==========================================
 :FORCE_UPDATE
 echo.
@@ -183,10 +182,6 @@ set /p CONFIRM=Продолжить? (y/n):
 if /I not "%CONFIRM%"=="y" goto MAIN
 echo.
 
-:: Формируем временный .py-скрипт вместо "python -c" —
-:: так надёжнее с путями (пробелы, обратный слэш в конце
-:: BASE) и с кодировкой (символы вроде ✔/⚠ в -c ломали
-:: парсер Python на некоторых системах).
 set "TMP_PY=%TEMP%\xtts_force_update.py"
 set "BASE_NOSLASH=%BASE:~0,-1%"
 
@@ -206,19 +201,10 @@ set "BASE_NOSLASH=%BASE:~0,-1%"
 del /q "%TMP_PY%" >nul 2>&1
 
 echo.
-echo Файлы обновлены. Так как этот .bat мог быть перезаписан
-echo во время своего выполнения, сейчас он перезапустится
-echo в новом окне, чтобы гарантированно загрузить свежую версию.
+echo Файлы обновлены. Перезапуск диагностики...
 echo.
 pause
 
-:: ВАЖНО: нельзя просто "goto MAIN" — если XTTS_DIAG.bat входит
-:: в список обновляемых файлов, он мог перезаписать сам себя
-:: прямо во время выполнения. cmd.exe читает .bat построчно с
-:: диска, и дочтение подмененного файла тем же процессом может
-:: привести к рассинхрону и странному поведению. Поэтому вместо
-:: продолжения — запускаем СВЕЖУЮ копию в новом процессе и
-:: выходим из текущего немедленно.
 start "" "%~f0"
 exit /b 0
 
@@ -232,9 +218,7 @@ set "_SCORE=0"
 
 if "%_SZ%"=="0" exit /b
 
-:: xtts_env\python.exe — пустышка, никогда не используется как
-:: интерпретатор. Исключаем из кандидатов полностью, даже если
-:: формально запускается.
+:: xtts_env\python.exe — пустышка, никогда не используется как интерпретатор
 echo "%_F%" | findstr /I "\\xtts_env\\" >nul 2>&1 && (
     echo   Skipping: %_F%  [пустышка xtts_env, не кандидат]
     exit /b
@@ -248,11 +232,14 @@ if errorlevel 1 (
     exit /b
 )
 
-:: Версия Python — предпочитаем 3.10-3.11
-"%_F%" -c "import sys; v=sys.version_info; exit(0 if (v.major==3 and v.minor in (10,11)) else 1)" >nul 2>&1
+:: Базовый балл за любой работающий Python
+set /a _SCORE+=10
+
+:: Версия Python — предпочитаем 3.8-3.13
+"%_F%" -c "import sys; v=sys.version_info; exit(0 if (v.major==3 and v.minor>=8) else 1)" >nul 2>&1
 if not errorlevel 1 set /a _SCORE+=20
 
-:: torch (самый важный для XTTS) — берётся из xtts_env через PYTHONPATH
+:: torch (самый важный для XTTS)
 "%_F%" -c "import torch" >nul 2>&1 && set /a _SCORE+=50
 
 :: TTS
@@ -282,7 +269,7 @@ if %_SCORE% GTR %BEST_SCORE% (
 exit /b
 
 :: ==========================================
-:: FAST START (как в продакшен-лаунчере, свёрнуто)
+:: FAST START (свёрнуто)
 :: ==========================================
 :START_FAST
 echo.
@@ -294,7 +281,7 @@ pause
 goto MAIN
 
 :: ==========================================
-:: DEBUG START (с консолью, для просмотра ошибок)
+:: DEBUG START (с консолью)
 :: ==========================================
 :START_DEBUG
 echo.
@@ -328,7 +315,7 @@ echo.
 echo sys.path (включая PYTHONPATH):
 "%PY%" -c "import sys; [print(' ', p) for p in sys.path]"
 echo.
-echo Топ установленных пакетов (из xtts_env через PYTHONPATH):
+echo Топ установленных пакетов:
 "%PY%" -m pip list --format=columns 2>nul | findstr /I "torch TTS custom tkinter pygame pillow numpy"
 echo.
 pause
@@ -381,16 +368,11 @@ echo [pip upgrade...]
 "%PY%" -m pip install --upgrade pip --target "%BASE%python\xtts_env\Lib\site-packages"
 echo.
 echo [core deps...]
-"%PY%" -m pip install customtkinter tkinterdnd2 pygame pillow numpy soundfile --target "%BASE%python\xtts_env\Lib\site-packages"
+"%PY%" -m pip install -r "%BASE%requirements.txt" --target "%BASE%python\xtts_env\Lib\site-packages"
 echo.
 echo [torch (CPU, если нет GPU)...]
 "%PY%" -c "import torch" >nul 2>&1 || (
     "%PY%" -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --target "%BASE%python\xtts_env\Lib\site-packages"
-)
-echo.
-echo [llama-cpp-python (локальные GGUF-модели)...]
-"%PY%" -c "import llama_cpp" >nul 2>&1 || (
-    "%PY%" -m pip install llama-cpp-python --target "%BASE%python\xtts_env\Lib\site-packages"
 )
 echo.
 echo Готово. Перезапустите батник для проверки.
@@ -404,7 +386,7 @@ goto MAIN
 echo.
 echo ===== ВЫБОР ОКРУЖЕНИЯ ВРУЧНУЮ =====
 echo.
-echo Найденные рабочие python.exe (xtts_env скрыт — это пустышка):
+echo Найденные рабочие python.exe:
 echo.
 set "_IDX=0"
 for /r "%BASE%" %%F in (python.exe) do (

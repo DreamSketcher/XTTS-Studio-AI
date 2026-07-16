@@ -43,7 +43,7 @@ jobs:
       - name: Verify signed update manifest (pre-build)
         run: >-
           python -c "from engine.update_signing import verify_manifest_signature;
-          verify_manifest_signature(open('version.json','rb').read(), open('version.json.sig','rb').read())"
+          verify_manifest_signature(open('json/version.json','rb').read(), open('json/version.json.sig','rb').read())"
 
       - name: Build deterministic archive twice
         shell: pwsh
@@ -67,24 +67,24 @@ jobs:
         run: |
           python tools/inject_archive_metadata.py `
             --archive XTTS-Studio-portable.zip `
-            --manifest version.json `
-            --signature version.json.sig `
+            --manifest json/version.json `
+            --signature json/version.json.sig `
             --checksums checksums.txt
 
       - name: Verify signed update manifest (post-inject)
         run: >-
           python -c "from engine.update_signing import verify_manifest_signature;
-          verify_manifest_signature(open('version.json','rb').read(), open('version.json.sig','rb').read())"
+          verify_manifest_signature(open('json/version.json','rb').read(), open('json/version.json.sig','rb').read())"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             XTTS-Studio-portable.zip
-            version.json
-            version.json.sig
+            json/version.json
+            json/version.json.sig
             checksums.txt
-            sbom.cdx.json
+            json/sbom.cdx.json
           generate_release_notes: true
           fail_on_unmatched_files: true
         env:

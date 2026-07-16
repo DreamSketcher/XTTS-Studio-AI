@@ -1,6 +1,11 @@
 # Deterministic release hashes on Windows/Linux.
-# Text payload is always stored and checked out with LF.
+# Text payload is stored and checked out with LF except Windows batch/script files.
 * text=auto eol=lf
+
+# Windows batch and shell scripts must strictly use CRLF line endings for cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
 
 # Binary assets and model/archive formats must never be line-normalized.
 *.exe binary
