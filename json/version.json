@@ -288,11 +288,11 @@
     "i18n.py": "74c68d4a75ddf3680cd29749fc617ce8a143840cfec874ad00210e7d8e2d3e77",
     "json/release_config.json": "54c0e9635402e2ebfeb704182cc96f412ec1453cfcd69dc3dca3f81109153da6",
     "json/rvc_catalog_seed.json": "bec10a0686e29f80c928aa7bf2ab8b035f461efbd388a41189c15712b3c63235",
-    "json/sbom.cdx.json": "40ef1a5deecc8137c245650fad19ef43c46cd142a62b92eb1708ad22e296d3c2",
+    "json/sbom.cdx.json": "bc690df672312c5828088a1ad1ce377a2d77217a1461a8371f3bbeaabbb3d53e",
     "json/settings.json": "052577ca2b8231d16f9c39b671974fc51f95d5a9535502f6ca3f4318b8cd862d",
     "json/theme_settings.json": "f6f8dc0db715dc3417e9fe84c3f98227b75bfda8cb7658aa9b456ea9406fe5a9",
     "pyproject.toml": "0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92",
-    "requirements.txt": "8e3ac3d7fbf2ea2c62531f6c1728d802c7895c990b0ee226724c029f922b05f5",
+    "requirements.txt": "e79177af6e427d91075f4b7fdb1dcfd0bcd0c1dc308e8fcd8caebc7c516bd684",
     "update_manifest_public.pem": "051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587"
   },
   "removed_files": [

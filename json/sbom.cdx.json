@@ -315,10 +315,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/faiss-cpu@1.14.3",
+      "bom-ref": "pkg:pypi/faiss-cpu@1.7.3",
       "name": "faiss-cpu",
-      "version": "1.14.3",
-      "purl": "pkg:pypi/faiss-cpu@1.14.3"
+      "version": "1.7.3",
+      "purl": "pkg:pypi/faiss-cpu@1.7.3"
     },
     {
       "type": "library",
@@ -1333,7 +1333,7 @@
         "pkg:pypi/docopt@0.6.2",
         "pkg:pypi/einops@0.8.2",
         "pkg:pypi/encodec@0.1.1",
-        "pkg:pypi/faiss-cpu@1.14.3",
+        "pkg:pypi/faiss-cpu@1.7.3",
         "pkg:pypi/fastapi@0.139.0",
         "pkg:pypi/ffmpeg-python@0.2.0",
         "pkg:pypi/filelock@3.29.1",
