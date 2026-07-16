@@ -11,6 +11,7 @@
 PATCH 2026-07-15: плавный slide боковой панели через AnimationManager.
 """
 import json
+from engine.atomic_write import atomic_write_json
 import os
 import tkinter as tk
 
@@ -80,8 +81,7 @@ def _save_panel_state() -> None:
         except Exception:
             data = {}
         data["left_panel_visible"] = _left_visible
-        with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(_SETTINGS_PATH, data, ensure_ascii=False, indent=2)
     except Exception:
         pass
 

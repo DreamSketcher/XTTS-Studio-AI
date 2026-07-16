@@ -8,6 +8,7 @@
 """
 import ctypes
 import json
+from engine.atomic_write import atomic_write_json
 import os
 import sys
 
@@ -50,8 +51,7 @@ def save_theme(theme: str) -> None:
         except Exception:
             data = {}
         data["ui_theme"] = theme
-        with open(_SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(_SETTINGS_PATH, data, ensure_ascii=False, indent=2)
     except Exception:
         pass
 

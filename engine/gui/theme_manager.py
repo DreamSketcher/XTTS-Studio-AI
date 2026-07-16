@@ -9,6 +9,8 @@
 import json
 import os
 
+from engine.atomic_write import atomic_write_json
+
 # ВАЖНОЕ ПРАВИЛО ПРОЕКТА: любое обращение к путям — ТОЛЬКО через BASE_DIR из engine.paths
 try:
     from engine.paths import BASE_DIR
@@ -183,8 +185,7 @@ def save_theme(theme_data: dict):
             out["layout"] = out["layout_preset"]
         elif "layout" in out:
             out["layout_preset"] = out["layout"]
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, out, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[ThemeManager] Save error: {e}")
 
@@ -225,8 +226,7 @@ def set_layout_preset(name: str) -> bool:
     if "presets" not in data:
         data["presets"] = DEFAULT_LAYOUT_PRESETS
     try:
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_layout_preset error: {e}")
@@ -246,8 +246,7 @@ def mark_layout_hint_shown() -> None:
     try:
         data = _read_json()
         data["layout_hint_shown"] = True
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"[ThemeManager] mark_layout_hint_shown error: {e}")
 
@@ -273,8 +272,7 @@ def set_audio_repeat(value: bool) -> bool:
     try:
         data = _read_json()
         data["audio_repeat_one"] = bool(value)
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_audio_repeat error: {e}")
@@ -302,8 +300,7 @@ def set_custom_colors(theme_name: str, colors: dict) -> bool:
         if "custom_colors" not in data or not isinstance(data["custom_colors"], dict):
             data["custom_colors"] = {"dark": {}, "light": {}}
         data["custom_colors"][theme_name] = dict(colors)
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_custom_colors error: {e}")
@@ -330,8 +327,7 @@ def set_font_base_size(base_size: int) -> bool:
     try:
         data = _read_json()
         data["font_base_size"] = base_size
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_font_base_size error: {e}")
@@ -357,8 +353,7 @@ def set_sidebar_side(side: str) -> bool:
     try:
         data = _read_json()
         data["sidebar_side"] = side
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_sidebar_side error: {e}")
@@ -404,8 +399,7 @@ def set_toolbar_order(order: list) -> bool:
     try:
         data = _read_json()
         data["toolbar_order"] = clean
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_toolbar_order error: {e}")
@@ -498,8 +492,7 @@ def set_header_rainbow(enabled: bool) -> bool:
     try:
         data = _read_json()
         data["header_rainbow"] = bool(enabled)
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_header_rainbow error: {e}")
@@ -516,8 +509,7 @@ def set_header_author_rainbow(enabled: bool) -> bool:
     try:
         data = _read_json()
         data["header_author_rainbow"] = bool(enabled)
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_header_author_rainbow error: {e}")
@@ -539,8 +531,7 @@ def set_header_rainbow_style(style: dict) -> bool:
         normalized = _normalize_rainbow_style(current, DEFAULT_HEADER_RAINBOW_STYLE)
         data = _read_json()
         data["header_rainbow_style"] = normalized
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_header_rainbow_style error: {e}")
@@ -569,8 +560,7 @@ def set_header_author_rainbow_style(style: dict) -> bool:
         normalized = _normalize_rainbow_style(current, DEFAULT_HEADER_AUTHOR_RAINBOW_STYLE)
         data = _read_json()
         data["header_author_rainbow_style"] = normalized
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_header_author_rainbow_style error: {e}")
@@ -621,8 +611,7 @@ def set_neon_buttons(buttons: dict) -> bool:
         normalized = _normalize_neon_buttons(buttons)
         data = _read_json()
         data["neon_buttons"] = normalized
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] set_neon_buttons error: {e}")
@@ -671,8 +660,7 @@ def save_named_preset(preset_name: str, snapshot: dict) -> bool:
         if "saved_presets" not in data or not isinstance(data["saved_presets"], dict):
             data["saved_presets"] = {}
         data["saved_presets"][preset_name] = dict(snapshot)
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] save_named_preset error: {e}")
@@ -687,8 +675,7 @@ def delete_named_preset(preset_name: str) -> bool:
             return False
         del presets[preset_name]
         data["saved_presets"] = presets
-        with open(THEME_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(THEME_FILE, data, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
         print(f"[ThemeManager] delete_named_preset error: {e}")
