@@ -106,7 +106,6 @@ class TestCheckUpdate:
         (tmp_base_dir / "version.json").write_text(
             json.dumps({"version": "1.0.0"}), encoding="utf-8"
         )
-        monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "abc123")
         monkeypatch.setattr(
             upd,
             "get_remote_version_info",
@@ -115,6 +114,8 @@ class TestCheckUpdate:
                 "files": ["a.py"],
                 "sha256": {},
                 "changelog": "fix",
+                "archive_sha256": "ab" * 32,
+                "archive_url": "https://example.com/a.zip",
             },
         )
 
@@ -122,12 +123,13 @@ class TestCheckUpdate:
         assert result["available"] is True
         assert result["local"] == "1.0.0"
         assert result["remote"] == "1.0.1"
+        assert result["archive_sha256"] == "ab" * 32
+        assert result["archive_url"] == "https://example.com/a.zip"
 
     def test_not_available(self, tmp_base_dir, monkeypatch):
         (tmp_base_dir / "version.json").write_text(
             json.dumps({"version": "2.0.0"}), encoding="utf-8"
         )
-        monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "sha")
         monkeypatch.setattr(
             upd, "get_remote_version_info", lambda commit_sha=None: {"version": "1.0.0"}
         )
@@ -139,7 +141,6 @@ class TestCheckUpdate:
         (tmp_base_dir / "version.json").write_text(
             json.dumps({"version": "1.0.0"}), encoding="utf-8"
         )
-        monkeypatch.setattr(upd, "_get_latest_commit_sha", lambda: "sha")
         monkeypatch.setattr(
             upd,
             "get_remote_version_info",
@@ -150,12 +151,6 @@ class TestCheckUpdate:
         assert result["needs_manual_reinstall"] is True
 
     def test_error_handling(self, tmp_base_dir, monkeypatch):
-        monkeypatch.setattr(
-            upd, "_get_latest_commit_sha", lambda: (_ for _ in ()).throw(Exception("network"))
-        )
-        # get_remote_version_info will be called with commit_sha None? Actually check_update gets commit_sha via _get_latest_commit_sha, so if that throws, get_remote_version_info still called?
-        # В check_update commit_sha вызывается отдельно, если он кинет — info получается через get_remote_version_info который сам вызывает _get_latest_commit_sha снова.
-        # Для теста проще заставить get_remote_version_info кидать.
         monkeypatch.setattr(
             upd,
             "get_remote_version_info",
@@ -492,3 +487,129 @@ class TestApplyUpdateIntegration:
         assert not (base / "_update_staging").exists() or not any(
             (base / "_update_staging").rglob("*")
         )
+
+
+class TestArchiveUpdate:
+    def _make_zip(self, tmp_path, members: dict) -> tuple[Path, str]:
+        import zipfile
+
+        archive = tmp_path / "payload.zip"
+        with zipfile.ZipFile(archive, "w") as zf:
+            for name, content in members.items():
+                zf.writestr(name, content)
+        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        return archive, digest
+
+    def test_extract_archive_rejects_zip_slip(self, tmp_base_dir, tmp_path):
+        archive = tmp_path / "evil.zip"
+        import zipfile
+
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("../outside.py", b"pwned")
+        with pytest.raises(ValueError):
+            upd._extract_archive_safely(str(archive), dest_dir=str(tmp_base_dir / "out"))
+
+    def test_extract_archive_safe_members(self, tmp_base_dir, tmp_path):
+        archive, _ = self._make_zip(tmp_path, {"engine/a.py": b"print(1)"})
+        dest = tmp_base_dir / "out"
+        dest.mkdir()
+        extracted = upd._extract_archive_safely(str(archive), dest_dir=str(dest))
+        assert extracted == ["engine/a.py"]
+        assert (dest / "engine" / "a.py").read_bytes() == b"print(1)"
+
+    def test_apply_update_from_archive_success(self, tmp_base_dir, monkeypatch, tmp_path):
+        base = Path(tmp_base_dir)
+        (base / "version.json").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
+        (base / "mod").mkdir()
+        (base / "mod" / "a.py").write_text("old", encoding="utf-8")
+
+        content_new = b"new content"
+        sha_new = hashlib.sha256(content_new).hexdigest()
+        archive, archive_sha = self._make_zip(tmp_path, {"mod/a.py": content_new})
+
+        class FakeResp:
+            def __init__(self, data: bytes):
+                self._data = data
+                self._pos = 0
+
+            def read(self, size=-1):
+                if self._pos >= len(self._data):
+                    return b""
+                if size is None or size < 0:
+                    chunk = self._data[self._pos :]
+                else:
+                    chunk = self._data[self._pos : self._pos + size]
+                self._pos += len(chunk)
+                return chunk
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        payload = archive.read_bytes()
+        monkeypatch.setattr(upd, "_urlopen_with_retry", lambda *a, **kw: FakeResp(payload))
+        monkeypatch.setattr(
+            upd,
+            "get_remote_version_info",
+            lambda commit_sha=None: {
+                "version": "1.0.1",
+                "files": ["mod/a.py"],
+                "sha256": {"mod/a.py": sha_new},
+                "archive_sha256": archive_sha,
+            },
+        )
+
+        result = upd.apply_update(
+            files=["mod/a.py"],
+            sha256_map={"mod/a.py": sha_new},
+            archive_sha256=archive_sha,
+            archive_url="https://example.com/payload.zip",
+            remote_info={
+                "version": "1.0.1",
+                "files": ["mod/a.py"],
+                "sha256": {"mod/a.py": sha_new},
+            },
+        )
+        assert result is True
+        assert (base / "mod" / "a.py").read_bytes() == content_new
+        assert (base / "_update_pending.json").exists()
+        local = json.loads((base / "version.json").read_text(encoding="utf-8"))
+        assert local["version"] == "1.0.1"
+
+    def test_apply_update_archive_bad_hash(self, tmp_base_dir, monkeypatch, tmp_path):
+        base = Path(tmp_base_dir)
+        (base / "version.json").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
+        archive, _ = self._make_zip(tmp_path, {"mod/a.py": b"new"})
+        payload = archive.read_bytes()
+
+        class FakeResp:
+            def __init__(self, data: bytes):
+                self._data = data
+                self._pos = 0
+
+            def read(self, size=-1):
+                if self._pos >= len(self._data):
+                    return b""
+                chunk = self._data[
+                    self._pos : self._pos + (size if size and size > 0 else len(self._data))
+                ]
+                self._pos += len(chunk)
+                return chunk
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        monkeypatch.setattr(upd, "_urlopen_with_retry", lambda *a, **kw: FakeResp(payload))
+        result = upd.apply_update(
+            files=["mod/a.py"],
+            sha256_map={"mod/a.py": "0" * 64},
+            archive_sha256="0" * 64,
+            archive_url="https://example.com/payload.zip",
+        )
+        assert result is False
+        assert not (base / "_update_pending.json").exists()

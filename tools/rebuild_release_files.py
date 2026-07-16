@@ -15,14 +15,7 @@ MANIFEST = ROOT / "version.json"
 ROOT_FILES = {
     ".gitattributes",
     ".pre-commit-config.yaml",
-    "DOCUMENTATION.EN.md",
-    "DOCUMENTATION.RU.md",
-    "PRIVACY.md",
-    "SECURITY.md",
-    "SECURITY_BASELINE.md",
-    "XTTS Studio.exe",
     "XTTS_DIAG.bat",
-    "demo_video_storyboard_template.html",
     "generate_version_manifest.py",
     "gui.py",
     "i18n.py",
@@ -30,6 +23,16 @@ ROOT_FILES = {
     "requirements.txt",
     "sbom.cdx.json",
     "update_manifest_public.pem",
+}
+# Documentation lives under docs/ after the structure refactor. Keep the old
+# root names for a transition period so a mixed tree still rebuilds cleanly.
+DOCS_ROOT_LEGACY = {
+    "DOCUMENTATION.EN.md",
+    "DOCUMENTATION.RU.md",
+    "PRIVACY.md",
+    "SECURITY.md",
+    "SECURITY_BASELINE.md",
+    "demo_video_storyboard_template.html",
 }
 SELF_GENERATED = {"version.json", "version.json.sig", "checksums.txt"}
 
@@ -48,7 +51,9 @@ def included(relative: str) -> bool:
     path = relative.replace("\\", "/")
     if path in SELF_GENERATED:
         return False
-    if path in ROOT_FILES:
+    if path in ROOT_FILES or path in DOCS_ROOT_LEGACY:
+        return True
+    if path.startswith("docs/") and not path.endswith("/"):
         return True
     if path.startswith("engine/") and path.endswith(".py"):
         return True

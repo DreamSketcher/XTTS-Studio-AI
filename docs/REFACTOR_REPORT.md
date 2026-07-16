@@ -376,7 +376,43 @@ pytest test/test_chunker.py test/test_history_store.py test/test_ai_conductor.py
 
 ---
 
-## 10. Вывод
+## 10. Система обновлений (release channel)
+
+Дата доработки: 2026-07-16
+
+### Проблема
+
+- `engine/updater.py` тянул `version.json` и ~136 файлов с `raw.githubusercontent.com/.../main/...`, обходя Fastly-кэш через `api.github.com/.../commits/main` (лимит 60 req/час).
+- `.github/workflows/release.yml` собирал portable zip только в Actions artifact (90 дней, auth), а не в GitHub Release assets. Апдейтер и релиз-пайплайн не были связаны.
+- `main` был одновременно dev-веткой и источником правды для клиентов: любой пуш без пересчёта SHA256 + Ed25519 ломал апдейтер (`InvalidSignature`).
+
+### Решение
+
+1. **Каналы:** `main` = dev (пуши без подписи ок), `release` = stable. Клиенты читают только GitHub Release assets:
+   - `RELEASE_BASE = https://github.com/DreamSketcher/XTTS-Studio/releases/latest/download`
+   - `VERSION_URL = {RELEASE_BASE}/version.json` (+ `.sig`)
+2. **Релиз:** git tag `vX.Y.Z` с ветки `release` → workflow `on: push: tags: v*`.
+3. **`release.yml`:** pre-build verify signature → (optional Authenticode) → dual `build_reproducible_release.py` → `tools/inject_archive_metadata.py` (archive_sha256/url/size + re-sign via `secrets.XTTS_UPDATE_SIGNING_KEY`) → post-inject verify → `softprops/action-gh-release@v2` с `XTTS-Studio-portable.zip`, `version.json`, `version.json.sig`, `checksums.txt`, `sbom.cdx.json`.
+4. **`updater.py`:** archive-first (`_download_archive_to_staging` + `_extract_archive_safely` с zip-slip защитой), fallback legacy per-file. Legacy `_raw_base_for` / `_get_latest_commit_sha` / `_download_to_staging` сохранены для тестов.
+5. **Ключ:** публичный Ed25519 в `engine/update_signing.py` / `update_manifest_public.pem`. Приватный ключ только в secret / offline, никогда в git.
+
+### Локальные артефакты (не в git)
+
+- `XTTS-Studio-portable.zip` — детерминированный payload из `tools/build_reproducible_release.py`
+- `XTTS-Studio-refactored.tar.gz` — снимок исходников без `python/`, `models/`, `library/`, runtime-данных
+
+### Проверка
+
+```bash
+black --check .          # 24.10.0
+ruff check .             # 0.6.9
+pytest test/test_updater*.py test/test_update_signing.py ...
+python -c "from engine.update_signing import verify_manifest_signature; ..."
+```
+
+---
+
+## 11. Вывод
 
 Рефакторинг достиг целей без изменения поведения:
 

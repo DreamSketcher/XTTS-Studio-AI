@@ -133,6 +133,8 @@ def _do_update(result):
             progress_callback=lambda i, t_val: set_progress(int(i / t_val * 100)),
             cancelled_flag=_update_cancelled_flag,
             commit_sha=result.get("commit_sha"),
+            archive_sha256=result.get("archive_sha256"),
+            archive_url=result.get("archive_url"),
         )
         hide_cancel_button()
         was_cancelled = _update_cancelled_flag["cancelled"]

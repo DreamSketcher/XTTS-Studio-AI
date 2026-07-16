@@ -1,12 +1,13 @@
-import os
-import sys
+import hashlib
 import json
+import os
 import shutil
 import ssl
+import sys
 import time
-import hashlib
-import urllib.request
 import urllib.parse
+import urllib.request
+import zipfile
 from pathlib import Path, PureWindowsPath
 
 try:
@@ -18,15 +19,26 @@ except ImportError:
 
 REPO = "DreamSketcher/XTTS-Studio"
 BRANCH = "main"
-# BRANCH_RAW_BASE используется ТОЛЬКО для version.json — нам всегда нужен
-# HEAD ветки, чтобы вовремя увидеть новый релиз.
+
+# Primary release channel: GitHub Release assets (stable). Clients never read
+# raw content from the development branch.
+RELEASE_BASE = f"https://github.com/{REPO}/releases/latest/download"
+VERSION_URL = f"{RELEASE_BASE}/version.json"
+SIGNATURE_URL = f"{RELEASE_BASE}/version.json.sig"
+DEFAULT_ARCHIVE_URL = f"{RELEASE_BASE}/XTTS-Studio-portable.zip"
+
+# ---------------------------------------------------------------------------
+# Legacy shims (raw.githubusercontent.com + commits API).
+# Kept for unit tests and older code paths that still pass commit_sha /
+# raw_base. Production check_update / get_remote_version_info use RELEASE_BASE.
+# ---------------------------------------------------------------------------
 BRANCH_RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}"
-VERSION_URL = f"{BRANCH_RAW_BASE}/version.json"
+COMMITS_API_URL = f"https://api.github.com/repos/{REPO}/commits/{BRANCH}"
 
 
 def _raw_base_for(commit_sha: str = None) -> str:
     """
-    URL-база для скачивания файлов релиза.
+    URL-база для скачивания файлов релиза (legacy per-file path).
 
     Если известен commit_sha (получен через _get_latest_commit_sha(),
     api.github.com) — используем его: у каждого коммита свой уникальный
@@ -53,6 +65,7 @@ LOCAL_VERSION_PATH = os.path.join(BASE_DIR, "version.json")
 STAGING_DIR = os.path.join(BASE_DIR, "_update_staging")
 BACKUP_DIR = os.path.join(BASE_DIR, "_update_backup")
 ROLLBACK_MARKER = os.path.join(BASE_DIR, "_update_pending.json")
+ARCHIVE_STAGING_NAME = "_update_payload.zip"
 
 MAX_RETRIES = 4
 RETRY_DELAY_SEC = 1.5  # увеличивается с каждой попыткой (backoff)
@@ -70,7 +83,8 @@ def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETR
     """urlopen с повторными попытками при временных SSL/сетевых обрывах.
 
     User-Agent обязателен для api.github.com (без него — 403 Forbidden).
-    raw.githubusercontent.com его не требует, но лишним не будет.
+    raw.githubusercontent.com / github.com releases его не требуют, но
+    лишним не будет.
     """
     req = urllib.request.Request(url, headers={"User-Agent": "XTTS-Studio-Updater"})
     last_err = None
@@ -81,7 +95,8 @@ def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETR
             last_err = e
             if attempt < max_retries:
                 print(
-                    f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. Повтор через {RETRY_DELAY_SEC * attempt:.1f}с..."
+                    f"[Updater] Попытка {attempt}/{max_retries} не удалась для {url}: {e}. "
+                    f"Повтор через {RETRY_DELAY_SEC * attempt:.1f}с..."
                 )
                 time.sleep(RETRY_DELAY_SEC * attempt)
             else:
@@ -89,22 +104,12 @@ def _urlopen_with_retry(url: str, timeout: int = 15, max_retries: int = MAX_RETR
     raise last_err
 
 
-COMMITS_API_URL = f"https://api.github.com/repos/{REPO}/commits/{BRANCH}"
-
-
 def _get_latest_commit_sha() -> str:
     """
-    Узнаёт актуальный commit SHA ветки через api.github.com, а не через
-    raw.githubusercontent.com. У raw-CDN (Fastly) после пуша бывает лаг
-    в несколько минут, когда он ещё отдаёт закешированное старое содержимое
-    файла по тому же URL ветки — из-за этого возникают ложные SHA256
-    mismatch сразу после релиза. api.github.com — обычный REST-эндпоинт,
-    отдаёт актуальный HEAD без этой проблемы.
+    Legacy: узнаёт актуальный commit SHA ветки через api.github.com.
 
-    Если запрос не удался (сеть, rate limit и т.п.) — возвращает None,
-    и вызывающий код просто откатывается на скачивание по ветке (как было
-    раньше), т.е. без commit_sha ничего не ломается, просто теряется
-    защита от гонки с кешем.
+    Больше не используется production-путём обновления (Release assets),
+    но сохраняется для unit-тестов и редких fallback-сценариев per-file.
     """
     try:
         with _urlopen_with_retry(COMMITS_API_URL, timeout=10, max_retries=2) as r:
@@ -118,15 +123,20 @@ def _get_latest_commit_sha() -> str:
 def get_remote_version_info(commit_sha: str = None) -> dict:
     """Download and authenticate an immutable release manifest.
 
-    Both files are fetched from the same commit-pinned base, but authenticity
-    comes from the embedded offline Ed25519 release key, not from GitHub or the
-    manifest's own SHA-256 map. Unsigned manifests fail closed.
+    Production path fetches version.json + version.json.sig from the latest
+    GitHub Release. The optional *commit_sha* argument keeps the legacy
+    raw.githubusercontent.com path for tests and older tooling. Authenticity
+    always comes from the embedded offline Ed25519 release key.
     """
     from engine.update_signing import verify_manifest_signature
 
-    base = _raw_base_for(commit_sha or _get_latest_commit_sha())
-    version_url = f"{base}/version.json"
-    signature_url = f"{base}/version.json.sig"
+    if commit_sha:
+        base = _raw_base_for(commit_sha)
+        version_url = f"{base}/version.json"
+        signature_url = f"{base}/version.json.sig"
+    else:
+        version_url = VERSION_URL
+        signature_url = SIGNATURE_URL
     try:
         with _urlopen_with_retry(version_url, timeout=10) as response:
             manifest_bytes = response.read()
@@ -174,23 +184,27 @@ def check_update() -> dict:
     Возвращает:
       { "available": True/False, "local": "1.0.0", "remote": "1.0.1",
         "files": [...], "sha256": {...}, "changelog": "...",
+        "archive_sha256": "...", "archive_url": "...",
         "min_app_version": "1.0.0" или None,
         "needs_manual_reinstall": True/False }
 
     needs_manual_reinstall=True означает, что текущая версия слишком старая
     для инкрементального автообновления (см. min_app_version в манифесте) —
-    в этом случае нужно предложить пользователю скачать установщик целиком,
-    а не тянуть файлы поштучно.
+    в этом случае нужно предложить пользователю скачать установщик целиком.
     """
     local = get_local_version()
     try:
-        commit_sha = _get_latest_commit_sha()
-        info = get_remote_version_info(commit_sha)
+        info = get_remote_version_info()
         remote = info.get("version", "0.0.0")
         available = _version_gt(remote, local)
 
         min_required = info.get("min_app_version")
         needs_manual = bool(min_required) and _version_lt(local, min_required)
+
+        archive_sha256 = info.get("archive_sha256")
+        archive_url = info.get("archive_url")
+        if archive_sha256 and not archive_url:
+            archive_url = DEFAULT_ARCHIVE_URL
 
         return {
             "available": available,
@@ -202,7 +216,11 @@ def check_update() -> dict:
             "changelog": info.get("changelog", ""),
             "min_app_version": min_required,
             "needs_manual_reinstall": needs_manual,
-            "commit_sha": commit_sha if available else None,
+            "archive_sha256": archive_sha256,
+            "archive_url": archive_url,
+            "archive_size": info.get("archive_size"),
+            # legacy field retained so older GUI builds keep working
+            "commit_sha": None,
         }
     except Exception as e:
         return {"available": False, "local": local, "remote": None, "error": str(e)}
@@ -298,23 +316,12 @@ def _download_to_staging(
     Скачивает файл во временный staging (НЕ в рабочую директорию) и
     проверяет его SHA256 перед тем как считать файл готовым к применению.
 
+    Legacy per-file path. Production updates prefer a single signed archive
+    via _download_archive_to_staging + _extract_archive_safely.
+
     ВАЖНО: expected_sha256 обязателен. Если в манифесте (version.json ->
     "sha256") для этого файла нет хэша — файл считается непрошедшим
-    проверку и НЕ применяется, даже если скачался без ошибок. Раньше
-    отсутствие хэша в манифесте тихо пропускало проверку — это было дырой:
-    сломанный/неполный релизный манифест приводил к обновлению без
-    проверки целостности вообще.
-
-    Скачивание читается блоками и проверяет cancelled_flag на каждом блоке,
-    чтобы отмена пользователем срабатывала быстро даже на крупном файле,
-    а не только между файлами.
-
-    SHA256-mismatch retry: даже с commit-pinned URL (см. _raw_base_for)
-    изредка попадается прогретый под старый контент участок CDN Fastly —
-    сам GitHub docs предупреждает, что инвалидация кеша не мгновенна.
-    Это не сетевая ошибка (соединение прошло успешно), поэтому обычный
-    _urlopen_with_retry тут не помогает — нужна отдельная пауза подольше
-    и повторное скачивание, а не просто повтор запроса.
+    проверку и НЕ применяется, даже если скачался без ошибок.
     """
     relative_path = _safe_relative_path(relative_path)
     base = raw_base or BRANCH_RAW_BASE
@@ -378,6 +385,115 @@ def _download_to_staging(
             except Exception:
                 pass
             return False
+
+
+def _download_archive_to_staging(
+    expected_sha256: str,
+    archive_url: str = None,
+    cancelled_flag=None,
+) -> str:
+    """Download a single release archive into staging and verify its SHA-256.
+
+    Returns the absolute path of the verified archive inside STAGING_DIR.
+    Raises InterruptedError on cancel; RuntimeError on network/hash failure.
+    """
+    if not expected_sha256:
+        raise RuntimeError("archive_sha256 отсутствует в манифесте")
+    url = archive_url or DEFAULT_ARCHIVE_URL
+    os.makedirs(STAGING_DIR, exist_ok=True)
+    dst = os.path.join(STAGING_DIR, ARCHIVE_STAGING_NAME)
+    tmp = dst + ".part"
+
+    try:
+        with _urlopen_with_retry(url, timeout=60) as resp:
+            with open(tmp, "wb") as f:
+                while True:
+                    if _is_cancelled(cancelled_flag):
+                        raise InterruptedError("Обновление отменено пользователем")
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+
+        actual = _sha256_of_file(tmp)
+        if actual.lower() != expected_sha256.lower():
+            raise RuntimeError(
+                f"SHA256 архива не совпадает: ожидалось {expected_sha256}, получено {actual}"
+            )
+        if os.path.exists(dst):
+            os.remove(dst)
+        shutil.move(tmp, dst)
+        return dst
+    except InterruptedError:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
+    except Exception:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
+        raise
+
+
+def _extract_archive_safely(archive_path: str, dest_dir: str = None) -> list:
+    """Extract a zip into staging with zip-slip protection.
+
+    Does NOT use ZipFile.extract / extractall. Every member is validated via
+    _safe_relative_path + _safe_path_under; absolute paths, ``../``, drive
+    letters and colon-bearing segments are rejected.
+    Returns the list of extracted relative paths (POSIX style).
+    """
+    dest = dest_dir or STAGING_DIR
+    extracted: list[str] = []
+    with zipfile.ZipFile(archive_path, "r") as zf:
+        for info in zf.infolist():
+            name = info.filename
+            if not name or name.endswith("/"):
+                # Directory entries — skip; parents are created for files.
+                continue
+            # Zip members may use backslashes on some Windows-produced archives.
+            relative = _safe_relative_path(name)
+            target = _safe_path_under(dest, relative)
+            parent = os.path.dirname(target)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            with zf.open(info, "r") as src, open(target, "wb") as out:
+                shutil.copyfileobj(src, out, length=1024 * 1024)
+            extracted.append(relative)
+    if not extracted:
+        raise RuntimeError("архив обновления пуст")
+    return extracted
+
+
+def _verify_staged_files(files: list, sha256_map: dict) -> list:
+    """Return list of relative paths that failed per-file SHA-256 checks."""
+    failed = []
+    for rel in files:
+        expected = (sha256_map or {}).get(rel)
+        if not expected:
+            # version.json / version.json.sig may be inside the archive without
+            # being members of the payload hash map — skip only those two.
+            if rel in ("version.json", "version.json.sig"):
+                continue
+            print(f"[Updater] В манифесте нет SHA256 для {rel} — файл отклонён")
+            failed.append(rel)
+            continue
+        staged = _safe_path_under(STAGING_DIR, rel)
+        if not os.path.isfile(staged):
+            print(f"[Updater] В staging нет файла {rel}")
+            failed.append(rel)
+            continue
+        actual = _sha256_of_file(staged, rel)
+        if actual.lower() != expected.lower():
+            print(
+                f"[Updater] SHA256 не совпадает для {rel}: "
+                f"ожидалось {expected}, получено {actual}"
+            )
+            failed.append(rel)
+    return failed
 
 
 def _delete_removed_files(removed_files: list):
@@ -453,47 +569,188 @@ def _write_rollback_marker(
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def apply_update(
+def _persist_remote_manifest(info: dict) -> str:
+    """Write the authenticated remote manifest as the local version.json."""
+    new_version = info.get("version", "?") if isinstance(info, dict) else "?"
+    try:
+        with open(LOCAL_VERSION_PATH, "w", encoding="utf-8") as fp:
+            json.dump(info, fp, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Updater] Не удалось сохранить version.json: {e}")
+    return new_version
+
+
+def _apply_from_staging(
     files: list,
-    sha256_map: dict = None,
-    removed_files: list = None,
+    removed_files: list,
+    remote_info: dict = None,
+    commit_sha: str = None,
+) -> bool:
+    """Shared post-download path: backup → move → delete → marker."""
+    old_version = get_local_version()
+
+    try:
+        _backup_current_files(files + removed_files)
+    except Exception as e:
+        print(f"[Updater] Не удалось создать backup, обновление отменено: {e}")
+        _clear_dir(STAGING_DIR)
+        return False
+
+    try:
+        _move_staged_to_live(files)
+    except Exception as e:
+        print(f"[Updater] Ошибка применения обновления, откатываю: {e}")
+        rollback_update()
+        return False
+
+    if removed_files:
+        _delete_removed_files(removed_files)
+
+    if remote_info is not None:
+        new_version = _persist_remote_manifest(remote_info)
+    else:
+        try:
+            info = get_remote_version_info(commit_sha)
+            new_version = _persist_remote_manifest(info)
+        except Exception as e:
+            print(f"[Updater] Не удалось сохранить version.json: {e}")
+            new_version = "?"
+
+    _write_rollback_marker(old_version, new_version, files, removed_files)
+    _clear_dir(STAGING_DIR)
+    return True
+
+
+def _apply_update_from_archive(
+    files: list,
+    sha256_map: dict,
+    removed_files: list,
+    archive_sha256: str,
+    archive_url: str = None,
+    progress_callback=None,
+    cancelled_flag=None,
+    remote_info: dict = None,
+) -> bool:
+    """Archive-mode update: one zip download + safe extract + optional per-file hashes."""
+
+    def _cancel_cleanup() -> bool:
+        print("[Updater] Обновление отменено пользователем — удаляю скачанные файлы...")
+        _clear_dir(STAGING_DIR)
+        return False
+
+    _clear_dir(STAGING_DIR)
+    os.makedirs(STAGING_DIR, exist_ok=True)
+
+    if _is_cancelled(cancelled_flag):
+        return _cancel_cleanup()
+
+    try:
+        archive_path = _download_archive_to_staging(
+            expected_sha256=archive_sha256,
+            archive_url=archive_url,
+            cancelled_flag=cancelled_flag,
+        )
+    except InterruptedError:
+        return _cancel_cleanup()
+    except Exception as e:
+        print(f"[Updater] Не удалось скачать архив обновления: {e}")
+        _clear_dir(STAGING_DIR)
+        return False
+
+    if progress_callback:
+        progress_callback(1, 3)
+
+    if _is_cancelled(cancelled_flag):
+        return _cancel_cleanup()
+
+    try:
+        extracted = _extract_archive_safely(archive_path)
+    except Exception as e:
+        print(f"[Updater] Не удалось безопасно распаковать архив: {e}")
+        _clear_dir(STAGING_DIR)
+        return False
+
+    # Drop the zip itself from staging so it is not moved into the live tree.
+    try:
+        os.remove(archive_path)
+    except Exception:
+        pass
+
+    if progress_callback:
+        progress_callback(2, 3)
+
+    # Prefer the authenticated manifest's file list when present; otherwise use
+    # whatever the archive actually contained (minus self-describing metadata
+    # that is handled separately).
+    payload_files = [
+        p for p in (files or extracted) if p not in ("version.json", "version.json.sig")
+    ]
+    # Always include any extra payload members that the archive brought in so
+    # newly-added files are installed even if the caller's list is stale.
+    for rel in extracted:
+        if rel not in payload_files and rel not in ("version.json", "version.json.sig"):
+            payload_files.append(rel)
+
+    try:
+        payload_files, removed_files = _validate_manifest_paths(payload_files, removed_files)
+    except ValueError as exc:
+        print(f"[Updater] Небезопасный манифест отклонён: {exc}")
+        _clear_dir(STAGING_DIR)
+        return False
+
+    if sha256_map:
+        failed = _verify_staged_files(payload_files, sha256_map)
+        if failed:
+            print(f"[Updater] Обновление отменено — не прошли проверку: {failed}")
+            _clear_dir(STAGING_DIR)
+            return False
+
+    if progress_callback:
+        progress_callback(3, 3)
+
+    if _is_cancelled(cancelled_flag):
+        return _cancel_cleanup()
+
+    # Prefer the authenticated Release-asset manifest (has archive_* fields).
+    # Fall back to the copy embedded in the zip, then to a bare version string.
+    if remote_info is None:
+        try:
+            remote_info = get_remote_version_info()
+        except Exception:
+            staged_manifest = os.path.join(STAGING_DIR, "version.json")
+            if os.path.isfile(staged_manifest):
+                try:
+                    with open(staged_manifest, "r", encoding="utf-8") as fp:
+                        remote_info = json.load(fp)
+                except Exception:
+                    remote_info = None
+
+    # version.json is written by _apply_from_staging from remote_info; do not
+    # also move a staged copy as a regular payload file (would race).
+    move_files = [p for p in payload_files if p != "version.json"]
+    # But still move version.json.sig if present.
+    if os.path.isfile(os.path.join(STAGING_DIR, "version.json.sig")):
+        if "version.json.sig" not in move_files:
+            move_files.append("version.json.sig")
+
+    return _apply_from_staging(
+        move_files,
+        removed_files,
+        remote_info=remote_info,
+    )
+
+
+def _apply_update_per_file(
+    files: list,
+    sha256_map: dict,
+    removed_files: list,
     progress_callback=None,
     cancelled_flag=None,
     commit_sha: str = None,
     sha_mismatch_retries: int = 3,
     sha_mismatch_delay: float = 4.0,
 ) -> bool:
-    """
-    Безопасный цикл обновления:
-      1. скачать ВСЕ файлы в staging, не трогая рабочую копию
-      2. проверить SHA256 каждого файла (если хэш есть в манифесте)
-      3. если хоть один файл не прошёл проверку/не скачался — отменить всё,
-         рабочие файлы остаются как есть
-      4. если всё ок — сделать backup рабочих файлов (включая те, что будут
-         удалены как устаревшие)
-      5. перенести staged-файлы поверх рабочих
-      6. удалить файлы, которых больше нет в новом манифесте (removed_files) —
-         переименованные/перенесённые/объединённые при рефакторинге; иначе
-         они бы бесконечно копились на дисках уже обновившихся пользователей
-      7. записать маркер "обновление ожидает подтверждения" (см.
-         check_startup_health / confirm_update_success ниже)
-
-    cancelled_flag — тот же формат, что и в engine/local_llm_client.py
-    (dict с ключом "cancelled" или list/tuple с элементом [0]). Проверяется
-    во время скачивания/проверки (шаги 1-3), а также ЕЩЁ РАЗ сразу после
-    того как все файлы прошли проверку — то есть отмена успевает сработать
-    даже если её выставили прямо на последнем файле. Настоящая точка
-    невозврата — это момент, когда физически начинается backup+подмена
-    рабочих файлов (шаг 4+): дальше cancelled_flag уже не проверяется,
-    потому что прервать подмену на середине опаснее, чем просто её закончить.
-    """
-    sha256_map = sha256_map or {}
-    removed_files = removed_files or []
-    try:
-        files, removed_files = _validate_manifest_paths(files, removed_files)
-    except ValueError as exc:
-        print(f"[Updater] Небезопасный манифест отклонён: {exc}")
-        return False
+    """Legacy per-file update path (raw.githubusercontent.com)."""
     raw_base = _raw_base_for(commit_sha)
     _clear_dir(STAGING_DIR)
     os.makedirs(STAGING_DIR, exist_ok=True)
@@ -557,39 +814,70 @@ def apply_update(
         _clear_dir(STAGING_DIR)
         return False
 
-    # ── Точка невозврата ── дальше идёт backup + подмена рабочих файлов;
-    # cancelled_flag больше не проверяется.
-    old_version = get_local_version()
+    return _apply_from_staging(files, removed_files, commit_sha=commit_sha)
 
+
+def apply_update(
+    files: list,
+    sha256_map: dict = None,
+    removed_files: list = None,
+    progress_callback=None,
+    cancelled_flag=None,
+    commit_sha: str = None,
+    sha_mismatch_retries: int = 3,
+    sha_mismatch_delay: float = 4.0,
+    archive_sha256: str = None,
+    archive_url: str = None,
+    remote_info: dict = None,
+) -> bool:
+    """
+    Безопасный цикл обновления.
+
+    Archive mode (preferred, when archive_sha256 is provided):
+      1. download one zip into staging
+      2. verify archive SHA-256
+      3. extract with zip-slip protection
+      4. optionally verify per-file SHA-256 from the manifest
+      5. backup → move staged → delete removed → save version.json → marker
+
+    Legacy per-file mode (fallback when archive_sha256 is absent):
+      download each file from raw.githubusercontent.com (commit-pinned when
+      commit_sha is known), verify SHA-256, then the same apply path.
+
+    cancelled_flag — тот же формат, что и в engine/local_llm_client.py
+    (dict с ключом "cancelled" или list/tuple с элементом [0]). Проверяется
+    во время скачивания/проверки. Точка невозврата — backup+подмена.
+    """
+    sha256_map = sha256_map or {}
+    removed_files = removed_files or []
     try:
-        _backup_current_files(files + removed_files)
-    except Exception as e:
-        print(f"[Updater] Не удалось создать backup, обновление отменено: {e}")
-        _clear_dir(STAGING_DIR)
+        files, removed_files = _validate_manifest_paths(files or [], removed_files)
+    except ValueError as exc:
+        print(f"[Updater] Небезопасный манифест отклонён: {exc}")
         return False
 
-    try:
-        _move_staged_to_live(files)
-    except Exception as e:
-        print(f"[Updater] Ошибка применения обновления, откатываю: {e}")
-        rollback_update()
-        return False
+    if archive_sha256:
+        return _apply_update_from_archive(
+            files=files,
+            sha256_map=sha256_map,
+            removed_files=removed_files,
+            archive_sha256=archive_sha256,
+            archive_url=archive_url,
+            progress_callback=progress_callback,
+            cancelled_flag=cancelled_flag,
+            remote_info=remote_info,
+        )
 
-    if removed_files:
-        _delete_removed_files(removed_files)
-
-    try:
-        info = get_remote_version_info(commit_sha)
-        new_version = info.get("version", "?")
-        with open(LOCAL_VERSION_PATH, "w", encoding="utf-8") as fp:
-            json.dump(info, fp, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"[Updater] Не удалось сохранить version.json: {e}")
-        new_version = "?"
-
-    _write_rollback_marker(old_version, new_version, files, removed_files)
-    _clear_dir(STAGING_DIR)
-    return True
+    return _apply_update_per_file(
+        files=files,
+        sha256_map=sha256_map,
+        removed_files=removed_files,
+        progress_callback=progress_callback,
+        cancelled_flag=cancelled_flag,
+        commit_sha=commit_sha,
+        sha_mismatch_retries=sha_mismatch_retries,
+        sha_mismatch_delay=sha_mismatch_delay,
+    )
 
 
 def has_pending_update_confirmation() -> bool:
@@ -699,11 +987,6 @@ def collect_update_diagnostics(check_result: dict = None) -> str:
     Собирает контекст для отчёта об ошибке (см. error_report.py):
     версии, наличие маркеров/staging/backup, и последнюю ошибку check_update(),
     если она была передана.
-
-    Не читает содержимое файлов и не логирует ничего нового — только
-    текущее состояние апдейтера на момент вызова. Используется GUI-слоем
-    при показе диалога "не удалось обновиться" — вызывающий код сам решает,
-    когда и стоит ли предлагать пользователю отправить отчёт.
     """
     lines = [
         f"local_version = {get_local_version()}",

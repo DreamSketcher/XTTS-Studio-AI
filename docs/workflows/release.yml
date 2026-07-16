@@ -1,0 +1,91 @@
+name: Secure Release Gate
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install release verification tools
+        run: python -m pip install cryptography==49.0.0
+
+      - name: Verify Authenticode publisher signature
+        shell: pwsh
+        run: |
+          if (Test-Path "XTTS Studio.exe") {
+            $signature = Get-AuthenticodeSignature -FilePath "XTTS Studio.exe"
+            $signature | Format-List *
+            if ($signature.Status -ne "Valid") {
+              throw "XTTS Studio.exe must have a valid Authenticode signature before release"
+            }
+            if (-not $signature.SignerCertificate) {
+              throw "Signer certificate is missing"
+            }
+          } else {
+            Write-Host "XTTS Studio.exe not present — skipping Authenticode check"
+          }
+
+      - name: Verify signed update manifest (pre-build)
+        run: >-
+          python -c "from engine.update_signing import verify_manifest_signature;
+          verify_manifest_signature(open('version.json','rb').read(), open('version.json.sig','rb').read())"
+
+      - name: Build deterministic archive twice
+        shell: pwsh
+        run: |
+          python tools/build_reproducible_release.py --source-root . --output release-a.zip
+          python tools/build_reproducible_release.py --source-root . --output release-b.zip
+          $a = (Get-FileHash release-a.zip -Algorithm SHA256).Hash.ToLower()
+          $b = (Get-FileHash release-b.zip -Algorithm SHA256).Hash.ToLower()
+          if ($a -ne $b) { throw "Release archive is not reproducible: $a != $b" }
+          Move-Item -Force release-a.zip XTTS-Studio-portable.zip
+          Remove-Item release-b.zip
+          $size = (Get-Item XTTS-Studio-portable.zip).Length
+          Set-Content -Path archive_sha256.txt -Value $a -Encoding ascii -NoNewline
+          Write-Host "archive_sha256=$a"
+          Write-Host "archive_size=$size"
+
+      - name: Inject archive metadata into version.json and re-sign
+        shell: pwsh
+        env:
+          XTTS_UPDATE_SIGNING_KEY: ${{ secrets.XTTS_UPDATE_SIGNING_KEY }}
+        run: |
+          python tools/inject_archive_metadata.py `
+            --archive XTTS-Studio-portable.zip `
+            --manifest version.json `
+            --signature version.json.sig `
+            --checksums checksums.txt
+
+      - name: Verify signed update manifest (post-inject)
+        run: >-
+          python -c "from engine.update_signing import verify_manifest_signature;
+          verify_manifest_signature(open('version.json','rb').read(), open('version.json.sig','rb').read())"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            XTTS-Studio-portable.zip
+            version.json
+            version.json.sig
+            checksums.txt
+            sbom.cdx.json
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

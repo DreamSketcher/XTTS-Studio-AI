@@ -210,8 +210,24 @@ def main():
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         from engine.update_signing import canonical_manifest_bytes
 
-        with open(args.signing_key, "rb") as key_file:
-            key = serialization.load_pem_private_key(key_file.read(), password=None)
+        # --signing-key may be a path to a PEM file OR inline key material
+        # (PEM text / base64 DER). Inline form is used by CI secrets.
+        key_arg = args.signing_key
+        if os.path.isfile(key_arg):
+            key_bytes = Path(key_arg).read_bytes()
+        else:
+            material = key_arg.strip()
+            if "\\n" in material and "BEGIN" in material:
+                key_bytes = material.replace("\\n", "\n").encode("utf-8")
+            elif "BEGIN" in material:
+                key_bytes = material.encode("utf-8")
+            else:
+                key_bytes = base64.b64decode(material)
+
+        if b"BEGIN" in key_bytes:
+            key = serialization.load_pem_private_key(key_bytes, password=None)
+        else:
+            key = serialization.load_der_private_key(key_bytes, password=None)
         if not isinstance(key, Ed25519PrivateKey):
             raise TypeError("update signing key must be Ed25519")
         with open(VERSION_PATH, "rb") as manifest_file:
