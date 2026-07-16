@@ -7,6 +7,7 @@
     "docs/DOCUMENTATION.EN.md",
     "docs/DOCUMENTATION.RU.md",
     "docs/PRIVACY.md",
+    "docs/REFACTOR_REPORT.md",
     "docs/SECURITY.md",
     "docs/SECURITY_BASELINE.md",
     "docs/demo_video_storyboard_template.html",
@@ -273,7 +274,8 @@
     "requirements.txt": "4984fb232a9e15055f1f788527a41a58603b2fc541a668e42dcac17a4d150e98",
     "sbom.cdx.json": "1b65d377103400103b7a186e57dd5f5c52714509129b6c2c0457e673eab1801b",
     "update_manifest_public.pem": "051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587",
-    "engine/atomic_write.py": "d75565100418801ed321d9921701d387418a799cc2c3fd2c05d919f2d3e45dd0"
+    "engine/atomic_write.py": "d75565100418801ed321d9921701d387418a799cc2c3fd2c05d919f2d3e45dd0",
+    "docs/REFACTOR_REPORT.md": "e3cd8af5dda285d23fb74927cf2d649d8d6084093170f5f2a8b9f2a930223650"
   },
   "removed_files": [
     ".known_safe_files.json",
