@@ -1,5 +1,5 @@
 {
-  "version": "1.1.306",
+  "version": "1.1.308",
   "files": [
     ".gitattributes",
     ".pre-commit-config.yaml",
