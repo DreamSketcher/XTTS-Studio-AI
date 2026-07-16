@@ -34,8 +34,8 @@ jobs:
 
       - name: Verify security documentation and deterministic SBOM
         run: |
-          test -s SECURITY.md
-          test -s PRIVACY.md
+          test -s docs/SECURITY.md -o -s SECURITY.md
+          test -s docs/PRIVACY.md -o -s PRIVACY.md
           python tools/generate_sbom.py --output sbom.generated.cdx.json
           diff -u sbom.cdx.json sbom.generated.cdx.json
           python -m json.tool sbom.cdx.json > /dev/null

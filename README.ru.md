@@ -19,7 +19,7 @@
 
 <br/>
 
-**[📥 Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📖 Documentation EN](./DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
+**[📥 Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases)** · **[📖 Документация RU](./docs/DOCUMENTATION.RU.md)** · **[📖 Documentation EN](./docs/DOCUMENTATION.EN.md)** · **[📜 Лицензия](./LICENSE.md)**
 
 </div>
 
@@ -149,7 +149,7 @@ XTTS Studio запускает XTTS v2 локально и собирает во
 - неподписанные RVC `.pth` требуют явного подтверждения доверия, привязанного к SHA-256;
 - проект публикует CycloneDX SBOM и security/privacy policy.
 
-Подробнее: **[безопасность](./SECURITY.md)** · **[приватность](./PRIVACY.md)** · **[dependency baseline](./SECURITY_BASELINE.md)**.
+Подробнее: **[безопасность](./docs/SECURITY.md)** · **[приватность](./docs/PRIVACY.md)** · **[dependency baseline](./docs/SECURITY_BASELINE.md)**.
 
 ### Скриншоты
 
@@ -255,8 +255,8 @@ CPU работает сразу, но XTTS, RVC и local LLM могут быть
 
 ## Документация и помощь
 
-- [Полная документация на русском](./DOCUMENTATION.RU.md)
-- [Full documentation in English](./DOCUMENTATION.EN.md)
+- [Полная документация на русском](./docs/DOCUMENTATION.RU.md)
+- [Full documentation in English](./docs/DOCUMENTATION.EN.md)
 - [Лицензия](./LICENSE.md)
 - [Issues](https://github.com/DreamSketcher/XTTS-Studio/issues)
 
@@ -284,6 +284,6 @@ CPU работает сразу, но XTTS, RVC и local LLM могут быть
 
 **XTTS Studio** · by EXIZ10TION · Made with ❤️
 
-[Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases) · [Документация](./DOCUMENTATION.RU.md) · [License](./LICENSE.md)
+[Скачать](https://github.com/DreamSketcher/XTTS-Studio/releases) · [Документация](./docs/DOCUMENTATION.RU.md) · [License](./LICENSE.md)
 
 </div>

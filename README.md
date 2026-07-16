@@ -19,7 +19,7 @@
 
 <br/>
 
-**[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases)** · **[📖 Documentation EN](./DOCUMENTATION.EN.md)** · **[📖 Документация RU](./DOCUMENTATION.RU.md)** · **[📜 License](./LICENSE.md)**
+**[📥 Download](https://github.com/DreamSketcher/XTTS-Studio/releases)** · **[📖 Documentation EN](./docs/DOCUMENTATION.EN.md)** · **[📖 Документация RU](./docs/DOCUMENTATION.RU.md)** · **[📜 License](./LICENSE.md)**
 
 </div>
 
@@ -149,7 +149,7 @@ History keeps the latest 100 generations. Every card has a waveform: play, stop,
 - unsigned RVC `.pth` checkpoints require explicit trust bound to SHA-256;
 - the project publishes a CycloneDX SBOM plus security and privacy policies.
 
-See **[Security](./SECURITY.md)** · **[Privacy](./PRIVACY.md)** · **[Dependency baseline](./SECURITY_BASELINE.md)**.
+See **[Security](./docs/SECURITY.md)** · **[Privacy](./docs/PRIVACY.md)** · **[Dependency baseline](./docs/SECURITY_BASELINE.md)**.
 
 ### Screenshots
 
@@ -255,8 +255,8 @@ CPU works out of the box, but XTTS, RVC, and local LLM may be noticeably slower 
 
 ## Documentation and help
 
-- [Full documentation in English](./DOCUMENTATION.EN.md)
-- [Полная документация на русском](./DOCUMENTATION.RU.md)
+- [Full documentation in English](./docs/DOCUMENTATION.EN.md)
+- [Полная документация на русском](./docs/DOCUMENTATION.RU.md)
 - [License](./LICENSE.md)
 - [Issues](https://github.com/DreamSketcher/XTTS-Studio/issues)
 
@@ -284,6 +284,6 @@ If XTTS Studio saves you time or money:
 
 **XTTS Studio** · by EXIZ10TION · Made with ❤️
 
-[Download](https://github.com/DreamSketcher/XTTS-Studio/releases) · [Documentation](./DOCUMENTATION.EN.md) · [License](./LICENSE.md)
+[Download](https://github.com/DreamSketcher/XTTS-Studio/releases) · [Documentation](./docs/DOCUMENTATION.EN.md) · [License](./LICENSE.md)
 
 </div>
