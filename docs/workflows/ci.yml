@@ -64,27 +64,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: Cache virtual environment
-        id: cache-venv
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          # Ключ зависит от ОС, версии python и содержимого requirements.txt —
-          # любое изменение зависимостей автоматически инвалидирует кэш.
-          # -v1 на конце можно вручную поднять, если нужно сбросить кэш force'ом.
-          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-v1
-
       - name: Create venv and install dependencies
-        if: steps.cache-venv.outputs.cache-hit != 'true'
         run: |
           python -m venv .venv
           source .venv/Scripts/activate 2>/dev/null || source .venv/bin/activate
           python -m pip install --upgrade pip
-          # Ошибки установки нельзя игнорировать: тесты должны выполняться в
-          # окружении, соответствующем release requirements.
           pip install torch==2.11.0 torchaudio==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-timeout ruff==0.6.9 black==24.10.0
+          pip install pytest pytest-cov pytest-timeout cryptography==49.0.0 ruff==0.6.9 black==24.10.0
         shell: bash
 
       - name: Install virtual display (Linux only)
@@ -92,12 +79,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-
-      - name: Ensure test runner dependencies
-        run: |
-          source .venv/Scripts/activate 2>/dev/null || source .venv/bin/activate
-          python -m pip install --quiet pytest pytest-cov pytest-timeout cryptography==49.0.0
-        shell: bash
 
       - name: Run pytest
         run: |

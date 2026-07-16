@@ -6,7 +6,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN_RE = re.compile(r"^([A-Za-z0-9_.-]+)==([^\s;]+)")
+PIN_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*==\s*([^\s;]+)")
+URL_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*@\s*(https?://[^\s;]+)")
+VER_FROM_URL = re.compile(r"([a-zA-Z0-9_.-]+?)-([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)")
 
 
 def normalized_name(name: str) -> str:
@@ -19,10 +21,17 @@ def load_components(requirements: Path) -> list[dict]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        match = PIN_RE.match(line)
-        if not match:
-            raise ValueError(f"Unpinned or unsupported requirement: {line}")
-        name, version = match.groups()
+        match_pin = PIN_RE.match(line)
+        if match_pin:
+            name, version = match_pin.groups()
+        else:
+            match_url = URL_RE.match(line)
+            if match_url:
+                name, url = match_url.groups()
+                match_ver = VER_FROM_URL.search(url)
+                version = match_ver.group(2) if match_ver else "0.0.0"
+            else:
+                raise ValueError(f"Unpinned or unsupported requirement: {line}")
         canonical = normalized_name(name)
         components.append(
             {
@@ -59,7 +68,8 @@ def generate(requirements: Path, output: Path):
             }
         ],
     }
-    output.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def main():

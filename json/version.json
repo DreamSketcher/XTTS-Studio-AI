@@ -1,5 +1,5 @@
 {
-  "version": "1.1.310",
+  "version": "1.1.312",
   "files": [
     ".gitattributes",
     ".pre-commit-config.yaml",
@@ -146,7 +146,7 @@
     "requirements.txt",
     "update_manifest_public.pem"
   ],
-  "changelog": "- RVC: постобработка голоса после XTTS (на каждый чанк) — index rate, pitch, f0 (rmvpe/harvest/pm/crepe)\n- RVC: установка rvc-python в portable-окружение (Windows: prebuilt fairseq, без ручной компиляции)\n- RVC: каталог моделей — офлайн seed (json/rvc_catalog_seed.json), кэш, поиск/скачивание (HF; best-effort Google Drive)\n- RVC: выпадающий список моделей в настройках пресета (локальные 🗑, загрузка ⬇, отмена ✕, страница 🔗)\n- Настройки пресета: вкладки RVC · Обрезка · Вывод · XTTS (панель вкладок закреплена сверху, не уезжает при скролле)\n- Настройки пресета: ползунок trim вместе с режимом; де-эссер на вкладке «Вывод»; параметры XTTS отдельно\n- Сохранение RVC и параметров пресета между сессиями (quality_params в settings.json); запоминается последняя вкладка\n- Документация: README и DOCUMENTATION на RU/EN; справочник функций (API) на RU/EN\n- Единая сборка вместо CPU/CUDA-версий: CUDA по желанию в Настройках под конкретное железо\n- Самопроверка torch при запуске: кэш или переустановка совместимой версии\n- Диагностика и Устранение ошибок: проверка библиотек, карантин мусора, автопереустановка сломанных пакетов\n- Редизайн UI, конструктор тем, раскладка и панели\n- Автообновление: staged-загрузка, SHA256, бэкап и rollback; min_app_version для полной переустановки\n- Локальные LLM: автоскан окружения, каталог моделей, своя модель из папки\n- Исправления и оптимизация",
+  "changelog": "- Интерфейс: графический интерфейс (GUI) был почти полностью переработан и глубоко оптимизирован\n- Эффекты и кастомизация: переливающийся неоновый заголовок, гибкие темы оформления и расширенные графические опции\n- Производительность: добавлены адаптивные настройки качества для анимаций и визуальных эффектов (оптимизированы под особенности CustomTkinter)\n- Переименование и репозиторий: проект официально обновлён до XTTS Studio AI (github.com/DreamSketcher/XTTS-Studio-AI)\n- Автообновление: безопасная staged-загрузка архивов релиза с Ed25519 подписью, SHA256-контролем и автооткатом\n- Git Менеджер: показ текущей версии (1.1.305), автоподсказка следующей версии по Enter и интерактивный выбор создания тега v1.1.X перед push\n- Инструменты разработки: скрипт форматирования (tools/format_code.bat) с поддержкой конфигурации исключений (tools/format_exclude.txt)\n- Зависимости: актуализирован requirements.txt под замороженный рантайм (182 компонента) и обновлён CycloneDX 1.5 SBOM\n- Стабильность: исправления CI Pipeline под GitHub Actions для стабильного выполнения тестов без сбоев",
   "sha256": {
     ".gitattributes": "1b16e4ef5b117e3c002986dbccebf5190dfd606a10f325e290fdc7808069cc9e",
     ".pre-commit-config.yaml": "eb207f3e22bf3216adebfb371a5428e216a3d93513ee791288642faebe2ed6f5",
@@ -162,7 +162,7 @@
     "docs/SECURITY_BASELINE.RU.md": "dcb7e5361eb38349c885080505fff13e1e835a5308051eecd7dfae4187eeedd0",
     "docs/SECURITY_BASELINE.md": "1c6c450e9013028d74a72a096d43986ce956b319c3853c68813c9ccc1fa988a7",
     "docs/demo_video_storyboard_template.html": "896be38470a69d25be6c0214be050ad9127398b6d018820d7ccfbe85712f147d",
-    "docs/workflows/ci.yml": "7f8fc4857a7829bac57a89e3b5ec6f61a4314df36966bc33f6cf70eb6a1b009e",
+    "docs/workflows/ci.yml": "1bcd8e36cd412fd9585be3cc099e7ae0178c288d99c4f037e178ae1a89b7c817",
     "docs/workflows/release.yml": "27567166b96d0ee6ff3f0bbd2b120320e04cfcf6e917734952be6d1403add8ba",
     "engine/__init__.py": "12598a2a1b4528477da794e6b51692b6d3a87b0e499e19358d1e3c4591c15fac",
     "engine/ai_conductor.py": "fa9ecad488da650f320cc6f3d6f8eab7348c3214bfac921cf08993c49b8aef5e",
@@ -286,11 +286,11 @@
     "gui.py": "87e3cc53d078b4002648a2802ea4557ef83eafd4c85fcc64d172b7cfccfb7cc2",
     "i18n.py": "74c68d4a75ddf3680cd29749fc617ce8a143840cfec874ad00210e7d8e2d3e77",
     "json/rvc_catalog_seed.json": "bec10a0686e29f80c928aa7bf2ab8b035f461efbd388a41189c15712b3c63235",
-    "json/sbom.cdx.json": "5fa4a8d0b508905f2b347fa8d3b9261d72d539f8d54195776e67426af6c77795",
+    "json/sbom.cdx.json": "f7db562695ccff0d00eeb898d71e6273534ac7bea5a0e04322ca07579c701372",
     "json/settings.json": "052577ca2b8231d16f9c39b671974fc51f95d5a9535502f6ca3f4318b8cd862d",
     "json/theme_settings.json": "f6f8dc0db715dc3417e9fe84c3f98227b75bfda8cb7658aa9b456ea9406fe5a9",
     "pyproject.toml": "0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92",
-    "requirements.txt": "4984fb232a9e15055f1f788527a41a58603b2fc541a668e42dcac17a4d150e98",
+    "requirements.txt": "f5d0fad57d83247fe9ade7241e931e9a1f668f5fb67374a5ab346311dc6f7cad",
     "update_manifest_public.pem": "051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587"
   },
   "removed_files": [

@@ -63,6 +63,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/antlr4-python3-runtime@4.9.3",
+      "name": "antlr4-python3-runtime",
+      "version": "4.9.3",
+      "purl": "pkg:pypi/antlr4-python3-runtime@4.9.3"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/anyascii@0.3.3",
       "name": "anyascii",
       "version": "0.3.3",
@@ -112,6 +119,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/bitarray@3.9.0",
+      "name": "bitarray",
+      "version": "3.9.0",
+      "purl": "pkg:pypi/bitarray@3.9.0"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/blinker@1.9.0",
       "name": "blinker",
       "version": "1.9.0",
@@ -154,10 +168,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/cffi@2.1.0",
+      "bom-ref": "pkg:pypi/cffi@2.0.0",
       "name": "cffi",
-      "version": "2.1.0",
-      "purl": "pkg:pypi/cffi@2.1.0"
+      "version": "2.0.0",
+      "purl": "pkg:pypi/cffi@2.0.0"
     },
     {
       "type": "library",
@@ -168,10 +182,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/click@8.4.2",
+      "bom-ref": "pkg:pypi/click@8.4.1",
       "name": "click",
-      "version": "8.4.2",
-      "purl": "pkg:pypi/click@8.4.2"
+      "version": "8.4.1",
+      "purl": "pkg:pypi/click@8.4.1"
     },
     {
       "type": "library",
@@ -207,13 +221,6 @@
       "name": "coqpit",
       "version": "0.0.17",
       "purl": "pkg:pypi/coqpit@0.0.17"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/coqui-tts@0.27.5",
-      "name": "coqui-tts",
-      "version": "0.27.5",
-      "purl": "pkg:pypi/coqui-tts@0.27.5"
     },
     {
       "type": "library",
@@ -308,10 +315,45 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/fairseq@0.12.3.1",
+      "name": "fairseq",
+      "version": "0.12.3.1",
+      "purl": "pkg:pypi/fairseq@0.12.3.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/faiss-cpu@1.14.3",
+      "name": "faiss-cpu",
+      "version": "1.14.3",
+      "purl": "pkg:pypi/faiss-cpu@1.14.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/fastapi@0.139.0",
+      "name": "fastapi",
+      "version": "0.139.0",
+      "purl": "pkg:pypi/fastapi@0.139.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/ffmpeg-python@0.2.0",
+      "name": "ffmpeg-python",
+      "version": "0.2.0",
+      "purl": "pkg:pypi/ffmpeg-python@0.2.0"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/filelock@3.29.1",
       "name": "filelock",
       "version": "3.29.1",
       "purl": "pkg:pypi/filelock@3.29.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@3.1.3",
+      "name": "Flask",
+      "version": "3.1.3",
+      "purl": "pkg:pypi/flask@3.1.3"
     },
     {
       "type": "library",
@@ -333,6 +375,13 @@
       "name": "fsspec",
       "version": "2026.4.0",
       "purl": "pkg:pypi/fsspec@2026.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/future@1.0.0",
+      "name": "future",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/future@1.0.0"
     },
     {
       "type": "library",
@@ -427,10 +476,17 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/huggingface-hub@1.23.0",
+      "bom-ref": "pkg:pypi/huggingface-hub@0.36.2",
       "name": "huggingface_hub",
-      "version": "1.23.0",
-      "purl": "pkg:pypi/huggingface-hub@1.23.0"
+      "version": "0.36.2",
+      "purl": "pkg:pypi/huggingface-hub@0.36.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/hydra-core@1.3.4",
+      "name": "hydra-core",
+      "version": "1.3.4",
+      "purl": "pkg:pypi/hydra-core@1.3.4"
     },
     {
       "type": "library",
@@ -518,6 +574,20 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/loguru@0.7.3",
+      "name": "loguru",
+      "version": "0.7.3",
+      "purl": "pkg:pypi/loguru@0.7.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/lxml@6.1.1",
+      "name": "lxml",
+      "version": "6.1.1",
+      "purl": "pkg:pypi/lxml@6.1.1"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/markdown-it-py@4.2.0",
       "name": "markdown-it-py",
       "version": "4.2.0",
@@ -567,10 +637,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/msgpack@1.2.1",
+      "bom-ref": "pkg:pypi/msgpack@1.1.2",
       "name": "msgpack",
-      "version": "1.2.1",
-      "purl": "pkg:pypi/msgpack@1.2.1"
+      "version": "1.1.2",
+      "purl": "pkg:pypi/msgpack@1.1.2"
     },
     {
       "type": "library",
@@ -602,10 +672,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/nltk@3.10.0",
+      "bom-ref": "pkg:pypi/nltk@3.9.4",
       "name": "nltk",
-      "version": "3.10.0",
-      "purl": "pkg:pypi/nltk@3.10.0"
+      "version": "3.9.4",
+      "purl": "pkg:pypi/nltk@3.9.4"
     },
     {
       "type": "library",
@@ -630,6 +700,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/omegaconf@2.3.1",
+      "name": "omegaconf",
+      "version": "2.3.1",
+      "purl": "pkg:pypi/omegaconf@2.3.1"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/packaging@26.2",
       "name": "packaging",
       "version": "26.2",
@@ -644,10 +721,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/pillow@12.3.0",
+      "bom-ref": "pkg:pypi/pillow@12.2.0",
       "name": "pillow",
-      "version": "12.3.0",
-      "purl": "pkg:pypi/pillow@12.3.0"
+      "version": "12.2.0",
+      "purl": "pkg:pypi/pillow@12.2.0"
     },
     {
       "type": "library",
@@ -669,6 +746,20 @@
       "name": "pooch",
       "version": "1.9.0",
       "purl": "pkg:pypi/pooch@1.9.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/portalocker@3.2.0",
+      "name": "portalocker",
+      "version": "3.2.0",
+      "purl": "pkg:pypi/portalocker@3.2.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/praat-parselmouth@0.4.7",
+      "name": "praat-parselmouth",
+      "version": "0.4.7",
+      "purl": "pkg:pypi/praat-parselmouth@0.4.7"
     },
     {
       "type": "library",
@@ -798,10 +889,31 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/python-multipart@0.0.32",
+      "name": "python-multipart",
+      "version": "0.0.32",
+      "purl": "pkg:pypi/python-multipart@0.0.32"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/pytz@2026.2",
       "name": "pytz",
       "version": "2026.2",
       "purl": "pkg:pypi/pytz@2026.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/pywin32@312",
+      "name": "pywin32",
+      "version": "312",
+      "purl": "pkg:pypi/pywin32@312"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/pyworld@0.3.5",
+      "name": "pyworld",
+      "version": "0.3.5",
+      "purl": "pkg:pypi/pyworld@0.3.5"
     },
     {
       "type": "library",
@@ -826,6 +938,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/resampy@0.4.3",
+      "name": "resampy",
+      "version": "0.4.3",
+      "purl": "pkg:pypi/resampy@0.4.3"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/rich@15.0.0",
       "name": "rich",
       "version": "15.0.0",
@@ -833,10 +952,24 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/safetensors@0.8.0",
+      "bom-ref": "pkg:pypi/rvc-python@0.1.5",
+      "name": "rvc-python",
+      "version": "0.1.5",
+      "purl": "pkg:pypi/rvc-python@0.1.5"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/sacrebleu@2.6.0",
+      "name": "sacrebleu",
+      "version": "2.6.0",
+      "purl": "pkg:pypi/sacrebleu@2.6.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/safetensors@0.7.0",
       "name": "safetensors",
-      "version": "0.8.0",
-      "purl": "pkg:pypi/safetensors@0.8.0"
+      "version": "0.7.0",
+      "purl": "pkg:pypi/safetensors@0.7.0"
     },
     {
       "type": "library",
@@ -917,6 +1050,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/starlette@1.3.1",
+      "name": "starlette",
+      "version": "1.3.1",
+      "purl": "pkg:pypi/starlette@1.3.1"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/sudachidict-core@20260428",
       "name": "SudachiDict-core",
       "version": "20260428",
@@ -935,6 +1075,13 @@
       "name": "sympy",
       "version": "1.14.0",
       "purl": "pkg:pypi/sympy@1.14.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/tabulate@0.10.0",
+      "name": "tabulate",
+      "version": "0.10.0",
+      "purl": "pkg:pypi/tabulate@0.10.0"
     },
     {
       "type": "library",
@@ -973,31 +1120,38 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/tokenizers@0.22.2",
+      "bom-ref": "pkg:pypi/tokenizers@0.15.2",
       "name": "tokenizers",
-      "version": "0.22.2",
-      "purl": "pkg:pypi/tokenizers@0.22.2"
+      "version": "0.15.2",
+      "purl": "pkg:pypi/tokenizers@0.15.2"
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/torch@2.11.0",
+      "bom-ref": "pkg:pypi/torch@2.2.2",
       "name": "torch",
-      "version": "2.11.0",
-      "purl": "pkg:pypi/torch@2.11.0"
+      "version": "2.2.2",
+      "purl": "pkg:pypi/torch@2.2.2"
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/torchaudio@2.11.0",
+      "bom-ref": "pkg:pypi/torchaudio@2.2.2",
       "name": "torchaudio",
-      "version": "2.11.0",
-      "purl": "pkg:pypi/torchaudio@2.11.0"
+      "version": "2.2.2",
+      "purl": "pkg:pypi/torchaudio@2.2.2"
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/torchvision@0.26.0",
+      "bom-ref": "pkg:pypi/torchcrepe@0.0.24",
+      "name": "torchcrepe",
+      "version": "0.0.24",
+      "purl": "pkg:pypi/torchcrepe@0.0.24"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/torchvision@0.17.2",
       "name": "torchvision",
-      "version": "0.26.0",
-      "purl": "pkg:pypi/torchvision@0.26.0"
+      "version": "0.17.2",
+      "purl": "pkg:pypi/torchvision@0.17.2"
     },
     {
       "type": "library",
@@ -1015,10 +1169,17 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/transformers@5.13.1",
+      "bom-ref": "pkg:pypi/transformers@4.38.2",
       "name": "transformers",
-      "version": "5.13.1",
-      "purl": "pkg:pypi/transformers@5.13.1"
+      "version": "4.38.2",
+      "purl": "pkg:pypi/transformers@4.38.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/tts@0.22.0",
+      "name": "TTS",
+      "version": "0.22.0",
+      "purl": "pkg:pypi/tts@0.22.0"
     },
     {
       "type": "library",
@@ -1085,6 +1246,13 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:pypi/uvicorn@0.51.0",
+      "name": "uvicorn",
+      "version": "0.51.0",
+      "purl": "pkg:pypi/uvicorn@0.51.0"
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:pypi/wasabi@1.1.3",
       "name": "wasabi",
       "version": "1.1.3",
@@ -1103,6 +1271,13 @@
       "name": "Werkzeug",
       "version": "3.1.8",
       "purl": "pkg:pypi/werkzeug@3.1.8"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/win32-setctime@1.2.0",
+      "name": "win32_setctime",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/win32-setctime@1.2.0"
     },
     {
       "type": "library",
@@ -1129,6 +1304,7 @@
         "pkg:pypi/aiosignal@1.4.0",
         "pkg:pypi/annotated-doc@0.0.4",
         "pkg:pypi/annotated-types@0.7.0",
+        "pkg:pypi/antlr4-python3-runtime@4.9.3",
         "pkg:pypi/anyascii@0.3.3",
         "pkg:pypi/anyio@4.13.0",
         "pkg:pypi/attrs@26.1.0",
@@ -1136,21 +1312,21 @@
         "pkg:pypi/av@12.3.0",
         "pkg:pypi/babel@2.18.0",
         "pkg:pypi/bangla@0.0.6",
+        "pkg:pypi/bitarray@3.9.0",
         "pkg:pypi/blinker@1.9.0",
         "pkg:pypi/blis@1.3.3",
         "pkg:pypi/bnnumerizer@0.0.2",
         "pkg:pypi/bnunicodenormalizer@0.1.7",
         "pkg:pypi/catalogue@2.0.10",
         "pkg:pypi/certifi@2026.5.20",
-        "pkg:pypi/cffi@2.1.0",
+        "pkg:pypi/cffi@2.0.0",
         "pkg:pypi/charset-normalizer@3.4.7",
-        "pkg:pypi/click@8.4.2",
+        "pkg:pypi/click@8.4.1",
         "pkg:pypi/cloudpathlib@0.24.0",
         "pkg:pypi/colorama@0.4.6",
         "pkg:pypi/confection@1.3.3",
         "pkg:pypi/contourpy@1.3.3",
         "pkg:pypi/coqpit@0.0.17",
-        "pkg:pypi/coqui-tts@0.27.5",
         "pkg:pypi/cryptography@49.0.0",
         "pkg:pypi/customtkinter@6.0.0",
         "pkg:pypi/cycler@0.12.1",
@@ -1164,10 +1340,16 @@
         "pkg:pypi/docopt@0.6.2",
         "pkg:pypi/einops@0.8.2",
         "pkg:pypi/encodec@0.1.1",
+        "pkg:pypi/fairseq@0.12.3.1",
+        "pkg:pypi/faiss-cpu@1.14.3",
+        "pkg:pypi/fastapi@0.139.0",
+        "pkg:pypi/ffmpeg-python@0.2.0",
         "pkg:pypi/filelock@3.29.1",
+        "pkg:pypi/flask@3.1.3",
         "pkg:pypi/fonttools@4.63.0",
         "pkg:pypi/frozenlist@1.8.0",
         "pkg:pypi/fsspec@2026.4.0",
+        "pkg:pypi/future@1.0.0",
         "pkg:pypi/g2pkk@0.1.2",
         "pkg:pypi/grpcio@1.81.0",
         "pkg:pypi/gruut-ipa@0.13.0",
@@ -1181,7 +1363,8 @@
         "pkg:pypi/hf-xet@1.5.1",
         "pkg:pypi/httpcore@1.0.9",
         "pkg:pypi/httpx@0.28.1",
-        "pkg:pypi/huggingface-hub@1.23.0",
+        "pkg:pypi/huggingface-hub@0.36.2",
+        "pkg:pypi/hydra-core@1.3.4",
         "pkg:pypi/idna@3.18",
         "pkg:pypi/inflect@7.5.0",
         "pkg:pypi/itsdangerous@2.2.0",
@@ -1194,6 +1377,8 @@
         "pkg:pypi/lazy-loader@0.5",
         "pkg:pypi/librosa@0.11.0",
         "pkg:pypi/llvmlite@0.47.0",
+        "pkg:pypi/loguru@0.7.3",
+        "pkg:pypi/lxml@6.1.1",
         "pkg:pypi/markdown-it-py@4.2.0",
         "pkg:pypi/markdown@3.10.2",
         "pkg:pypi/markupsafe@3.0.3",
@@ -1201,21 +1386,24 @@
         "pkg:pypi/mdurl@0.1.2",
         "pkg:pypi/more-itertools@11.1.0",
         "pkg:pypi/mpmath@1.3.0",
-        "pkg:pypi/msgpack@1.2.1",
+        "pkg:pypi/msgpack@1.1.2",
         "pkg:pypi/multidict@6.7.1",
         "pkg:pypi/murmurhash@1.0.15",
         "pkg:pypi/narwhals@2.22.1",
         "pkg:pypi/networkx@2.8.8",
-        "pkg:pypi/nltk@3.10.0",
+        "pkg:pypi/nltk@3.9.4",
         "pkg:pypi/num2words@0.5.14",
         "pkg:pypi/numba@0.65.1",
         "pkg:pypi/numpy@1.26.4",
+        "pkg:pypi/omegaconf@2.3.1",
         "pkg:pypi/packaging@26.2",
         "pkg:pypi/pandas@1.5.3",
-        "pkg:pypi/pillow@12.3.0",
+        "pkg:pypi/pillow@12.2.0",
         "pkg:pypi/platformdirs@4.10.0",
         "pkg:pypi/playsound@1.2.2",
         "pkg:pypi/pooch@1.9.0",
+        "pkg:pypi/portalocker@3.2.0",
+        "pkg:pypi/praat-parselmouth@0.4.7",
         "pkg:pypi/preshed@3.0.13",
         "pkg:pypi/propcache@0.5.2",
         "pkg:pypi/protobuf@7.35.0",
@@ -1234,12 +1422,18 @@
         "pkg:pypi/pysbd@0.3.4",
         "pkg:pypi/python-crfsuite@0.9.12",
         "pkg:pypi/python-dateutil@2.9.0.post0",
+        "pkg:pypi/python-multipart@0.0.32",
         "pkg:pypi/pytz@2026.2",
+        "pkg:pypi/pywin32@312",
+        "pkg:pypi/pyworld@0.3.5",
         "pkg:pypi/pyyaml@6.0.3",
         "pkg:pypi/regex@2026.5.9",
         "pkg:pypi/requests@2.34.2",
+        "pkg:pypi/resampy@0.4.3",
         "pkg:pypi/rich@15.0.0",
-        "pkg:pypi/safetensors@0.8.0",
+        "pkg:pypi/rvc-python@0.1.5",
+        "pkg:pypi/sacrebleu@2.6.0",
+        "pkg:pypi/safetensors@0.7.0",
         "pkg:pypi/scikit-learn@1.9.0",
         "pkg:pypi/scipy@1.17.1",
         "pkg:pypi/shellingham@1.5.4",
@@ -1251,21 +1445,25 @@
         "pkg:pypi/spacy-loggers@1.0.5",
         "pkg:pypi/spacy@3.8.14",
         "pkg:pypi/srsly@2.5.3",
+        "pkg:pypi/starlette@1.3.1",
         "pkg:pypi/sudachidict-core@20260428",
         "pkg:pypi/sudachipy@0.6.11",
         "pkg:pypi/sympy@1.14.0",
+        "pkg:pypi/tabulate@0.10.0",
         "pkg:pypi/tensorboard-data-server@0.7.2",
         "pkg:pypi/tensorboard@2.20.0",
         "pkg:pypi/thinc@8.3.13",
         "pkg:pypi/threadpoolctl@3.6.0",
         "pkg:pypi/tkinterdnd2@0.4.4.1",
-        "pkg:pypi/tokenizers@0.22.2",
-        "pkg:pypi/torch@2.11.0",
-        "pkg:pypi/torchaudio@2.11.0",
-        "pkg:pypi/torchvision@0.26.0",
+        "pkg:pypi/tokenizers@0.15.2",
+        "pkg:pypi/torch@2.2.2",
+        "pkg:pypi/torchaudio@2.2.2",
+        "pkg:pypi/torchcrepe@0.0.24",
+        "pkg:pypi/torchvision@0.17.2",
         "pkg:pypi/tqdm@4.68.1",
         "pkg:pypi/trainer@0.0.36",
-        "pkg:pypi/transformers@5.13.1",
+        "pkg:pypi/transformers@4.38.2",
+        "pkg:pypi/tts@0.22.0",
         "pkg:pypi/typeguard@4.5.2",
         "pkg:pypi/typer@0.25.1",
         "pkg:pypi/typing-extensions@4.15.0",
@@ -1275,9 +1473,11 @@
         "pkg:pypi/umap-learn@0.5.12",
         "pkg:pypi/unidecode@1.4.0",
         "pkg:pypi/urllib3@2.7.0",
+        "pkg:pypi/uvicorn@0.51.0",
         "pkg:pypi/wasabi@1.1.3",
         "pkg:pypi/weasel@1.0.0",
         "pkg:pypi/werkzeug@3.1.8",
+        "pkg:pypi/win32-setctime@1.2.0",
         "pkg:pypi/wrapt@2.2.1",
         "pkg:pypi/yarl@1.24.2"
       ]
