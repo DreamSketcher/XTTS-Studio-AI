@@ -66,7 +66,7 @@ def _build_editor_compose_prompt(source_text: str, comment_text: str) -> str:
 
 
 # Inter-module imports
-from engine.gui.chat_window.engine.sessions import (
+from engine.gui.chat_window.services.sessions import (
     _load_sessions,
     _save_sessions,
     _enforce_limits,
@@ -75,7 +75,7 @@ from engine.gui.chat_window.engine.sessions import (
     _update_session_title_if_needed,
     _messages_for_api,
 )
-from engine.gui.chat_window.engine.generation import _run_generation
+from engine.gui.chat_window.services.generation import _run_generation
 from engine.gui.chat_window.ui_utils import (
     _c,
     _safe_after,

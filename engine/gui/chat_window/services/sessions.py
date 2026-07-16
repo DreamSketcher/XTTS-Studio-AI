@@ -158,14 +158,14 @@ def _messages_for_api(session: dict) -> list[dict]:
 
 
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import (
+from engine.gui.chat_window.services.utils import (
     _now_ts,
     _now_full,
     _approx_tokens,
     _ai_display_name,
     _build_editor_compose_prompt,
 )
-from engine.gui.chat_window.engine.generation import _run_generation
+from engine.gui.chat_window.services.generation import _run_generation
 from engine.gui.chat_window.ui_utils import (
     _c,
     _safe_after,

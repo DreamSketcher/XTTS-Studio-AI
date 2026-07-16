@@ -50,11 +50,11 @@ from engine.gui.chat_window.ui_utils import (
     _get_app_parent,
     _show_window,
 )
-from engine.gui.chat_window.engine.settings_context import SettingsContext
-from engine.gui.chat_window.engine import settings_api
-from engine.gui.chat_window.engine import settings_local
-from engine.gui.chat_window.engine import settings_general
-from engine.gui.chat_window.engine import settings_environment
+from engine.gui.chat_window.services.settings_context import SettingsContext
+from engine.gui.chat_window.services import settings_api
+from engine.gui.chat_window.services import settings_local
+from engine.gui.chat_window.services import settings_general
+from engine.gui.chat_window.services import settings_environment
 
 
 def open_gpt_settings(event=None):

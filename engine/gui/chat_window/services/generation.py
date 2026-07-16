@@ -141,14 +141,14 @@ def _run_generation(session: dict, prompt: str):
 
 
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import (
+from engine.gui.chat_window.services.utils import (
     _now_ts,
     _now_full,
     _approx_tokens,
     _ai_display_name,
     _build_editor_compose_prompt,
 )
-from engine.gui.chat_window.engine.sessions import (
+from engine.gui.chat_window.services.sessions import (
     _load_sessions,
     _save_sessions,
     _enforce_limits,

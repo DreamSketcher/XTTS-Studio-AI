@@ -33,19 +33,19 @@ except Exception:
     pass
 
 
-# Реализация настроек вынесена в специализированные модули chat_window/engine.
+# Реализация настроек вынесена в специализированные модули chat_window/services.
 # Этот файл намеренно остаётся стабильным import/re-export фасадом.
-from engine.gui.chat_window.engine.settings_window import open_gpt_settings
+from engine.gui.chat_window.services.settings_window import open_gpt_settings
 
 # Inter-module imports
-from engine.gui.chat_window.engine.utils import (
+from engine.gui.chat_window.services.utils import (
     _now_ts,
     _now_full,
     _approx_tokens,
     _ai_display_name,
     _build_editor_compose_prompt,
 )
-from engine.gui.chat_window.engine.sessions import (
+from engine.gui.chat_window.services.sessions import (
     _load_sessions,
     _save_sessions,
     _enforce_limits,
@@ -54,7 +54,7 @@ from engine.gui.chat_window.engine.sessions import (
     _update_session_title_if_needed,
     _messages_for_api,
 )
-from engine.gui.chat_window.engine.generation import _run_generation
+from engine.gui.chat_window.services.generation import _run_generation
 from engine.gui.chat_window.ui_utils import (
     _c,
     _safe_after,

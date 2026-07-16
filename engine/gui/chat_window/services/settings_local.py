@@ -33,7 +33,7 @@ from engine.gui.chat_window.ui_utils import (
     _set_dark_titlebar,
     _make_button,
 )
-from engine.gui.chat_window.engine.settings_environment import build_environment_section
+from engine.gui.chat_window.services.settings_environment import build_environment_section
 
 
 def build_local_page(ctx):
