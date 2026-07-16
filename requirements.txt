@@ -61,7 +61,7 @@ encodec==0.1.1
 # и др.) полностью мокают fairseq/rvc-python, поэтому реальный пакет для CI не нужен.
 # Если когда-нибудь понадобится вернуть fairseq сюда — сначала проверь, что версия
 # совместима с hydra-core==1.3.4 на ВСЕХ платформах, не только на Windows.
-faiss-cpu==1.7.3
+faiss-cpu==1.14.3
 fastapi==0.139.0
 ffmpeg-python==0.2.0
 filelock==3.29.1
@@ -151,7 +151,17 @@ regex==2026.5.9
 requests==2.34.2
 resampy==0.4.3
 rich==15.0.0
-rvc-python==0.1.5
+# rvc-python намеренно НЕ пинится здесь — той же природы проблема, что и с
+# fairseq выше. rvc-python==0.1.5 сам объявляет старые точные пины
+# (faiss-cpu==1.7.3, ранее ловили omegaconf==2.0.6 с битыми метаданными),
+# которые конфликтуют с faiss-cpu==1.14.3 ниже в этом файле и валят
+# `pip install -r requirements.txt` на ubuntu-latest в CI.
+# Реальная установка идёт через engine/env_core/rvc_setup.py::install_rvc():
+# rvc-python ставится с --no-deps, а его настоящие зависимости берутся из
+# METADATA (Requires-Dist) уже установленного пакета, со снятием старых
+# точных пинов. Тесты (test/test_rvc_setup.py, test_rvc_pipeline.py и др.)
+# полностью мокают rvc_python — реальный пакет для CI не нужен.
+# Возвращать сюда только после проверки совместимости со всем frozen-стеком.
 sacrebleu==2.6.0
 safetensors==0.7.0
 scikit-learn==1.9.0

@@ -1,4 +1,4 @@
-XTTS Studio — контрольные суммы SHA256 для версии 1.1.319
+XTTS Studio — контрольные суммы SHA256 для версии т
 Проверка (Windows PowerShell): certutil -hashfile "имя_файла" SHA256
 Проверка (Linux/macOS): sha256sum имя_файла
 
@@ -141,9 +141,9 @@ fb18efd3df1bc249c9d24a3a07c8d1563640485ba143275b893467ed71f37145  generate_versi
 74c68d4a75ddf3680cd29749fc617ce8a143840cfec874ad00210e7d8e2d3e77  i18n.py
 54c0e9635402e2ebfeb704182cc96f412ec1453cfcd69dc3dca3f81109153da6  json/release_config.json
 bec10a0686e29f80c928aa7bf2ab8b035f461efbd388a41189c15712b3c63235  json/rvc_catalog_seed.json
-bc690df672312c5828088a1ad1ce377a2d77217a1461a8371f3bbeaabbb3d53e  json/sbom.cdx.json
+7ac8e03b86322a03b01adadcff2a895e99da644698af10861c85d9c63c85393a  json/sbom.cdx.json
 052577ca2b8231d16f9c39b671974fc51f95d5a9535502f6ca3f4318b8cd862d  json/settings.json
 f6f8dc0db715dc3417e9fe84c3f98227b75bfda8cb7658aa9b456ea9406fe5a9  json/theme_settings.json
 0d0733a3de8858902a57510c8c6ec463b61db21b767246ed3a65303fd7207a92  pyproject.toml
-e79177af6e427d91075f4b7fdb1dcfd0bcd0c1dc308e8fcd8caebc7c516bd684  requirements.txt
+fc3cb4657122d1cd069074ea5ef7b0595971434ddd94d97a17f3071ee7949180  requirements.txt
 051a740b793d2e147217c365a1c0b85e13131cc330904289f43969f17618f587  update_manifest_public.pem

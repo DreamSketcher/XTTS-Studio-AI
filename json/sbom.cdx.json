@@ -315,10 +315,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/faiss-cpu@1.7.3",
+      "bom-ref": "pkg:pypi/faiss-cpu@1.14.3",
       "name": "faiss-cpu",
-      "version": "1.7.3",
-      "purl": "pkg:pypi/faiss-cpu@1.7.3"
+      "version": "1.14.3",
+      "purl": "pkg:pypi/faiss-cpu@1.14.3"
     },
     {
       "type": "library",
@@ -945,13 +945,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/rvc-python@0.1.5",
-      "name": "rvc-python",
-      "version": "0.1.5",
-      "purl": "pkg:pypi/rvc-python@0.1.5"
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:pypi/sacrebleu@2.6.0",
       "name": "sacrebleu",
       "version": "2.6.0",
@@ -1333,7 +1326,7 @@
         "pkg:pypi/docopt@0.6.2",
         "pkg:pypi/einops@0.8.2",
         "pkg:pypi/encodec@0.1.1",
-        "pkg:pypi/faiss-cpu@1.7.3",
+        "pkg:pypi/faiss-cpu@1.14.3",
         "pkg:pypi/fastapi@0.139.0",
         "pkg:pypi/ffmpeg-python@0.2.0",
         "pkg:pypi/filelock@3.29.1",
@@ -1423,7 +1416,6 @@
         "pkg:pypi/requests@2.34.2",
         "pkg:pypi/resampy@0.4.3",
         "pkg:pypi/rich@15.0.0",
-        "pkg:pypi/rvc-python@0.1.5",
         "pkg:pypi/sacrebleu@2.6.0",
         "pkg:pypi/safetensors@0.7.0",
         "pkg:pypi/scikit-learn@1.9.0",
