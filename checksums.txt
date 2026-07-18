@@ -1,4 +1,4 @@
-XTTS Studio — контрольные суммы SHA256 для версии 1.1.329
+XTTS Studio — контрольные суммы SHA256 для версии 1.1.330
 Проверка (Windows PowerShell): certutil -hashfile "имя_файла" SHA256
 Проверка (Linux/macOS): sha256sum имя_файла
 
@@ -6,8 +6,8 @@ XTTS Studio — контрольные суммы SHA256 для версии 1.1
 eb207f3e22bf3216adebfb371a5428e216a3d93513ee791288642faebe2ed6f5  .pre-commit-config.yaml
 704a9b34cbf3f382c787da5c08db8cd2a6885ac183b43240d490c47d3602e0cf  XTTS Studio.exe
 4382da0ff1d054cd893bab249046afbaa37edfae63021b9d63dfa842afc250ce  XTTS_DIAG.bat
-4132d3634b9993f84566f2da7faa006e4fbba3745406a4bf2455fd39ec038189  docs/DOCUMENTATION.EN.md
-fa293d3b2f8c8a219a71ceb5db5f67188e2e79e6b582efae958dd4ffe5e402f3  docs/DOCUMENTATION.RU.md
+25671d14fcaf024199a5d67f689126a4131fc221cdfc6cd36afd03381ce54188  docs/DOCUMENTATION.EN.md
+818ea8c8a4bc76d4fb6ffbbacafd4a482d6750107ac0e83ac6701fdf05c78b0d  docs/DOCUMENTATION.RU.md
 9912285de42b3bce37a5572fa00fb6829ac850ae8d1c5c98dd1c3d67d070a32c  docs/GLOSSARY.md
 8565af286cd5ddccbb02b100a65dfc1bbbfa427c574e7c8acce61713b56d024c  docs/PRIVACY.RU.md
 3e080153b11a7551a6371b91c511f93624afb8bb85d7c52c0b9493c235ca6371  docs/PRIVACY.md
