@@ -2,7 +2,7 @@
 
 **[English](./README.md)** · **[Русский](./README.ru.md)**
 
-# 🎙️ XTTS Studio
+# 🎙️ XTTS Studio AI
 
 ### Локальная озвучка и клонирование голоса без подписки
 
