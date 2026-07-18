@@ -2,7 +2,7 @@
 
 **[Русский](./README.ru.md)** · **[English](./README.md)**
 
-# 🎙️ XTTS Studio
+# 🎙️ XTTS Studio AI
 
 ### Local voice cloning and text-to-speech without a subscription
 
