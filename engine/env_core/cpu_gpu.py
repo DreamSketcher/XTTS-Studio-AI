@@ -75,6 +75,20 @@ def detect_cpu() -> dict:
     return result
 
 
+def _run_powershell_script(script: str, *args: str) -> subprocess.CompletedProcess[str]:
+    """Safely executes a PowerShell script by passing values as arguments.
+
+    This avoids interpolating untrusted strings into the PowerShell command itself,
+    which would otherwise trigger command-injection style warnings from static analyzers.
+    """
+    return subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command", script, *args],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+
+
 def _get_vram_gb_from_registry(name_hint: str) -> Optional[float]:
     """Считывает объем VRAM из реестра Windows (обход 32-битного лимита WMI)."""
     try:
@@ -85,7 +99,7 @@ def _get_vram_gb_from_registry(name_hint: str) -> Optional[float]:
             "Select-Object DriverDesc, 'HardwareInformation.qwMemorySize' | ConvertTo-Json -Compress"
         )
         proc = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
             capture_output=True,
             text=True,
             timeout=15,
@@ -183,6 +197,7 @@ def detect_gpu() -> dict:
             [
                 "powershell",
                 "-NoProfile",
+                "-NonInteractive",
                 "-Command",
                 "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name",
             ],
@@ -202,17 +217,9 @@ def detect_gpu() -> dict:
                         result["vram_gb"] = vram_gb
                     else:
                         try:
-                            ram_proc = subprocess.run(
-                                [
-                                    "powershell",
-                                    "-NoProfile",
-                                    "-Command",
-                                    "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM"
-                                    % name,
-                                ],
-                                capture_output=True,
-                                text=True,
-                                timeout=15,
+                            ram_proc = _run_powershell_script(
+                                "$name = $args[0]; (Get-CimInstance Win32_VideoController | Where-Object { $_.Name -eq $name }).AdapterRAM",
+                                name,
                             )
                             if ram_proc.returncode == 0 and ram_proc.stdout.strip():
                                 ram_bytes = int(ram_proc.stdout.strip().splitlines()[0].strip())
@@ -228,17 +235,9 @@ def detect_gpu() -> dict:
                         result["vram_gb"] = vram_gb
                     else:
                         try:
-                            ram_proc = subprocess.run(
-                                [
-                                    "powershell",
-                                    "-NoProfile",
-                                    "-Command",
-                                    "(Get-CimInstance Win32_VideoController | Where-Object {$_.Name -eq '%s'}).AdapterRAM"
-                                    % name,
-                                ],
-                                capture_output=True,
-                                text=True,
-                                timeout=15,
+                            ram_proc = _run_powershell_script(
+                                "$name = $args[0]; (Get-CimInstance Win32_VideoController | Where-Object { $_.Name -eq $name }).AdapterRAM",
+                                name,
                             )
                             if ram_proc.returncode == 0 and ram_proc.stdout.strip():
                                 ram_bytes = int(ram_proc.stdout.strip().splitlines()[0].strip())
