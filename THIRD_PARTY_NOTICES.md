@@ -205,7 +205,7 @@ CPML ограничивает коммерческое использовани�
 - **weasel** `1.0.0` — pkg:pypi/weasel@1.0.0
 - **win32_setctime** `1.2.0` — pkg:pypi/win32-setctime@1.2.0
 - **wrapt** `2.2.1` — pkg:pypi/wrapt@2.2.1
-- **yarl** `1.24.2` — pkg:pypi/yarl@1.24.2
+- **yarl** `1.25.1` — pkg:pypi/yarl@1.25.1
 
 ---
 

@@ -1274,10 +1274,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:pypi/yarl@1.24.2",
+      "bom-ref": "pkg:pypi/yarl@1.25.1",
       "name": "yarl",
-      "version": "1.24.2",
-      "purl": "pkg:pypi/yarl@1.24.2"
+      "version": "1.25.1",
+      "purl": "pkg:pypi/yarl@1.25.1"
     }
   ],
   "dependencies": [
@@ -1463,7 +1463,7 @@
         "pkg:pypi/werkzeug@3.1.9",
         "pkg:pypi/win32-setctime@1.2.0",
         "pkg:pypi/wrapt@2.2.1",
-        "pkg:pypi/yarl@1.24.2"
+        "pkg:pypi/yarl@1.25.1"
       ]
     }
   ]
