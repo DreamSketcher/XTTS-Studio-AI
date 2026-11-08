@@ -63,11 +63,12 @@ The application does not always need an internet connection. Internet access is 
 
 1. Unpack XTTS Studio into a path without Cyrillic characters.
 2. Run `XTTS Studio.exe`.
-3. Select a voice reference of roughly **10–20 seconds**.
-4. Enter your text.
-5. Choose a preset.
-6. Click **🚀 GENERATE**.
-7. The result appears in `outputs/` and in the **🎵 Audio** window.
+3. On first launch, review the XTTS v2 license and explicitly accept CPML.
+4. Select a voice reference of roughly **10–20 seconds**.
+5. Enter your text.
+6. Choose a preset.
+7. Click **🚀 GENERATE**.
+8. The result appears in `outputs/` and in the **🎵 Audio** window.
 
 ```text
 ✔ C:\XTTS\
@@ -99,6 +100,23 @@ This means users do not need to download and unpack the multi-gigabyte portable 
 ### First run on CPU
 
 The application can run on CPU immediately. This is the most compatible mode, but long texts and RVC take more time.
+
+### XTTS v2 license (CPML)
+
+Before loading XTTS for the first time, the application shows a separate window linking to the full [Coqui Public Model License](https://coqui.ai/cpml). Click **Accept and continue** only after reviewing the terms. Consent is stored locally in `json/cpml_consent.json` and reused after restarts and updates. The application never accepts the license automatically.
+
+The screen remains available at **⚙ Settings → 📜 XTTS v2 License (CPML) → Review / accept license**. If consent is missing when **GENERATE** or a batch run is started, the confirmation window opens before tasks are queued.
+
+Consent checking does not import `num2words`, `pydub`, `torch`, or other TTS dependencies, and runs before environment recovery. A failed write is reported in the dialog: check permissions for `json/` and available disk space. Reinstalling packages is not a substitute for accepting the license.
+
+For an explicit opt-in without the dialog, launch from Command Prompt with the variable understood by Coqui TTS:
+
+```bat
+set COQUI_TOS_AGREED=1
+"XTTS Studio.exe"
+```
+
+The variable applies only to that process and its children; the application does not turn it into a persistent consent record. Without the variable or a saved confirmation, XTTS loading is blocked. `json/cpml_consent.json` belongs to the local installation, is ignored by Git, and is excluded from release payloads.
 
 ### Enabling NVIDIA CUDA
 
@@ -710,6 +728,7 @@ If no window is visible but the lock is held, the dialog asks the user to inspec
 add bundled site-packages to sys.path
   → single-instance lock
   → Cyrillic-path check
+  → lightweight CPML check / consent screen (without importing engine.tts)
   → startup install flags
   → optional safe Torch install before GUI
   → isolated full diagnostics under Tk splash
@@ -721,7 +740,7 @@ add bundled site-packages to sys.path
   → mainloop()
 ```
 
-A comment in `main()` calls `check_startup_health()` the first update operation. Process-wide, lock/path/environment preflight has already run before `main()` is entered. This is intentional: recovery must happen before heavy imports.
+A comment in `main()` calls `check_startup_health()` the first update operation. Process-wide, lock/path checks, CPML confirmation, and environment preflight have already run before `main()` is entered. This is intentional: recovery must happen before heavy imports.
 
 #### Safe Torch installation before GUI imports
 
@@ -768,6 +787,7 @@ After preflight, `main()` calls `updater.check_startup_health()`:
 
 | Path | Purpose |
 |------|---------|
+| `json/cpml_consent.json` | local explicit user acceptance of CPML |
 | `.env_diagnostics_cache.json` | cache of a fully successful diagnostics run |
 | `.known_safe_files.json` | scanner safe/unsafe/deleted history |
 | `.torch_install_checkpoint.json` | interrupted Torch installation stage |
@@ -794,6 +814,7 @@ Do not delete a checkpoint file during an active installation: it is needed for 
 | `XTTS Studio.exe` | launcher executable wrapper; launches `python\runtime\python.exe gui.py` with custom icon | no, if this is how you start the application |
 | `json/version.json`, `checksums.txt` | installed version, update manifest (`json/version.json.sig`), and file verification | not recommended |
 | `json/settings.json` | GUI settings and all quality presets | yes, but settings reset |
+| `json/cpml_consent.json` | explicit CPML acceptance for this installation only | yes; the application will ask for confirmation again |
 | `json/theme_settings.json` | theme, layout, neon, UI presets | yes, but theme settings reset |
 | `json/gpt_settings.json` | AI providers, models, and encrypted API keys | only if you are ready to configure them again |
 | `json/word_rules.json` | pronunciation dictionary | avoid without a backup |
@@ -829,6 +850,12 @@ Check the tray and Task Manager first. If no process is actually running, the fa
 ### Startup recovery failed
 
 The main traceback is in `logs/startup_recovery_error.log`; detailed pip output is in `logs/recovery_pip_output.log`. Do not run Torch, RVC, and llama.cpp installers concurrently because they share the target and installer cache.
+
+### `CoquiTosNotAgreedError` persists after a restart
+
+Open **⚙ Settings → 📜 XTTS v2 License (CPML) → Review / accept license**, read the terms, and click **Accept and continue**. Once the write succeeds, the status should read **✅ License accepted**; retry generation. Restarting, Error Recovery, and updating do not accept the license on the user's behalf.
+
+If confirmation cannot be saved, inspect the dialog error and check write permissions for `json/cpml_consent.json` and free disk space. Do not copy a consent file from another installation. The explicit `COQUI_TOS_AGREED=1` launch option is described under “XTTS v2 license (CPML)”; it applies only to the current process unless a persistent record was created through the dialog.
 
 ### The cloned voice is not similar enough
 
@@ -1038,6 +1065,8 @@ Check the license of each component before use — especially for commercial wor
 | GGUF models | depends on the model author | not implied |
 
 The full list of runtime dependencies is in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), auto-generated from the SBOM (`tools/generate_third_party_notices.py`). An RVC/GGUF entry in the catalogue or the ability to download a model **does not** imply permission for commercial use — check the specific model's license with its author.
+
+**CPML consent for XTTS v2.** The application requests explicit confirmation before the first XTTS load and stores it only locally. The license can be reopened from System Settings. `COQUI_TOS_AGREED=1` is honoured as an explicit user opt-in but does not automatically create a persistent record.
 
 **License notice on first download.** Before an RVC or GGUF model download starts, the application shows a modal license notice: the model may carry restrictions on commercial use; confirmation is required before the download begins.
 

@@ -718,158 +718,34 @@ def _ensure_dependencies_before_startup():
 
 
 def _ensure_coqui_tos_agreed_before_startup():
-    """
-    Экран согласия с Coqui Public Model License (CPML) — показывается один раз,
-    при первом запуске после установки, пока пользователь явно не подтвердил
-    согласие. После подтверждения флаг сохраняется в json/cpml_consent.json
-    (см. engine/tts/is_coqui_tos_agreed / set_coqui_tos_agreed), и это окно
-    больше не появляется при следующих запусках.
+    """Проверяет CPML до импорта TTS-движка и восстановления зависимостей.
 
-    Раньше согласие проверялось только в момент первой генерации речи
-    (ensure_coqui_tos_agreed() внутри engine/tts/get_tts()), и при отсутствии
-    согласия пользователь видел голый traceback вместо экрана согласия.
-    Здесь та же проверка выполняется заранее, при старте приложения.
+    Использует только лёгкий модуль согласия и Tk-диалог. Поломка num2words,
+    pydub, torch и других ML-зависимостей больше не пропускает лицензионный
+    экран. Отказ или невозможность показать/сохранить согласие не позволяет
+    продолжить запуск молча (issue #4).
     """
     try:
-        from engine.tts import is_coqui_tos_agreed, set_coqui_tos_agreed
-    except Exception as e:
-        print(f"[Core Setup] engine.tts недоступен ({e}) — пропускаю проверку согласия с CPML.")
-        return
+        from engine.gui.license_consent import confirm_coqui_tos
 
-    try:
-        if is_coqui_tos_agreed():
+        if confirm_coqui_tos(source="startup-dialog"):
             return
-    except Exception as e:
-        print(
-            f"[Core Setup] Не удалось проверить согласие с CPML ({e}) — "
-            "показываю экран согласия на всякий случай."
-        )
-
-    import tkinter as tk
-    import webbrowser
-
-    CPML_URL = "https://coqui.ai/cpml"
-    agreed = {"value": False}
-
-    try:
-        root_temp = tk.Tk()
-        root_temp.withdraw()
-
-        win = tk.Toplevel(root_temp)
-        win.title("Лицензионное соглашение XTTS v2")
-        win.geometry("560x380")
-        win.resizable(False, False)
-        win.configure(bg="#1e1e1e")
-
-        def _decline():
-            agreed["value"] = False
-            win.destroy()
-
-        def _accept():
-            agreed["value"] = True
-            win.destroy()
-
-        def _open_link(_event=None):
-            webbrowser.open(CPML_URL)
-
-        win.protocol("WM_DELETE_WINDOW", _decline)
-
-        tk.Label(
-            win,
-            text="📜 Coqui Public Model License (CPML)",
-            font=("Segoe UI", 13, "bold"),
-            bg="#1e1e1e",
-            fg="#ffffff",
-        ).pack(pady=(18, 6))
-
-        body = (
-            "Голосовой движок XTTS v2, используемый в этом приложении, "
-            "распространяется по лицензии Coqui Public Model License (CPML).\n\n"
-            "Эта лицензия ограничивает коммерческое использование модели "
-            "и требует явного согласия перед первой генерацией речи.\n\n"
-            "Полный текст лицензии доступен по ссылке ниже. Нажимая "
-            "«Согласен, продолжить», вы подтверждаете, что ознакомились "
-            "с условиями CPML и принимаете их."
-        )
-        tk.Label(
-            win,
-            text=body,
-            font=("Segoe UI", 10),
-            bg="#1e1e1e",
-            fg="#cfcfcf",
-            justify="left",
-            wraplength=500,
-        ).pack(padx=24, pady=(0, 10))
-
-        link = tk.Label(
-            win,
-            text=CPML_URL,
-            font=("Segoe UI", 10, "underline"),
-            bg="#1e1e1e",
-            fg="#4da3ff",
-            cursor="hand2",
-        )
-        link.pack(pady=(0, 20))
-        link.bind("<Button-1>", _open_link)
-
-        btn_frame = tk.Frame(win, bg="#1e1e1e")
-        btn_frame.pack(pady=(0, 18))
-
-        tk.Button(
-            btn_frame,
-            text="Согласен, продолжить",
-            font=("Segoe UI", 10, "bold"),
-            bg="#2e7d32",
-            fg="#ffffff",
-            activebackground="#388e3c",
-            relief="flat",
-            padx=16,
-            pady=6,
-            command=_accept,
-        ).pack(side="left", padx=8)
-
-        tk.Button(
-            btn_frame,
-            text="Отмена (выход)",
-            font=("Segoe UI", 10),
-            bg="#3a3a3a",
-            fg="#ffffff",
-            activebackground="#4a4a4a",
-            relief="flat",
-            padx=16,
-            pady=6,
-            command=_decline,
-        ).pack(side="left", padx=8)
-
-        win.update_idletasks()
-        sw = win.winfo_screenwidth()
-        sh = win.winfo_screenheight()
-        ww = win.winfo_width()
-        wh = win.winfo_height()
-        win.geometry(f"+{(sw - ww) // 2}+{(sh - wh) // 2}")
-
-        win.grab_set()
-        win.wait_window()
-        root_temp.destroy()
-
-        if agreed["value"]:
-            set_coqui_tos_agreed("startup-dialog")
-            print("[Core Setup] Пользователь подтвердил согласие с CPML.")
-        else:
-            print("[Core Setup] Пользователь отказался от CPML. Завершение работы.")
-            sys.exit(0)
-
-    except SystemExit:
+        print("[Core Setup] Пользователь не подтвердил CPML. Завершение работы.")
         sys.exit(0)
     except Exception as e:
-        # Записываем подробный лог ошибки при сбое показа экрана согласия
-        err_trace = traceback.format_exc()
-        _log_startup_error(err_trace)
-        print(f"[Core Setup] Ошибка при показе экрана согласия с CPML: {e}")
+        _log_startup_error(traceback.format_exc())
+        print(
+            f"[Core Setup] Не удалось подтвердить или сохранить согласие с CPML: {e}\n"
+            "Проверьте доступ к графическому окружению и права на запись в json/. "
+            "Запуск остановлен, чтобы не принимать лицензию за пользователя.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
-_ensure_dependencies_before_startup()
+# Consent must not depend on the optional TTS stack or wait until generation.
 _ensure_coqui_tos_agreed_before_startup()
+_ensure_dependencies_before_startup()
 
 from engine import updater
 from engine.gui.main_window import create_main_window

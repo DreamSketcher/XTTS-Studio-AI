@@ -669,6 +669,29 @@ LANGUAGES = {
         "theme_header_rainbow_clear_colors": "Очистить",
         "theme_header_rainbow_colors_hint": "Минимум 2 цвета. Неоновый градиент бежит по палитре.",
         "theme_header_rainbow_collapse": "Свернуть",
+        "cpml_section_title": "📜 Лицензия XTTS v2 (CPML)",
+        "cpml_status_agreed": "✅ Лицензия подтверждена",
+        "cpml_status_not_agreed": "⚠️ Требуется подтверждение лицензии перед генерацией XTTS",
+        "cpml_btn_review": "📜 Просмотреть / подтвердить лицензию",
+        "cpml_dialog_title": "📜 Coqui Public Model License (CPML)",
+        "cpml_body": (
+            "Голосовой движок XTTS v2 распространяется по лицензии Coqui Public Model "
+            "License (CPML). Она ограничивает коммерческое использование модели.\n\n"
+            "Откройте полный текст лицензии по ссылке ниже. Нажимая «Принять и продолжить», "
+            "вы подтверждаете, что ознакомились с условиями CPML и принимаете их.\n\n"
+            "Без подтверждения генерация XTTS v2 недоступна."
+        ),
+        "cpml_accept": "Принять и продолжить",
+        "cpml_cancel": "Отмена",
+        "cpml_save_error_title": "Не удалось сохранить согласие",
+        "cpml_save_error": (
+            "Не удалось записать json/cpml_consent.json:\n{}\n\n"
+            "Проверьте права на запись в папку json и свободное место, затем повторите подтверждение."
+        ),
+        "cpml_environment_hint": (
+            "COQUI_TOS_AGREED=1 учитывается как явно заданный пользователем параметр "
+            "только для текущего процесса и не сохраняется автоматически."
+        ),
         "win_update_settings_title": "⚙ Системные настройки, CUDA и обновления",
         "section_updates": "📋 Обновления",
         "chk_auto_check": "Автоматически проверять обновления при запуске",
@@ -1439,6 +1462,29 @@ LANGUAGES = {
         "theme_header_rainbow_clear_colors": "Clear",
         "theme_header_rainbow_colors_hint": "At least 2 colors. The neon gradient cycles through the palette.",
         "theme_header_rainbow_collapse": "Collapse",
+        "cpml_section_title": "📜 XTTS v2 License (CPML)",
+        "cpml_status_agreed": "✅ License accepted",
+        "cpml_status_not_agreed": "⚠️ License acceptance is required before XTTS generation",
+        "cpml_btn_review": "📜 Review / accept license",
+        "cpml_dialog_title": "📜 Coqui Public Model License (CPML)",
+        "cpml_body": (
+            "The XTTS v2 voice engine is distributed under the Coqui Public Model "
+            "License (CPML), which restricts commercial use of the model.\n\n"
+            "Open the full license text using the link below. By clicking “Accept and continue”, "
+            "you confirm that you have read and agree to the CPML terms.\n\n"
+            "XTTS v2 generation is unavailable without acceptance."
+        ),
+        "cpml_accept": "Accept and continue",
+        "cpml_cancel": "Cancel",
+        "cpml_save_error_title": "Could not save consent",
+        "cpml_save_error": (
+            "Could not write json/cpml_consent.json:\n{}\n\n"
+            "Check write permissions for the json folder and available disk space, then try again."
+        ),
+        "cpml_environment_hint": (
+            "COQUI_TOS_AGREED=1 is honoured as an explicit user-provided opt-in "
+            "for the current process only; it is not saved automatically."
+        ),
         "win_update_settings_title": "⚙ System Settings, CUDA & Updates",
         "section_updates": "📋 Updates",
         "chk_auto_check": "Automatically check for updates on startup",

@@ -38,6 +38,7 @@ __pycache__/
 *.log
 
 venv/
+.venv/
 env/
 .python/
 python/
@@ -75,6 +76,8 @@ update_github.bat
 # =========================
 # AI SETTINGS / HISTORY
 # =========================
+# Explicit license consent belongs to the local user, never to the distribution.
+json/cpml_consent.json
 gpt_settings.json
 json/gpt_settings.json
 chat_history.json
