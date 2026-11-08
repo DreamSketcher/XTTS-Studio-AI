@@ -95,6 +95,8 @@ python/runtime/
 temp/
 tmp/
 cache/
+# Пользовательские данные (согласие с лицензией, правила замены слов)
+json/cpml_consent.json
 word_rules_backups/
 json/word_rules_backups/
 

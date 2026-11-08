@@ -722,18 +722,50 @@ def _ensure_coqui_tos_agreed_before_startup():
     Экран согласия с Coqui Public Model License (CPML) — показывается один раз,
     при первом запуске после установки, пока пользователь явно не подтвердил
     согласие. После подтверждения флаг сохраняется в json/cpml_consent.json
-    (см. engine/tts/is_coqui_tos_agreed / set_coqui_tos_agreed), и это окно
-    больше не появляется при следующих запусках.
+    (см. engine/cpml_consent.py), и это окно больше не появляется при следующих
+    запусках.
 
     Раньше согласие проверялось только в момент первой генерации речи
     (ensure_coqui_tos_agreed() внутри engine/tts/get_tts()), и при отсутствии
     согласия пользователь видел голый traceback вместо экрана согласия.
     Здесь та же проверка выполняется заранее, при старте приложения.
+
+    Логика согласия импортируется из engine/cpml_consent.py (только stdlib),
+    а не из engine/tts — иначе при повреждённом torch/TTS экран согласия
+    молча пропускался, и пользователь не видел никакого контроля принятия
+    лицензии (issue #4).
     """
     try:
-        from engine.tts import is_coqui_tos_agreed, set_coqui_tos_agreed
+        from engine.cpml_consent import (
+            CPML_URL,
+            cpml_consent_path,
+            is_coqui_tos_agreed,
+            set_coqui_tos_agreed,
+        )
     except Exception as e:
-        print(f"[Core Setup] engine.tts недоступен ({e}) — пропускаю проверку согласия с CPML.")
+        # Даже модуль согласия недоступен — это видимая пользователю критическая
+        # ошибка: генерация без согласия невозможна. Печатаем traceback в лог
+        # и показываем messagebox, чтобы сбой не был молчаливым.
+        err_trace = traceback.format_exc()
+        _log_startup_error(f"Модуль согласия CPML недоступен: {e}\n{err_trace}")
+        print(f"[Core Setup] Модуль согласия CPML недоступен ({e}) — см. logs/startup_recovery_error.log")
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+
+            root_err = tk.Tk()
+            root_err.withdraw()
+            messagebox.showerror(
+                "📜 Coqui Public Model License (CPML)",
+                "Не удалось показать экран согласия с лицензией XTTS v2 (CPML).\n\n"
+                f"Ошибка: {e}\n\n"
+                "Подробности записаны в logs/startup_recovery_error.log.\n"
+                "Текст лицензии: https://coqui.ai/cpml",
+                parent=root_err,
+            )
+            root_err.destroy()
+        except Exception:
+            pass
         return
 
     try:
@@ -744,11 +776,12 @@ def _ensure_coqui_tos_agreed_before_startup():
             f"[Core Setup] Не удалось проверить согласие с CPML ({e}) — "
             "показываю экран согласия на всякий случай."
         )
+        _log_startup_error(f"Сбой чтения согласия с CPML: {e}\n{traceback.format_exc()}")
 
     import tkinter as tk
     import webbrowser
+    from tkinter import messagebox
 
-    CPML_URL = "https://coqui.ai/cpml"
     agreed = {"value": False}
 
     try:
@@ -853,8 +886,31 @@ def _ensure_coqui_tos_agreed_before_startup():
         root_temp.destroy()
 
         if agreed["value"]:
-            set_coqui_tos_agreed("startup-dialog")
-            print("[Core Setup] Пользователь подтвердил согласие с CPML.")
+            try:
+                set_coqui_tos_agreed("startup-dialog")
+                print("[Core Setup] Пользователь подтвердил согласие с CPML.")
+            except Exception as save_err:
+                # Пользователь ЯВНО согласился — сохраняем согласие хотя бы
+                # на текущий сеанс и делаем сбой видимым (раньше исключение
+                # молча проглатывалось, и генерация падала с
+                # CoquiTosNotAgreedError без какого-либо объяснения).
+                os.environ["COQUI_TOS_AGREED"] = "1"
+                err_trace = traceback.format_exc()
+                _log_startup_error(
+                    f"Не удалось сохранить согласие с CPML в {cpml_consent_path()}: "
+                    f"{save_err}\n{err_trace}"
+                )
+                print(f"[Core Setup] Не удалось сохранить согласие с CPML: {save_err}")
+                messagebox.showerror(
+                    "📜 Coqui Public Model License (CPML)",
+                    "Вы согласились с CPML, но сохранить эту отметку не удалось:\n\n"
+                    f"{save_err}\n\n"
+                    f"Файл согласия: {cpml_consent_path()}\n\n"
+                    "Проверьте, что папка приложения доступна на запись (например, "
+                    "приложение не установлено в «Program Files» без прав администратора). "
+                    "Пока что согласие действует только в этом сеансе — после перезапуска "
+                    "экран согласия появится снова.",
+                )
         else:
             print("[Core Setup] Пользователь отказался от CPML. Завершение работы.")
             sys.exit(0)
@@ -863,9 +919,23 @@ def _ensure_coqui_tos_agreed_before_startup():
         sys.exit(0)
     except Exception as e:
         # Записываем подробный лог ошибки при сбое показа экрана согласия
+        # и обязательно показываем её пользователю — молчаливое пропадание
+        # экрана согласия оставляет пользователя один на один с ошибкой
+        # CoquiTosNotAgreedError при генерации (issue #4).
         err_trace = traceback.format_exc()
         _log_startup_error(err_trace)
         print(f"[Core Setup] Ошибка при показе экрана согласия с CPML: {e}")
+        try:
+            messagebox.showerror(
+                "📜 Coqui Public Model License (CPML)",
+                "Не удалось показать экран согласия с лицензией XTTS v2 (CPML).\n\n"
+                f"Ошибка: {e}\n\n"
+                "Подробности записаны в logs/startup_recovery_error.log.\n"
+                "Без согласия генерация речи будет недоступна. Приложение продолжит "
+                "работать, а при первой генерации откроется экран согласия повторно.",
+            )
+        except Exception:
+            pass
 
 
 _ensure_dependencies_before_startup()

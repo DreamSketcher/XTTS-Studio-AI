@@ -22,69 +22,17 @@ os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.g
 # =========================
 os.environ["TTS_SKIP_UPDATE"] = "1"
 
-import json  # noqa: E402
-
-_CPML_CONSENT_PATH = None  # заполняется лениво в _cpml_consent_path()
-
-
-def _cpml_consent_path() -> str:
-    global _CPML_CONSENT_PATH
-    if _CPML_CONSENT_PATH is None:
-        _CPML_CONSENT_PATH = path("json", "cpml_consent.json")
-    return _CPML_CONSENT_PATH
-
-
-def is_coqui_tos_agreed() -> bool:
-    """Было ли явное согласие с CPML уже зафиксировано ранее."""
-    try:
-        with open(_cpml_consent_path(), "r", encoding="utf-8") as f:
-            record = json.load(f)
-        return bool(record.get("agreed"))
-    except Exception:
-        return False
-
-
-def set_coqui_tos_agreed(source: str = "user-confirmed") -> None:
-    """
-    Фиксирует явное согласие пользователя с CPML (https://coqui.ai/cpml)
-    и включает переменную окружения, которую ожидает библиотека TTS.
-    Вызывать только ПОСЛЕ того, как пользователь реально увидел текст/ссылку
-    на лицензию и подтвердил согласие — не по умолчанию при импорте модуля.
-    """
-    record = {
-        "agreed": True,
-        "source": str(source or "user-confirmed"),
-        "confirmed_at": int(time.time()),
-    }
-    dest = _cpml_consent_path()
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    tmp = dest + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(record, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, dest)
-    os.environ["COQUI_TOS_AGREED"] = "1"
-
-
-def ensure_coqui_tos_agreed() -> None:
-    """
-    Вызывается перед первой загрузкой модели (см. get_tts()). Если согласие
-    уже было явно дано и сохранено ранее — тихо выставляет переменную
-    окружения и продолжает. Если нет — поднимает CoquiTosNotAgreedError,
-    чтобы вызывающий (GUI) показал пользователю реальный экран согласия
-    с CPML и вызвал set_coqui_tos_agreed() сам.
-    """
-    if is_coqui_tos_agreed():
-        os.environ["COQUI_TOS_AGREED"] = "1"
-        return
-    raise CoquiTosNotAgreedError(
-        "Пользователь ещё не подтвердил согласие с Coqui Public Model License "
-        "(https://coqui.ai/cpml). Покажите экран согласия и вызовите "
-        "set_coqui_tos_agreed() перед повторной попыткой."
-    )
-
-
-class CoquiTosNotAgreedError(RuntimeError):
-    pass
+# Логика согласия с CPML вынесена в engine/cpml_consent.py (без тяжёлых
+# зависимостей). Здесь — только реэкспорт, чтобы старые импорты
+# `from engine.tts import is_coqui_tos_agreed, set_coqui_tos_agreed,
+# ensure_coqui_tos_agreed, CoquiTosNotAgreedError` продолжали работать.
+from engine.cpml_consent import (  # noqa: E402,F401
+    CoquiTosNotAgreedError,
+    cpml_consent_path,
+    ensure_coqui_tos_agreed,
+    is_coqui_tos_agreed,
+    set_coqui_tos_agreed,
+)
 
 
 # =========================
@@ -888,6 +836,12 @@ def run_tts(
 
     except _Cancelled:
         return None
+
+    except CoquiTosNotAgreedError:
+        # Не заворачиваем в RuntimeError — вызывающий (GUI) должен видеть
+        # конкретный тип/текст ошибки и показать экран согласия с CPML,
+        # а не голый traceback «XTTS ENGINE ERROR».
+        raise
 
     except Exception as e:
         raise RuntimeError(f"XTTS ENGINE ERROR: {str(e)}") from e

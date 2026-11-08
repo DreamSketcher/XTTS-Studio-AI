@@ -13,12 +13,19 @@ from typing import Optional
 
 import pygame
 
+import webbrowser
+
 from i18n import t
 
 from engine.task_models import Task
 from engine.text_tools import normalize_text
 from engine.logging_utils import write_log
 from engine.history_store import _save_history
+from engine.cpml_consent import (
+    CPML_URL,
+    cpml_consent_path,
+    set_coqui_tos_agreed,
+)
 from engine.gui import textbox
 from engine.gui.statusbar import set_status, set_stage, set_progress
 from engine.gui.textbox import (
@@ -209,6 +216,144 @@ def _on_task_done(task: Task):
     messagebox.showinfo(t("dlg_done_title"), t("dlg_done_msg", task.output_path))
 
 
+# ── CPML (Coqui Public Model License) ──────────────────────────────
+# Генерация падает с CoquiTosNotAgreedError, если пользователь ещё не
+# подтвердил лицензию. Раньше ошибка показывалась голым traceback'ом, и
+# в основном окне не было никакого контроля принятия лицензии (issue #4).
+# Теперь показываем тот же экран согласия, что и при старте.
+_COQUI_TOS_MARKERS = (
+    "CoquiTosNotAgreedError",
+    "COQUI_TOS_AGREED",
+    "set_coqui_tos_agreed",
+    "cpml_consent",
+    "Coqui Public Model License",
+)
+
+
+def _is_coqui_tos_error(error_text) -> bool:
+    if not error_text:
+        return False
+    return any(marker in str(error_text) for marker in _COQUI_TOS_MARKERS)
+
+
+def _show_cpml_consent_on_error():
+    """Экран согласия с CPML поверх главного окна (при ошибке генерации)."""
+    try:
+        win = tk.Toplevel(root)
+        win.title("📜 Лицензионное соглашение XTTS v2")
+        win.geometry("560x380")
+        win.resizable(False, False)
+        win.configure(bg="#1e1e1e")
+        win.transient(root)
+        win.grab_set()
+
+        def _accept():
+            try:
+                set_coqui_tos_agreed("generation-error-dialog")
+                win.destroy()
+                messagebox.showinfo(
+                    "📜 Coqui Public Model License (CPML)",
+                    "Согласие с CPML сохранено. Нажмите «Generate» ещё раз — "
+                    "генерация должна запуститься.",
+                    parent=root,
+                )
+            except Exception as save_err:
+                # Пользователь согласился — даём согласие хотя бы на сеанс
+                # и делаем сбой записи видимым.
+                os.environ["COQUI_TOS_AGREED"] = "1"
+                win.destroy()
+                messagebox.showwarning(
+                    "📜 Coqui Public Model License (CPML)",
+                    "Вы согласились с CPML, но сохранить отметку не удалось:\n\n"
+                    f"{save_err}\n\n"
+                    f"Файл согласия: {cpml_consent_path()}\n\n"
+                    "Проверьте, что папка приложения доступна на запись. "
+                    "Пока что согласие действует только в этом сеансе.",
+                    parent=root,
+                )
+
+        def _open_link(_event=None):
+            webbrowser.open(CPML_URL)
+
+        tk.Label(
+            win,
+            text="📜 Coqui Public Model License (CPML)",
+            font=("Segoe UI", 13, "bold"),
+            bg="#1e1e1e",
+            fg="#ffffff",
+        ).pack(pady=(18, 6))
+
+        body = (
+            "Генерация остановлена: вы ещё не подтвердили согласие с лицензией "
+            "Coqui Public Model License (CPML), по которой распространяется "
+            "голосовой движок XTTS v2.\n\n"
+            "Это отдельное требование лицензии, а не ошибка приложения. "
+            "Полный текст лицензии доступен по ссылке ниже. Нажимая "
+            "«Согласен, продолжить», вы подтверждаете, что ознакомились "
+            "с условиями CPML и принимаете их."
+        )
+        tk.Label(
+            win,
+            text=body,
+            font=("Segoe UI", 10),
+            bg="#1e1e1e",
+            fg="#cfcfcf",
+            justify="left",
+            wraplength=500,
+        ).pack(padx=24, pady=(0, 10))
+
+        link = tk.Label(
+            win,
+            text=CPML_URL,
+            font=("Segoe UI", 10, "underline"),
+            bg="#1e1e1e",
+            fg="#4da3ff",
+            cursor="hand2",
+        )
+        link.pack(pady=(0, 20))
+        link.bind("<Button-1>", _open_link)
+
+        btn_frame = tk.Frame(win, bg="#1e1e1e")
+        btn_frame.pack(pady=(0, 18))
+
+        tk.Button(
+            btn_frame,
+            text="Согласен, продолжить",
+            font=("Segoe UI", 10, "bold"),
+            bg="#2e7d32",
+            fg="#ffffff",
+            activebackground="#388e3c",
+            relief="flat",
+            padx=16,
+            pady=6,
+            command=_accept,
+        ).pack(side="left", padx=8)
+
+        tk.Button(
+            btn_frame,
+            text="Закрыть",
+            font=("Segoe UI", 10),
+            bg="#3a3a3a",
+            fg="#ffffff",
+            activebackground="#4a4a4a",
+            relief="flat",
+            padx=16,
+            pady=6,
+            command=win.destroy,
+        ).pack(side="left", padx=8)
+    except Exception as e:
+        # Даже сам экран согласия не смог открыться — показываем хотя бы
+        # текстовое сообщение со ссылкой на лицензию.
+        print(f"[CPML] Не удалось показать экран согласия: {e}")
+        messagebox.showerror(
+            "📜 Coqui Public Model License (CPML)",
+            "Генерация остановлена: не подтверждено согласие с CPML.\n\n"
+            f"Откройте {CPML_URL}, ознакомьтесь с лицензией и запустите "
+            "генерацию снова — приложение покажет экран согласия.",
+            parent=root,
+        )
+
+
 def _on_task_error(task: Task):
     global current_task
     if current_task and current_task.id == task.id:
@@ -217,6 +362,9 @@ def _on_task_error(task: Task):
     unlock_textbox()
     _restore_raw_text(task)
     write_log(task.error or "Unknown error")
+    if _is_coqui_tos_error(task.error):
+        _show_cpml_consent_on_error()
+        return
     messagebox.showerror(t("dlg_error_title"), task.error or "Неизвестная ошибка")
 
 
@@ -268,7 +416,13 @@ def _preload_model():
         print(f"[Preload] Модель будет загружена при генерации. ({e})")
         model_ready = False
         set_stage("IDLE")
-        set_status(t("status_waiting"))
+        if _is_coqui_tos_error(e) or _is_coqui_tos_error(repr(e)):
+            # Пользователь увидит экран согласия при первой генерации
+            # (см. _on_task_error); здесь — явная подсказка в строке статуса
+            # вместо молчаливого «Waiting».
+            set_status("⚠️ Требуется согласие с CPML — откроется при первой генерации")
+        else:
+            set_status(t("status_waiting"))
 
 
 def start_preload_thread():

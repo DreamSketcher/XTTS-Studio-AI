@@ -11,6 +11,7 @@ Depending on enabled features, the application may store:
 - voice reference files and processed references;
 - generated WAV/MP3 files;
 - generation and chat history;
+- the CPML license consent flag (`json/cpml_consent.json`);
 - pronunciation rules, presets and UI settings;
 - downloaded XTTS, RVC and GGUF models;
 - model previews and caches;

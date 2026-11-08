@@ -96,6 +96,16 @@ This means users do not need to download and unpack the multi-gigabyte portable 
 
 `XTTS Studio.exe` is part of the update manifest as well. If launch paths change, the updater replaces the launcher together with the other changed files.
 
+### First launch: XTTS v2 license screen (CPML)
+
+The XTTS v2 voice engine is distributed under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml). On first launch the app shows a one-time «📜 Coqui Public Model License (CPML)» screen — press «Согласен, продолжить» (I agree, continue) to accept the license. Speech generation is unavailable until you accept: the task fails with `CoquiTosNotAgreedError` and the app shows the same consent screen on top of the main window.
+
+The consent flag is stored in `json/cpml_consent.json` (next to the app). If the app folder is read-only (e.g. installed into `Program Files` without administrator rights), the screen is shown on every launch and consent applies to the current session only.
+
+If you prefer to consent explicitly via the environment (as the Coqui TTS documentation instructs), set `COQUI_TOS_AGREED=1` and restart the app — this counts as explicit consent and is persisted to `json/cpml_consent.json`.
+
+To see the consent screen again, delete `json/cpml_consent.json` and start the app.
+
 ### First run on CPU
 
 The application can run on CPU immediately. This is the most compatible mode, but long texts and RVC take more time.
@@ -884,6 +894,10 @@ The scanner uses quarantine and post-move diagnostics before permanent deletion.
 
 Check the API key, selected model, provider availability, and VPN requirements. For a fully local workflow, select a GGUF model or disable AI.
 
+### Generation fails with CoquiTosNotAgreedError
+
+This means the XTTS v2 license (CPML) has not been accepted yet — it is a license requirement, not an app bug. The app now shows the CPML consent screen on top of the main window in this case: click «Согласен, продолжить» (I agree, continue) and generation will work — no restart needed. Alternatively, delete `json/cpml_consent.json` and restart the app, or set `COQUI_TOS_AGREED=1` and restart. If the consent flag cannot be saved (read-only app folder), consent applies to the current session — check write permissions or install the app into a user-writable folder (e.g. `%LOCALAPPDATA%`), and see `logs/startup_recovery_error.log` for details.
+
 ### The application rolled back after an update
 
 The updater first applies files through staging and writes a confirmation marker. If the next startup is not confirmed, the backup is restored. Check logs and the system-settings window for diagnostics.
@@ -898,6 +912,7 @@ Code is separated by responsibility:
 |------|----------------|
 | `gui.py` | single-instance lock, path validation, pre-GUI diagnostics/recovery, and updater-status handoff |
 | `engine/tts/` | generation pipeline, QC, export, and cache |
+| `engine/cpml_consent.py` | explicit CPML consent (stdlib-only), consent screen, and pre-generation check |
 | `engine/gui/` | main window and user-facing panels |
 | `engine/env_core/__init__.py` | public system-environment facade |
 | `engine/env_core/cpu_gpu.py` | CPU flags and GPU vendor/CUDA/VRAM detection |
