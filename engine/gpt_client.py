@@ -27,6 +27,7 @@ import ipaddress
 import json
 import os
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -222,6 +223,7 @@ PROVIDER_CATALOGUE = [
         "id": "mistral",
         "label": "Mistral AI",
         "url": "https://api.mistral.ai/v1/chat/completions",
+        "models_url": "https://api.mistral.ai/v1/models",
         "key_hint": "https://console.mistral.ai/api-keys",
         "extra_headers": {},
         "notes": _t("cat_mistral_notes"),
@@ -297,6 +299,201 @@ PROVIDER_CATALOGUE = [
             "claude-3-5-haiku",
         ],
     },
+    {
+        "id": "openai",
+        "label": "OpenAI",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "models_url": "https://api.openai.com/v1/models",
+        "key_hint": "https://platform.openai.com/api-keys",
+        "extra_headers": {},
+        "notes": _t("cat_openai_notes"),
+        "models": [
+            "gpt-4o-mini",
+            "gpt-4o",
+            "gpt-4.1-mini",
+            "gpt-4.1",
+            "o4-mini",
+        ],
+    },
+    {
+        "id": "anthropic",
+        "label": "Anthropic (Claude)",
+        "url": "https://api.anthropic.com/v1/chat/completions",
+        "key_hint": "https://console.anthropic.com/settings/keys",
+        "extra_headers": {},
+        "notes": _t("cat_anthropic_notes"),
+        "models": [
+            "claude-3-5-haiku-latest",
+            "claude-3-5-sonnet-latest",
+            "claude-3-7-sonnet-latest",
+        ],
+    },
+    {
+        "id": "gemini",
+        "label": "Google Gemini",
+        "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "models_url": "https://generativelanguage.googleapis.com/v1beta/openai/models",
+        "key_hint": "https://aistudio.google.com/apikey",
+        "extra_headers": {},
+        "notes": _t("cat_gemini_notes"),
+        "models": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+        ],
+    },
+    {
+        "id": "deepseek",
+        "label": "DeepSeek",
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "models_url": "https://api.deepseek.com/v1/models",
+        "key_hint": "https://platform.deepseek.com/api_keys",
+        "extra_headers": {},
+        "notes": _t("cat_deepseek_notes"),
+        "models": [
+            "deepseek-chat",
+            "deepseek-reasoner",
+        ],
+    },
+    {
+        "id": "xai",
+        "label": "xAI (Grok)",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "models_url": "https://api.x.ai/v1/models",
+        "key_hint": "https://console.x.ai/",
+        "extra_headers": {},
+        "notes": _t("cat_xai_notes"),
+        "models": [
+            "grok-3-mini",
+            "grok-3",
+            "grok-4",
+        ],
+    },
+    {
+        "id": "cerebras",
+        "label": "Cerebras",
+        "url": "https://api.cerebras.ai/v1/chat/completions",
+        "models_url": "https://api.cerebras.ai/v1/models",
+        "key_hint": "https://cloud.cerebras.ai/",
+        "extra_headers": {},
+        "notes": _t("cat_cerebras_notes"),
+        "models": [
+            "llama-3.3-70b",
+            "llama-3.1-8b",
+            "llama-4-scout-17b-16e-instruct",
+        ],
+    },
+    {
+        "id": "sambanova",
+        "label": "SambaNova",
+        "url": "https://api.sambanova.ai/v1/chat/completions",
+        "models_url": "https://api.sambanova.ai/v1/models",
+        "key_hint": "https://cloud.sambanova.ai/",
+        "extra_headers": {},
+        "notes": _t("cat_sambanova_notes"),
+        "models": [
+            "Meta-Llama-3.3-70B-Instruct",
+            "DeepSeek-R1-Distill-Llama-70B",
+            "Qwen2.5-72B-Instruct",
+        ],
+    },
+    {
+        "id": "fireworks",
+        "label": "Fireworks AI",
+        "url": "https://api.fireworks.ai/inference/v1/chat/completions",
+        "models_url": "https://api.fireworks.ai/inference/v1/models",
+        "key_hint": "https://fireworks.ai/account/api-keys",
+        "extra_headers": {},
+        "notes": _t("cat_fireworks_notes"),
+        "models": [
+            "accounts/fireworks/models/llama-v3p3-70b-instruct",
+            "accounts/fireworks/models/mixtral-8x22b-instruct",
+            "accounts/fireworks/models/qwen2p5-72b-instruct",
+        ],
+    },
+    {
+        "id": "novita",
+        "label": "Novita AI",
+        "url": "https://api.novita.ai/v3/openai/chat/completions",
+        "models_url": "https://api.novita.ai/v3/openai/models",
+        "key_hint": "https://novita.ai/dashboard/keys",
+        "extra_headers": {},
+        "notes": _t("cat_novita_notes"),
+        "models": [
+            "deepseek/deepseek-v3-turbo",
+            "meta-llama/llama-3.3-70b-instruct",
+            "qwen/qwen2.5-72b-instruct",
+        ],
+    },
+    {
+        "id": "hyperbolic",
+        "label": "Hyperbolic",
+        "url": "https://api.hyperbolic.xyz/v1/chat/completions",
+        "models_url": "https://api.hyperbolic.xyz/v1/models",
+        "key_hint": "https://app.hyperbolic.xyz/settings",
+        "extra_headers": {},
+        "notes": _t("cat_hyperbolic_notes"),
+        "models": [
+            "meta-llama/Llama-3.3-70B-Instruct",
+            "deepseek-ai/DeepSeek-V3",
+            "Qwen/Qwen2.5-72B-Instruct",
+        ],
+    },
+    {
+        "id": "nvidia",
+        "label": "NVIDIA NIM",
+        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "models_url": "https://integrate.api.nvidia.com/v1/models",
+        "key_hint": "https://build.nvidia.com/",
+        "extra_headers": {},
+        "notes": _t("cat_nvidia_notes"),
+        "models": [
+            "meta/llama-3.3-70b-instruct",
+            "deepseek-ai/deepseek-r1",
+            "qwen/qwen2.5-72b-instruct",
+        ],
+    },
+    {
+        "id": "chutes",
+        "label": "Chutes AI",
+        "url": "https://llm.chutes.ai/v1/chat/completions",
+        "models_url": "https://llm.chutes.ai/v1/models",
+        "key_hint": "https://chutes.ai/",
+        "extra_headers": {},
+        "notes": _t("cat_chutes_notes"),
+        "models": [
+            "deepseek-ai/DeepSeek-V3",
+            "meta-llama/Llama-3.3-70B-Instruct",
+            "Qwen/Qwen2.5-72B-Instruct",
+        ],
+    },
+    {
+        "id": "ollama",
+        "label": "Ollama (local)",
+        "url": "http://localhost:11434/v1/chat/completions",
+        "models_url": "http://localhost:11434/v1/models",
+        "key_hint": "",
+        "extra_headers": {},
+        "notes": _t("cat_ollama_notes"),
+        "models": [
+            "llama3.3",
+            "qwen2.5",
+            "mistral",
+        ],
+    },
+    {
+        "id": "lmstudio",
+        "label": "LM Studio (local)",
+        "url": "http://localhost:1234/v1/chat/completions",
+        "models_url": "http://localhost:1234/v1/models",
+        "key_hint": "",
+        "extra_headers": {},
+        "notes": _t("cat_lmstudio_notes"),
+        "models": [
+            "local-model",
+        ],
+    },
 ]
 
 
@@ -322,19 +519,68 @@ def fetch_models_from_url(models_url: str, api_key: str = "") -> list[str]:
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        items = data.get("data", [])
-        ids = []
-        for item in items:
-            mid = item.get("id", "")
-            # Фильтруем не-чат модели (embeddings, image, audio и т.п.)
-            itype = (item.get("type") or item.get("architecture", {}).get("modality") or "").lower()
-            if any(x in itype for x in ("embed", "image", "audio", "vision")):
-                continue
-            if mid:
-                ids.append(mid)
-        return sorted(ids)
     except Exception:
         return []
+    return _parse_models_payload(data)
+
+
+def _parse_models_payload(data) -> list[str]:
+    """
+    Нормализовать ответ /v1/models в список model id.
+    Поддерживает:
+      * OpenAI/OpenRouter: {"data": [{"id": "...", "type": "...", "architecture": {...}}]}
+      * Google Gemini:     {"models": [{"name": "models/gemini-...",
+        "supportedGenerationMethods": [...]}]}
+    Не-чат модели (embeddings, image, audio, rerank, moderation) отфильтровываются.
+    """
+    # Мусор/не тот формат — тихо возвращаем пусто
+    if not isinstance(data, dict):
+        return []
+
+    ids: list[str] = []
+
+    if isinstance(data.get("data"), list):
+        for item in data["data"]:
+            if not isinstance(item, dict):
+                continue
+            mid = str(item.get("id") or "").strip()
+            if not mid:
+                continue
+            arch = item.get("architecture")
+            if not isinstance(arch, dict):
+                arch = {}
+            itype = str(item.get("type") or arch.get("modality") or "").lower()
+            if any(
+                x in itype
+                for x in (
+                    "embed",
+                    "image",
+                    "audio",
+                    "tts",
+                    "speech",
+                    "rerank",
+                    "moderation",
+                    "whisper",
+                    "guard",
+                )
+            ):
+                continue
+            ids.append(mid)
+    elif isinstance(data.get("models"), list):
+        # Gemini: только модели, умеющие generateContent
+        for item in data["models"]:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or item.get("id") or "").strip()
+            if name.startswith("models/"):
+                name = name[len("models/") :]
+            methods = item.get("supportedGenerationMethods")
+            if isinstance(methods, list) and "generateContent" not in methods:
+                continue
+            if name:
+                ids.append(name)
+
+    return sorted(dict.fromkeys(ids))
 
 
 def _validate_api_url(url: str, *, allow_loopback_http: bool = True) -> str:
@@ -390,6 +636,320 @@ def _write_settings(patch: dict):
     data = _read_settings()
     data.update(patch)
     _write_all_settings(data)
+
+
+# ── provider cache & health tracking ───────────────────────────────────────────
+# Механизм отслеживания актуального состояния провайдеров: отдельный кэш
+# json/provider_cache.json — без секретов. Хранит живые списки моделей и
+# результат последней проверки (ok / invalid_key / rate_limited / network_error /
+# models_error / unchecked). Файл кэша можно смело удалять — он восстановится.
+
+
+def _cache_path() -> str:
+    # Лениво — уважает monkeypatched _BASE_DIR в тестах.
+    return os.path.join(_BASE_DIR, "json", "provider_cache.json")
+
+
+MODELS_CACHE_TTL = 24 * 60 * 60  # 24 часа: старше — требует обновления
+
+PROVIDER_HEALTH_STATES = (
+    "unchecked",
+    "ok",
+    "invalid_key",
+    "rate_limited",
+    "network_error",
+    "models_error",
+    "error",
+)
+
+
+def _read_cache() -> dict:
+    try:
+        with open(_cache_path(), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            models = data.get("models")
+            health = data.get("health")
+            return {
+                "models": models if isinstance(models, dict) else {},
+                "health": health if isinstance(health, dict) else {},
+            }
+    except Exception:
+        pass
+    return {"models": {}, "health": {}}
+
+
+def _write_cache(cache: dict):
+    try:
+        cache_path = _cache_path()
+        directory = os.path.dirname(os.path.abspath(cache_path))
+        os.makedirs(directory, exist_ok=True)
+        fd, temp_path = tempfile.mkstemp(prefix=".provider_cache_", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(cache, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, cache_path)
+        except Exception:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+            raise
+    except Exception as e:  # кэш — не критичные данные, не роняем приложение
+        print(f"[AI] Не удалось записать provider_cache.json: {e}")
+
+
+def derive_models_url(url: str) -> str | None:
+    """
+    Вывести endpoint /v1/models из chat/completions endpoint или базового URL.
+    Возвращает None, если вывести нельзя (пустой url).
+    """
+    value = str(url or "").strip().rstrip("/")
+    if not value:
+        return None
+    for suffix in ("/chat/completions", "/responses", "/completions"):
+        if value.endswith(suffix):
+            value = value[: -len(suffix)]
+            break
+    if value.endswith("/models"):
+        return value
+    return value + "/models"
+
+
+def _catalogue_entry(pid: str) -> dict:
+    for entry in PROVIDER_CATALOGUE:
+        if entry.get("id") == pid:
+            return entry
+    return {}
+
+
+def effective_models_url(pid: str) -> str | None:
+    """URL /v1/models для любого провайдера: custom → catalogue → вывод из url."""
+    try:
+        info = get_provider_info(pid)
+    except KeyError:
+        return None
+    # 1) Явно сохранённый models_url (пользовательский провайдер)
+    explicit = str(info.get("models_url") or "").strip()
+    if explicit:
+        return explicit
+    # 2) Каталог (подходит и для встроенных провайдеров openai/openrouter/...)
+    cat_entry = _catalogue_entry(pid)
+    cat_url = str(cat_entry.get("models_url") or "").strip()
+    if cat_url:
+        return cat_url
+    # 3) Выводим из chat endpoint
+    return derive_models_url(str(info.get("url") or ""))
+
+
+def get_cached_models(pid: str) -> list[str]:
+    """Живые модели из кэша без похода в сеть (пустой список, если кэша нет)."""
+    entry = _read_cache()["models"].get(pid) or {}
+    models = entry.get("models")
+    return [str(m) for m in models] if isinstance(models, list) else []
+
+
+def get_models_cache_meta(pid: str) -> dict:
+    """Метаданные кэша моделей.
+
+    Возвращает {"models": [...], "ts": float|None, "url": str|None, "ok": bool, "error": str|None}.
+    """
+    meta = {"models": [], "ts": None, "url": None, "ok": False, "error": None}
+    entry = _read_cache()["models"].get(pid) or {}
+    if not isinstance(entry, dict):
+        return meta
+    models = entry.get("models")
+    if isinstance(models, list):
+        meta["models"] = [str(m) for m in models]
+    meta["ts"] = entry.get("ts") if isinstance(entry.get("ts"), (int, float)) else None
+    meta["url"] = entry.get("url") or None
+    meta["ok"] = bool(entry.get("ok"))
+    meta["error"] = entry.get("error") or None
+    return meta
+
+
+def get_provider_models(pid: str) -> dict:
+    """
+    Что показывать в UI: live-кэш → встроенный/каталожный список → пусто.
+    Возвращает {"models": [...], "source": "live"|"builtin"|"none",
+                "ts": float|None, "fresh": bool, "url": str|None, "error": str|None}
+    """
+    meta = get_models_cache_meta(pid)
+    fresh = bool(meta["ts"]) and (time.time() - meta["ts"] < MODELS_CACHE_TTL)
+    if meta["models"]:
+        return {
+            "models": meta["models"],
+            "source": "live",
+            "ts": meta["ts"],
+            "fresh": fresh,
+            "url": meta["url"],
+            "error": meta["error"],
+        }
+    # Кэш пуст/нет — отдаём встроенный список (seed) как временную опору
+    builtin: list[str] = []
+    try:
+        info = get_provider_info(pid)
+        builtin = [str(m) for m in (info.get("models") or [])]
+    except KeyError:
+        pass
+    if not builtin:
+        builtin = [str(m) for m in (_catalogue_entry(pid).get("models") or [])]
+    return {
+        "models": builtin,
+        "source": "builtin" if builtin else "none",
+        "ts": None,
+        "fresh": False,
+        "url": effective_models_url(pid),
+        "error": meta["error"],
+    }
+
+
+def record_provider_state(pid: str, state: str, detail: str = ""):
+    """Записать результат последней проверки провайдера (health tracking)."""
+    if state not in PROVIDER_HEALTH_STATES:
+        state = "error"
+    cache = _read_cache()
+    cache["health"][pid] = {"state": state, "detail": str(detail or "")[:300], "ts": time.time()}
+    _write_cache(cache)
+
+
+def get_provider_health(pid: str = None):
+    """Состояние одного провайдера или всех: {"state": ..., "detail": ..., "ts": ...}."""
+    health = _read_cache()["health"]
+
+    def _norm(entry):
+        if not isinstance(entry, dict):
+            return {"state": "unchecked", "detail": "", "ts": None}
+        return {
+            "state": entry.get("state") or "unchecked",
+            "detail": entry.get("detail") or "",
+            "ts": entry.get("ts") if isinstance(entry.get("ts"), (int, float)) else None,
+        }
+
+    if pid is not None:
+        return _norm(health.get(pid))
+    return {k: _norm(v) for k, v in health.items()}
+
+
+def clear_provider_cache(pid: str):
+    """Удалить кэш моделей и health-записи провайдера (после смены url/удаления)."""
+    cache = _read_cache()
+    removed = False
+    for section in ("models", "health"):
+        if pid in cache[section]:
+            del cache[section][pid]
+            removed = True
+    if removed:
+        _write_cache(cache)
+
+
+def refresh_provider_models(pid: str, *, force: bool = False, timeout: int = 10):
+    """
+    Подтянуть актуальный список моделей из /v1/models и закэшировать его.
+
+    Возвращает (models, error): при успехе error is None; при ошибке —
+    (возможно устаревшие кэшированные модели, текст ошибки).
+    TTL: если кэш свежее MODELS_CACHE_TTL и not force — сеть не дёргаем.
+    Заодно обновляет health-состояние провайдера.
+    """
+    meta = get_models_cache_meta(pid)
+    fresh = bool(meta["ts"]) and (time.time() - meta["ts"] < MODELS_CACHE_TTL)
+    if fresh and not force and meta["models"]:
+        return list(meta["models"]), None
+
+    models_url = effective_models_url(pid)
+    if not models_url:
+        # local / или невозможно вывести — health не портим, возвращаем seed
+        return get_provider_models(pid)["models"], None
+
+    try:
+        api_key = get_api_key(pid)
+    except Exception:
+        api_key = ""
+
+    error_detail = None
+    models: list[str] = []
+    try:
+        req = urllib.request.Request(
+            _validate_api_url(models_url),
+            headers=(
+                {
+                    "Content-Type": "application/json",
+                    **({"Authorization": f"Bearer {api_key}"} if api_key else {}),
+                }
+            ),
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        models = _parse_models_payload(payload)
+        if not models:
+            error_detail = "endpoint вернул пустой или нераспознанный список моделей"
+            record_provider_state(pid, "models_error", error_detail)
+    except ValueError as e:
+        error_detail = str(e)
+        record_provider_state(pid, "models_error", error_detail)
+    except urllib.error.HTTPError as e:
+        code = getattr(e, "code", 0) or 0
+        if code in (401, 403):
+            error_detail = f"HTTP {code}: ключ не подходит"
+            record_provider_state(pid, "invalid_key", error_detail)
+        elif code == 429:
+            error_detail = "HTTP 429: превышен лимит запросов"
+            record_provider_state(pid, "rate_limited", error_detail)
+        else:
+            error_detail = f"HTTP {code}"
+            record_provider_state(pid, "models_error", error_detail)
+    except Exception as e:
+        error_detail = str(e)
+        record_provider_state(pid, "network_error", error_detail)
+
+    cache = _read_cache()
+    if models:
+        cache["models"][pid] = {
+            "models": models,
+            "ts": time.time(),
+            "url": models_url,
+            "ok": True,
+            "error": None,
+        }
+        _write_cache(cache)
+        record_provider_state(pid, "ok", f"моделей: {len(models)}")
+        return models, None
+
+    # Ошибка: сохраняем старые модели (stale) и фиксируем ошибку
+    prev = cache["models"].get(pid) or {}
+    prev_models = prev.get("models") if isinstance(prev.get("models"), list) else []
+    cache["models"][pid] = {
+        "models": [str(m) for m in prev_models],
+        "ts": prev.get("ts"),
+        "url": prev.get("url") or models_url,
+        "ok": False,
+        "error": error_detail,
+    }
+    _write_cache(cache)
+    stale = get_provider_models(pid)["models"]
+    return stale, error_detail
+
+
+def validate_provider_models_url(models_url: str, api_key: str = ""):
+    """
+    Проверить произвольный models endpoint (для формы провайдера).
+    Возвращает (ok, message, models). Ничего не сохраняет.
+    """
+    url = str(models_url or "").strip()
+    if not url:
+        return False, "Пустой URL", []
+    try:
+        _validate_api_url(url)
+    except ValueError as e:
+        return False, str(e), []
+    models = fetch_models_from_url(url, api_key)
+    if models:
+        return True, f"Ок: {len(models)} моделей", models
+    return False, "Не удалось получить список моделей (проверьте URL и ключ)", []
 
 
 # ── provider management ─────────────────────────────────────────────────────────
@@ -587,6 +1147,7 @@ def add_custom_provider(
     fallback: str,
     headers: dict = None,
     key_hint: str = "",
+    models_url: str = "",
 ) -> dict:
     pid = pid.strip()
     if not pid:
@@ -596,10 +1157,14 @@ def add_custom_provider(
         raise ValueError(f"Провайдер с ID {pid!r} уже существует")
 
     validated_url = _validate_api_url(url)
+    validated_models_url = ""
+    if str(models_url or "").strip():
+        validated_models_url = _validate_api_url(models_url)
     entry = {
         "id": pid,
         "label": label.strip() or pid,
         "url": validated_url,
+        "models_url": validated_models_url,
         "key_hint": key_hint or "",
         "default_model": models[0] if models else "",
         "fallback_model": fallback.strip() or (models[0] if models else ""),
@@ -613,8 +1178,17 @@ def add_custom_provider(
 
 
 def update_custom_provider(pid: str, **kwargs):
+    url_changed = False
     if "url" in kwargs:
-        kwargs["url"] = _validate_api_url(kwargs["url"])
+        new_url = _validate_api_url(kwargs["url"])
+        url_changed = True
+        kwargs["url"] = new_url
+    if "models_url" in kwargs:
+        mu = str(kwargs.get("models_url") or "").strip()
+        if mu:
+            mu = _validate_api_url(mu)
+        kwargs["models_url"] = mu
+        url_changed = True
     items = list_custom_providers()
     for it in items:
         if it.get("id") == pid:
@@ -622,6 +1196,11 @@ def update_custom_provider(pid: str, **kwargs):
                 it[k] = v
             break
     _write_settings({"custom_providers": items})
+    if url_changed:
+        try:
+            clear_provider_cache(pid)
+        except Exception:
+            pass
 
 
 def delete_custom_provider(pid: str):
@@ -636,6 +1215,10 @@ def delete_custom_provider(pid: str):
     if data.get("provider") == pid:
         data["provider"] = DEFAULT_PROVIDER
     _write_all_settings(data)
+    try:
+        clear_provider_cache(pid)
+    except Exception:
+        pass
 
 
 def get_key_entry(key_id: str):
@@ -1037,11 +1620,36 @@ def validate_key(key: str, provider: str = None) -> tuple:
             max_tokens=5,
             provider=provider,
         )
+        record_provider_state(provider, "ok", "ключ принят")
         return (
             True,
             f"✅ Ключ рабочий. Провайдер: {info['label']} · Модель: {info['default_model']}",
         )
+    except GroqNetworkError as e:
+        record_provider_state(provider, "network_error", str(e))
+        return False, f"❌ {e}"
+    except GroqRateLimitError as e:
+        record_provider_state(provider, "rate_limited", str(e))
+        return False, f"❌ {e}"
     except RuntimeError as e:
+        detail = str(e).lower()
+        if any(
+            x in detail
+            for x in (
+                "401",
+                "403",
+                "unauthorized",
+                "forbidden",
+                "invalid",
+                "api key",
+                "api-key",
+                "apikey",
+                "auth",
+            )
+        ):
+            record_provider_state(provider, "invalid_key", str(e))
+        else:
+            record_provider_state(provider, "error", str(e))
         return False, f"❌ {e}"
     finally:
         set_api_key(old_key, provider)

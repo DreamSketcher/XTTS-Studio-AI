@@ -23,7 +23,7 @@ def test_security_baseline_versions_are_aligned():
     assert req["torchvision"] == torch_setup.TORCHVISION_VERSION == "0.17.2"
     assert req["transformers"] == "4.38.2"
     assert req.get("tts") == "0.22.0" or req.get("coqui-tts") == "0.22.0"
-    assert req["nltk"] == "3.9.4"
+    assert req["nltk"] == "3.10.4"
 
 
 def test_pickle_diskcache_dependency_is_absent():

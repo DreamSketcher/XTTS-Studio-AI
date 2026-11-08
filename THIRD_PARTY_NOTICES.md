@@ -1,6 +1,6 @@
 # THIRD-PARTY NOTICES
 
-Сгенерировано из SBOM (`json/sbom.cdx.json`) `2026-07-17`.
+Сгенерировано из SBOM (`json/sbom.cdx.json`) `2026-11-08`.
 
 XTTS Studio AI включает сторонние библиотеки и модели. Каждая лицензируется
 на условиях её правообладателя и **независимо** от лицензии самого проекта
@@ -39,16 +39,16 @@ CPML ограничивает коммерческое использовани�
 - **SudachiPy** `0.6.11` — pkg:pypi/sudachipy@0.6.11
 - **TTS** `0.22.0` — pkg:pypi/tts@0.22.0
 - **Unidecode** `1.4.0` — pkg:pypi/unidecode@1.4.0
-- **Werkzeug** `3.1.8` — pkg:pypi/werkzeug@3.1.8
+- **Werkzeug** `3.1.9` — pkg:pypi/werkzeug@3.1.9
 - **absl-py** `2.4.0` — pkg:pypi/absl-py@2.4.0
 - **aiohappyeyeballs** `2.6.2` — pkg:pypi/aiohappyeyeballs@2.6.2
-- **aiohttp** `3.14.1` — pkg:pypi/aiohttp@3.14.1
+- **aiohttp** `3.14.4` — pkg:pypi/aiohttp@3.14.4
 - **aiosignal** `1.4.0` — pkg:pypi/aiosignal@1.4.0
 - **annotated-doc** `0.0.4` — pkg:pypi/annotated-doc@0.0.4
 - **annotated-types** `0.7.0` — pkg:pypi/annotated-types@0.7.0
 - **antlr4-python3-runtime** `4.9.3` — pkg:pypi/antlr4-python3-runtime@4.9.3
 - **anyascii** `0.3.3` — pkg:pypi/anyascii@0.3.3
-- **anyio** `4.13.0` — pkg:pypi/anyio@4.13.0
+- **anyio** `4.14.2` — pkg:pypi/anyio@4.14.2
 - **attrs** `26.1.0` — pkg:pypi/attrs@26.1.0
 - **audioread** `3.1.0` — pkg:pypi/audioread@3.1.0
 - **av** `12.3.0` — pkg:pypi/av@12.3.0
@@ -60,7 +60,7 @@ CPML ограничивает коммерческое использовани�
 - **bnnumerizer** `0.0.2` — pkg:pypi/bnnumerizer@0.0.2
 - **bnunicodenormalizer** `0.1.7` — pkg:pypi/bnunicodenormalizer@0.1.7
 - **catalogue** `2.0.10` — pkg:pypi/catalogue@2.0.10
-- **certifi** `2026.5.20` — pkg:pypi/certifi@2026.5.20
+- **certifi** `2026.10.18` — pkg:pypi/certifi@2026.10.18
 - **cffi** `2.0.0` — pkg:pypi/cffi@2.0.0
 - **charset-normalizer** `3.4.7` — pkg:pypi/charset-normalizer@3.4.7
 - **click** `8.4.1` — pkg:pypi/click@8.4.1
@@ -69,7 +69,7 @@ CPML ограничивает коммерческое использовани�
 - **confection** `1.3.3` — pkg:pypi/confection@1.3.3
 - **contourpy** `1.3.3` — pkg:pypi/contourpy@1.3.3
 - **coqpit** `0.0.17` — pkg:pypi/coqpit@0.0.17
-- **cryptography** `49.0.0` — pkg:pypi/cryptography@49.0.0
+- **cryptography** `50.0.0` — pkg:pypi/cryptography@50.0.0
 - **customtkinter** `6.0.0` — pkg:pypi/customtkinter@6.0.0
 - **cycler** `0.12.1` — pkg:pypi/cycler@0.12.1
 - **cymem** `2.0.13` — pkg:pypi/cymem@2.0.13
@@ -82,10 +82,10 @@ CPML ограничивает коммерческое использовани�
 - **faiss-cpu** `1.14.3` — pkg:pypi/faiss-cpu@1.14.3
 - **fastapi** `0.139.0` — pkg:pypi/fastapi@0.139.0
 - **ffmpeg-python** `0.2.0` — pkg:pypi/ffmpeg-python@0.2.0
-- **filelock** `3.29.1` — pkg:pypi/filelock@3.29.1
+- **filelock** `4.2.1` — pkg:pypi/filelock@4.2.1
 - **fonttools** `4.63.0` — pkg:pypi/fonttools@4.63.0
 - **frozenlist** `1.8.0` — pkg:pypi/frozenlist@1.8.0
-- **fsspec** `2026.4.0` — pkg:pypi/fsspec@2026.4.0
+- **fsspec** `2026.6.0` — pkg:pypi/fsspec@2026.6.0
 - **future** `1.0.0` — pkg:pypi/future@1.0.0
 - **g2pkk** `0.1.2` — pkg:pypi/g2pkk@0.1.2
 - **grpcio** `1.81.0` — pkg:pypi/grpcio@1.81.0
@@ -101,7 +101,7 @@ CPML ограничивает коммерческое использовани�
 - **httpcore** `1.0.9` — pkg:pypi/httpcore@1.0.9
 - **httpx** `0.28.1` — pkg:pypi/httpx@0.28.1
 - **huggingface_hub** `0.36.2` — pkg:pypi/huggingface-hub@0.36.2
-- **hydra-core** `1.3.4` — pkg:pypi/hydra-core@1.3.4
+- **hydra-core** `1.3.8` — pkg:pypi/hydra-core@1.3.8
 - **idna** `3.18` — pkg:pypi/idna@3.18
 - **inflect** `7.5.0` — pkg:pypi/inflect@7.5.0
 - **itsdangerous** `2.2.0` — pkg:pypi/itsdangerous@2.2.0
@@ -120,19 +120,19 @@ CPML ограничивает коммерческое использовани�
 - **mdurl** `0.1.2` — pkg:pypi/mdurl@0.1.2
 - **more-itertools** `11.1.0` — pkg:pypi/more-itertools@11.1.0
 - **mpmath** `1.3.0` — pkg:pypi/mpmath@1.3.0
-- **msgpack** `1.1.2` — pkg:pypi/msgpack@1.1.2
-- **multidict** `6.7.1` — pkg:pypi/multidict@6.7.1
+- **msgpack** `1.2.3` — pkg:pypi/msgpack@1.2.3
+- **multidict** `6.9.1` — pkg:pypi/multidict@6.9.1
 - **murmurhash** `1.0.15` — pkg:pypi/murmurhash@1.0.15
 - **narwhals** `2.22.1` — pkg:pypi/narwhals@2.22.1
 - **networkx** `2.8.8` — pkg:pypi/networkx@2.8.8
-- **nltk** `3.9.4` — pkg:pypi/nltk@3.9.4
+- **nltk** `3.10.4` — pkg:pypi/nltk@3.10.4
 - **num2words** `0.5.14` — pkg:pypi/num2words@0.5.14
 - **numba** `0.65.1` — pkg:pypi/numba@0.65.1
 - **numpy** `1.26.4` — pkg:pypi/numpy@1.26.4
 - **omegaconf** `2.3.1` — pkg:pypi/omegaconf@2.3.1
 - **packaging** `26.2` — pkg:pypi/packaging@26.2
 - **pandas** `1.5.3` — pkg:pypi/pandas@1.5.3
-- **pillow** `12.2.0` — pkg:pypi/pillow@12.2.0
+- **pillow** `13.0.0` — pkg:pypi/pillow@13.0.0
 - **platformdirs** `4.10.0` — pkg:pypi/platformdirs@4.10.0
 - **playsound** `1.2.2` — pkg:pypi/playsound@1.2.2
 - **pooch** `1.9.0` — pkg:pypi/pooch@1.9.0
@@ -199,13 +199,13 @@ CPML ограничивает коммерческое использовани�
 - **tzdata** `2026.2` — pkg:pypi/tzdata@2026.2
 - **tzlocal** `5.3.1` — pkg:pypi/tzlocal@5.3.1
 - **umap-learn** `0.5.12` — pkg:pypi/umap-learn@0.5.12
-- **urllib3** `2.7.0` — pkg:pypi/urllib3@2.7.0
+- **urllib3** `2.8.0` — pkg:pypi/urllib3@2.8.0
 - **uvicorn** `0.51.0` — pkg:pypi/uvicorn@0.51.0
 - **wasabi** `1.1.3` — pkg:pypi/wasabi@1.1.3
 - **weasel** `1.0.0` — pkg:pypi/weasel@1.0.0
 - **win32_setctime** `1.2.0` — pkg:pypi/win32-setctime@1.2.0
 - **wrapt** `2.2.1` — pkg:pypi/wrapt@2.2.1
-- **yarl** `1.24.2` — pkg:pypi/yarl@1.24.2
+- **yarl** `1.25.1` — pkg:pypi/yarl@1.25.1
 
 ---
 

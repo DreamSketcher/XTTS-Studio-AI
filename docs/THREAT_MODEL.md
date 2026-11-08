@@ -19,6 +19,7 @@
 | **GGUF `.gguf`** | Локальные LLM-модели (каталог или ручные) | Каталог — проверка sha256+size; ручные — `verified=False`, warning-модал |
 | **Custom API endpoint** | Пользовательский OpenAI-совместимый провайдер | Недоверенный URL: только HTTPS (HTTP только loopback); extra-заголовки проходят denylist |
 | **Bundled Python env** | `python/xtts_env`, `python/runtime` | Доверенный (управляется проектом); не системный Python |
+| **XTTS engine download** | Файлы движка XTTS v2 в `models/xtts_v2/`, скачиваемые при первом запуске | Список — закреплённая ревизия `coqui/XTTS-v2` (HF); SHA-256 для `.pth`, точные размеры, JSON-проверки; атомарная установка |
 | **Logs** | `logs/`, диагностика | Могут содержать пути/ошибки; API-ключи защищены DPAPI, но логи считаем чувствительными при репортинге |
 
 ## 2. Assets (активы)
@@ -29,7 +30,7 @@
 | **Voice samples** (референсы) | `library/<voice>/` | Утечка биометрии (голос) |
 | **Generated audio** | `outputs/` | Утечка приватного контента |
 | **User text** | Рантайм (редактор) + `history.json` | Утечка приватного/конфиденциального текста |
-| **XTTS/RVC/GGUF models** | `models/` | Подмена → RCE через pickle/unsafe-load |
+| **XTTS/RVC/GGUF models** | `models/` | Подмена → RCE через pickle/unsafe-load (движок XTTS v2 докачивается с проверкой SHA-256) |
 
 ## 3. Attackers (модели нарушителя)
 
@@ -47,6 +48,7 @@
 |--------|--------------------|-----|
 | MITM на update | Ed25519 manifest signature, проверяемая **до** разбора JSON; SHA-256 обязателен для каждого update-файла | `engine/update_signing.py`, `engine/updater.py`, `test/test_sha256_verification.py` |
 | Path traversal в updater | Операции updater ограничены корнем приложения | `engine/updater.py` |
+| Подмена XTTS-движка при скачивании | Закреплённая ревизия официального репозитория `coqui/XTTS-v2` (HF); SHA-256 `.pth` (официальные LFS-хешы) + md5 model.pth из официального `hash.md5`; точный размер всех файлов; JSON-валидация config/vocab; атомарная установка; докачка Range; `.part` не исполняется | `engine/xtts_engine.py`, `engine/gui/engine_download.py` |
 | Malicious RVC `.pth` (pickle RCE) | Доверие чекпоинту — явное, привязано к SHA-256 байтов; HTML/пустой файл детектится | `engine/rvc_pipeline.py` (`mark_rvc_checkpoint_trusted`/`require_rvc_checkpoint_trusted`), `test_rvc_pipeline.py` |
 | Malicious GGUF filename / traversal | `safe_filename` + containment-check `commonpath` | `engine/local_llm_client.py` (TASK-004), `test_local_llm_security.py` |
 | Подмена GGUF из каталога | Обязательные `sha256`/`size_bytes`; проверка после скачивания + удаление при несовпадении | `engine/local_llm_client.py` (TASK-007) |

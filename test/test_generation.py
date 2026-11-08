@@ -124,10 +124,15 @@ def mock_gen_deps(monkeypatch):
     monkeypatch.setattr(gen, "current_task", None)
     monkeypatch.setattr(gen, "model_ready", False)
     monkeypatch.setattr(gen, "PYGAME_OK", False)
+    monkeypatch.setattr(gen, "confirm_coqui_tos", MagicMock(return_value=True))
     monkeypatch.setattr(gen, "normalize_text", lambda x: x.strip())
     monkeypatch.setattr(gen, "set_status", MagicMock())
     monkeypatch.setattr(gen, "set_stage", MagicMock())
     monkeypatch.setattr(gen, "set_progress", MagicMock())
+    # Моковый root не является Tk-виджетом — предложение скачать движок
+    # (_request_engine_offer → Toplevel) зависло бы в Misc._root() навсегда.
+    # Предложение проверяется отдельно в test/test_xtts_engine.py.
+    monkeypatch.setattr(gen, "_request_engine_offer", MagicMock())
     monkeypatch.setattr(gen, "lock_textbox", MagicMock())
     monkeypatch.setattr(gen, "unlock_textbox", MagicMock())
     monkeypatch.setattr(gen, "clear_chunk_highlight", MagicMock())
@@ -258,6 +263,7 @@ class TestPreloadModel:
 
     def test_preload_success(self, mock_gen_deps, monkeypatch):
         monkeypatch.delenv("OPEN_UPDATES_ON_STARTUP", raising=False)
+        monkeypatch.setattr(gen, "_engine_missing", lambda: False)  # движок на месте
         mock_get_tts = MagicMock(return_value=object())
         monkeypatch.setitem(
             __import__("sys").modules, "engine.tts_runner", MagicMock(get_tts=mock_get_tts)
@@ -266,6 +272,7 @@ class TestPreloadModel:
 
     def test_preload_failure(self, mock_gen_deps, monkeypatch):
         monkeypatch.delenv("OPEN_UPDATES_ON_STARTUP", raising=False)
+        monkeypatch.setattr(gen, "_engine_missing", lambda: False)  # движок на месте
 
         def failing_get_tts():
             raise Exception("model fail")
@@ -285,6 +292,38 @@ class TestGenerateAndCancel:
         monkeypatch.setattr(os.path, "isfile", lambda x: True)
         gen.generate()
         assert mock_gen_deps["task_manager"].add_task.called
+
+    def test_generate_prompts_before_queue_when_consent_is_missing(
+        self, mock_gen_deps, monkeypatch, tmp_path
+    ):
+        ref_file = tmp_path / "ref.wav"
+        ref_file.write_text("fake")
+        mock_gen_deps["ref_var"].get.return_value = str(ref_file)
+        monkeypatch.setattr(os.path, "isfile", lambda x: True)
+        confirm = MagicMock(return_value=False)
+        monkeypatch.setattr(gen, "confirm_coqui_tos", confirm)
+
+        gen.generate()
+
+        confirm.assert_called_once_with(parent=gen.root, source="generation-dialog")
+        mock_gen_deps["task_manager"].add_task.assert_not_called()
+        gen.lock_textbox.assert_not_called()
+        assert gen.current_task is None
+
+    def test_generate_continues_after_explicit_confirmation(
+        self, mock_gen_deps, monkeypatch, tmp_path
+    ):
+        ref_file = tmp_path / "ref.wav"
+        ref_file.write_text("fake")
+        mock_gen_deps["ref_var"].get.return_value = str(ref_file)
+        monkeypatch.setattr(os.path, "isfile", lambda x: True)
+        confirm = MagicMock(return_value=True)
+        monkeypatch.setattr(gen, "confirm_coqui_tos", confirm)
+
+        gen.generate()
+
+        confirm.assert_called_once_with(parent=gen.root, source="generation-dialog")
+        mock_gen_deps["task_manager"].add_task.assert_called_once()
 
     def test_generate_empty_text(self, mock_gen_deps, monkeypatch):
         mock_gen_deps["text_box"].get.return_value = "   "

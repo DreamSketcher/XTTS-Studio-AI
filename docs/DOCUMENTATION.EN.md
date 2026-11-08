@@ -63,11 +63,12 @@ The application does not always need an internet connection. Internet access is 
 
 1. Unpack XTTS Studio into a path without Cyrillic characters.
 2. Run `XTTS Studio.exe`.
-3. Select a voice reference of roughly **10–20 seconds**.
-4. Enter your text.
-5. Choose a preset.
-6. Click **🚀 GENERATE**.
-7. The result appears in `outputs/` and in the **🎵 Audio** window.
+3. On first launch, open the XTTS v2 license text and accept the CPML (see «First launch: XTTS v2 license screen (CPML)» below).
+4. Select a voice reference of roughly **10–20 seconds**.
+5. Enter your text.
+6. Choose a preset.
+7. Click **🚀 GENERATE**.
+8. The result appears in `outputs/` and in the **🎵 Audio** window.
 
 ```text
 ✔ C:\XTTS\
@@ -95,6 +96,45 @@ The full release archive is required for the first installation or for a rare in
 This means users do not need to download and unpack the multi-gigabyte portable archive for every normal release. A full reinstall is requested only when the installed version is below `min_app_version` or the portable folder layout changed incompatibly.
 
 `XTTS Studio.exe` is part of the update manifest as well. If launch paths change, the updater replaces the launcher together with the other changed files.
+
+### XTTS v2 engine: separate download
+
+The application code and the voice engine are two independent components:
+
+- the **code** is updated by the built-in updater (see above) or installed from the portable archive published on GitHub Releases;
+- the **XTTS v2 engine** — the core model files (~1.9 GB, under `models/xtts_v2/`) — is not in the repository and is downloaded automatically on first launch.
+
+If the engine is missing (or files are damaged) at startup, the app immediately shows the «⬇ Download XTTS v2 engine» dialog:
+
+- **“Download”** — the files are fetched from the official Coqui repository on HuggingFace (`coqui/XTTS-v2`, pinned revision): SHA-256 for the `.pth` files, exact sizes for all files, JSON validation of config/vocab, atomic installation; interrupted downloads resume where they stopped on the next attempt;
+- **“Later”** — generation is unavailable until the engine is installed; you can also place the files into `models/xtts_v2/` manually (same official source): `model.pth`, `speakers_xtts.pth`, `config.json`, `vocab.json`, `hash.md5`.
+
+The engine is downloaded only once; files that are already valid are not re-downloaded. A full portable build still ships the engine — no download is then required. By downloading the engine you accept the CPML (see below).
+
+### First launch: XTTS v2 license screen (CPML)
+
+The XTTS v2 voice engine is distributed under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml). On first launch the app shows a one-time «📜 Coqui Public Model License (CPML)» screen — press «Accept and continue» to accept the license. Speech generation is unavailable until you accept: the task fails with `CoquiTosNotAgreedError` and the app shows the same consent screen on top of the main window — you can then accept the license and press Generate again without restarting.
+
+The consent check does not depend on importing `num2words`, `pydub`, `torch` or any other TTS dependency, and it runs before dependency recovery — a broken TTS stack never hides the license screen. A consent SAVE failure is reported directly in the dialog (check write access to `json/` and free disk space): consent counts as granted only after the flag file has been written.
+
+**Where else you can confirm the license (at any time):**
+
+- **⚙ Settings → 📜 XTTS v2 License (CPML) → Review / accept license** — status and re-review button;
+- pressing **Generate** or starting batch processing without consent opens the confirmation before tasks are queued;
+- delete `json/cpml_consent.json` and start the app again to see the screen again.
+
+The consent flag is stored in `json/cpml_consent.json` (next to the app) and is never part of the release payload. If the app folder is read-only (e.g. installed into `Program Files` without administrator rights), the screen is shown on every launch and consent applies to the current session only.
+
+If you prefer to consent explicitly via the environment (as the Coqui TTS documentation instructs), set `COQUI_TOS_AGREED=1` and restart the app:
+
+```bat
+set COQUI_TOS_AGREED=1
+"XTTS Studio.exe"
+```
+
+This counts as explicit consent and is also persisted to `json/cpml_consent.json` (best-effort, `source: "env:COQUI_TOS_AGREED"`) so the state is visible and independent of how the app is launched (shortcut / cmd / scheduler).
+
+To see the consent screen again, delete `json/cpml_consent.json` and start the app.
 
 ### First run on CPU
 
@@ -459,6 +499,16 @@ For maximum privacy, use a local GGUF model or disable AI features.
 
 Keys are stored in `gpt_settings.json`. Providers can form a fallback chain: active → other configured built-ins → custom. Never publish `gpt_settings.json` with real API keys.
 
+### AI providers: catalogue, live model loading and state tracking
+
+The **AI Settings → Cloud and custom API providers** tab manages every AI provider in the app:
+
+- **Built-in catalogue (21 providers)**: Groq, OpenRouter, Together AI, Mistral, DeepInfra, OpenAI, Anthropic (Claude), Google Gemini, DeepSeek, xAI (Grok), Cerebras, SambaNova, Fireworks, Novita, Hyperbolic, NVIDIA NIM, Chutes AI, VseGPT, AITUNNEL, ProxyAPI and local Ollama / LM Studio. The list is **not fixed forever**: actual models are fetched automatically from each provider's `GET /v1/models` endpoint (OpenAI format `{"data":[{"id":…}]}`; the Gemini format `{"models":[{"name":…}]}` is supported as well).
+- **Automatic model loading**: opening the page, expanding a provider card or pressing «🔄 Refresh models» updates the list in the background; results are cached in `json/provider_cache.json` (24-hour TTL, timestamp always visible). If the endpoint is unreachable, the last good list is shown with an error marker. Built-in seed lists cover the fully-offline case.
+- **Provider state tracking**: every check (key/models/network) is recorded in `provider_cache.json` and shown on the card (🟢 working / 🟠 rate limit 429 / 🔴 key rejected · network unavailable · model-list error / ⬜ unchecked). «🔄 Check all» polls every configured provider via its `/models` endpoint without spending tokens.
+- **Custom providers**: «➕ Add provider» (form with URL, models, fallback, extra headers and an **optional models-list URL**) or «🌐 Catalogue» for one-click add with auto model loading. The models endpoint can be filled via «🔄 Load models from endpoint» right in the form; when empty it is derived automatically (`…/chat/completions` → `…/models`). Catalogue and custom providers join the fallback chain like built-ins.
+- `json/provider_cache.json` never contains keys — only model ids, timestamps and error texts; it is safe to delete (it will be recreated).
+
 ---
 
 ## CPU, CUDA, and performance
@@ -710,6 +760,7 @@ If no window is visible but the lock is held, the dialog asks the user to inspec
 add bundled site-packages to sys.path
   → single-instance lock
   → Cyrillic-path check
+  → CPML consent (license screen, no TTS imports)
   → startup install flags
   → optional safe Torch install before GUI
   → isolated full diagnostics under Tk splash
@@ -721,7 +772,7 @@ add bundled site-packages to sys.path
   → mainloop()
 ```
 
-A comment in `main()` calls `check_startup_health()` the first update operation. Process-wide, lock/path/environment preflight has already run before `main()` is entered. This is intentional: recovery must happen before heavy imports.
+A comment in `main()` calls `check_startup_health()` the first update operation. Process-wide, lock/path/CPML consent/environment preflight has already run before `main()` is entered. This is intentional: recovery must happen before heavy imports.
 
 #### Safe Torch installation before GUI imports
 
@@ -768,6 +819,7 @@ After preflight, `main()` calls `updater.check_startup_health()`:
 
 | Path | Purpose |
 |------|---------|
+| `json/cpml_consent.json` | local explicit CPML consent of this user |
 | `.env_diagnostics_cache.json` | cache of a fully successful diagnostics run |
 | `.known_safe_files.json` | scanner safe/unsafe/deleted history |
 | `.torch_install_checkpoint.json` | interrupted Torch installation stage |
@@ -794,6 +846,7 @@ Do not delete a checkpoint file during an active installation: it is needed for 
 | `XTTS Studio.exe` | launcher executable wrapper; launches `python\runtime\python.exe gui.py` with custom icon | no, if this is how you start the application |
 | `json/version.json`, `checksums.txt` | installed version, update manifest (`json/version.json.sig`), and file verification | not recommended |
 | `json/settings.json` | GUI settings and all quality presets | yes, but settings reset |
+| `json/cpml_consent.json` | explicit CPML consent, per installation | yes; the app asks for it again |
 | `json/theme_settings.json` | theme, layout, neon, UI presets | yes, but theme settings reset |
 | `json/gpt_settings.json` | AI providers, models, and encrypted API keys | only if you are ready to configure them again |
 | `json/word_rules.json` | pronunciation dictionary | avoid without a backup |
@@ -884,6 +937,10 @@ The scanner uses quarantine and post-move diagnostics before permanent deletion.
 
 Check the API key, selected model, provider availability, and VPN requirements. For a fully local workflow, select a GGUF model or disable AI.
 
+### Generation fails with CoquiTosNotAgreedError
+
+This means the XTTS v2 license (CPML) has not been accepted yet — it is a license requirement, not an app bug. Open **⚙ Settings → 📜 XTTS v2 License (CPML) → Review / accept license**, read the terms and click **Accept and continue**, then retry generation. Pressing **Generate** or starting batch processing without consent also opens the confirmation automatically before tasks are queued; if a generation error occurs, the consent screen is shown on top of the main window — no restart needed. If consent cannot be saved, check the dialog message, the write access to `json/cpml_consent.json` and free disk space, or set `COQUI_TOS_AGREED=1` and restart. Do not copy the consent file between installations. If the app folder is read-only, consent applies to the current session — see `logs/startup_recovery_error.log` for details.
+
 ### The application rolled back after an update
 
 The updater first applies files through staging and writes a confirmation marker. If the next startup is not confirmed, the backup is restored. Check logs and the system-settings window for diagnostics.
@@ -898,6 +955,8 @@ Code is separated by responsibility:
 |------|----------------|
 | `gui.py` | single-instance lock, path validation, pre-GUI diagnostics/recovery, and updater-status handoff |
 | `engine/tts/` | generation pipeline, QC, export, and cache |
+| `engine/cpml_consent.py` | explicit CPML consent (stdlib-only): consent storage and pre-generation check |
+| `engine/gui/license_consent.py` | reusable CPML consent screen (startup, preflight gates, Settings) |
 | `engine/gui/` | main window and user-facing panels |
 | `engine/env_core/__init__.py` | public system-environment facade |
 | `engine/env_core/cpu_gpu.py` | CPU flags and GPU vendor/CUDA/VRAM detection |
@@ -1038,6 +1097,8 @@ Check the license of each component before use — especially for commercial wor
 | GGUF models | depends on the model author | not implied |
 
 The full list of runtime dependencies is in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md), auto-generated from the SBOM (`tools/generate_third_party_notices.py`). An RVC/GGUF entry in the catalogue or the ability to download a model **does not** imply permission for commercial use — check the specific model's license with its author.
+
+**CPML consent for XTTS v2.** The app requests explicit confirmation before the first XTTS load and stores it only locally (`json/cpml_consent.json`, excluded from Git and from the release payload). The license can be reopened at any time from the system settings. The `COQUI_TOS_AGREED=1` variable is honoured as an explicit user opt-in and additionally persisted to the file (best-effort).
 
 **License notice on first download.** Before an RVC or GGUF model download starts, the application shows a modal license notice: the model may carry restrictions on commercial use; confirmation is required before the download begins.
 
