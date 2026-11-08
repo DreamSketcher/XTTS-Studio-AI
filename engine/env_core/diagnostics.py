@@ -1366,7 +1366,7 @@ def run_error_recovery(progress_cb=None) -> list:
         "pygame": "pygame==2.6.1",
         "customtkinter": "customtkinter==6.0.0",
         "num2words": "num2words==0.5.14",
-        "cryptography": "cryptography==49.0.0",
+        "cryptography": "cryptography==50.0.0",
         "llama_cpp": "llama-cpp-python",
         "soundfile": "soundfile==0.14.0",
         "rvc_python": "rvc-python",
