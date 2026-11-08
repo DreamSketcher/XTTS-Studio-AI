@@ -128,6 +128,10 @@ def mock_gen_deps(monkeypatch):
     monkeypatch.setattr(gen, "set_status", MagicMock())
     monkeypatch.setattr(gen, "set_stage", MagicMock())
     monkeypatch.setattr(gen, "set_progress", MagicMock())
+    # Моковый root не является Tk-виджетом — предложение скачать движок
+    # (_request_engine_offer → Toplevel) зависло бы в Misc._root() навсегда.
+    # Предложение проверяется отдельно в test/test_xtts_engine.py.
+    monkeypatch.setattr(gen, "_request_engine_offer", MagicMock())
     monkeypatch.setattr(gen, "lock_textbox", MagicMock())
     monkeypatch.setattr(gen, "unlock_textbox", MagicMock())
     monkeypatch.setattr(gen, "clear_chunk_highlight", MagicMock())
@@ -258,6 +262,7 @@ class TestPreloadModel:
 
     def test_preload_success(self, mock_gen_deps, monkeypatch):
         monkeypatch.delenv("OPEN_UPDATES_ON_STARTUP", raising=False)
+        monkeypatch.setattr(gen, "_engine_missing", lambda: False)  # движок на месте
         mock_get_tts = MagicMock(return_value=object())
         monkeypatch.setitem(
             __import__("sys").modules, "engine.tts_runner", MagicMock(get_tts=mock_get_tts)
@@ -266,6 +271,7 @@ class TestPreloadModel:
 
     def test_preload_failure(self, mock_gen_deps, monkeypatch):
         monkeypatch.delenv("OPEN_UPDATES_ON_STARTUP", raising=False)
+        monkeypatch.setattr(gen, "_engine_missing", lambda: False)  # движок на месте
 
         def failing_get_tts():
             raise Exception("model fail")
