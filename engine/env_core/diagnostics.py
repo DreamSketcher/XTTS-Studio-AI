@@ -50,11 +50,20 @@ CRITICAL_COMPONENTS = {
 OPTIONAL_COMPONENTS = {"llama_cpp", "rvc_python"}
 
 
+# XTTS-движок (модели) НЕ участвует в блокирующем pre-GUI восстановлении:
+# у него отдельный путь — фоновая предзагрузка модели в engine/gui/generation.py
+# с диалогом «Скачать движок?» (см. engine/xtts_engine.py, engine/gui/engine_download.py).
+# Иначе при старте вместо предложения загрузить модель всплывало бы окно
+# восстановления библиотек, не способное помочь (pip-пакеты тут ни при чём).
+ENGINE_STATUS_KEY = "xtts_engine"
+
+
 def get_broken_critical(results: dict) -> list:
     """
     Возвращает список ДЕЙСТВИТЕЛЬНО неисправных критичных компонентов из
     результата run_full_diagnostics(): исключает опциональные модули
-    (llama_cpp, rvc_python) и компоненты со статусом SKIPPED (ожидают
+    (llama_cpp, rvc_python), компонент движка (xtts_engine — у него свой
+    путь восстановления) и компоненты со статусом SKIPPED (ожидают
     починки numpy, а не сломаны сами по себе).
     Использовать вместо ручного дублирования критериев "что считать
     сломанным" в разных окнах GUI.
@@ -63,6 +72,7 @@ def get_broken_critical(results: dict) -> list:
         k
         for k, v in results.items()
         if k in CRITICAL_COMPONENTS
+        and k != ENGINE_STATUS_KEY
         and v is not True
         and not (isinstance(v, str) and v.startswith("SKIPPED"))
     ]
@@ -675,6 +685,22 @@ print("SUB_RESULT=" + json.dumps(results))
         err_text = str(e)
         for k in _ALL_KEYS:
             results[k] = err_text
+
+    # ── XTTS-движок (models/xtts_v2) ───────────────────────────────────────
+    # В отличие от pip-пакетов выше, это файлы модели на диске. Проверяем
+    # дёшево (stat, без хеширования 1,9 ГБ) и показываем как отдельную строку
+    # в отчёте диагностики/настройках. На блокирующее восстановление НЕ
+    # влияет (см. ENGINE_STATUS_KEY выше) — фоновая предзагрузка сама
+    # предложит скачивание.
+    try:
+        from engine import xtts_engine as _xtts_engine
+
+        _eng = _xtts_engine.engine_status(deep=False)
+        results["xtts_engine"] = (
+            True if _eng["state"] == "ok" else f"engine missing: {', '.join(_eng['missing'])}"
+        )
+    except Exception as _eng_err:
+        results["xtts_engine"] = f"engine check failed: {_eng_err}"
 
     is_all_ok = results and all(v is True for v in results.values())
 

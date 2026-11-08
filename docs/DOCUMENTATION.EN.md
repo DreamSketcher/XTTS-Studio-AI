@@ -96,6 +96,20 @@ This means users do not need to download and unpack the multi-gigabyte portable 
 
 `XTTS Studio.exe` is part of the update manifest as well. If launch paths change, the updater replaces the launcher together with the other changed files.
 
+### XTTS v2 engine: separate download
+
+The application code and the voice engine are two independent components:
+
+- the **code** is updated by the built-in updater (see above) or installed from the portable archive published on GitHub Releases;
+- the **XTTS v2 engine** — the core model files (~1.9 GB, under `models/xtts_v2/`) — is not in the repository and is downloaded automatically on first launch.
+
+If the engine is missing (or files are damaged) at startup, the app immediately shows the «⬇ Download XTTS v2 engine» dialog:
+
+- **“Download”** — the files are fetched from the official Coqui repository on HuggingFace (`coqui/XTTS-v2`, pinned revision): SHA-256 for the `.pth` files, exact sizes for all files, JSON validation of config/vocab, atomic installation; interrupted downloads resume where they stopped on the next attempt;
+- **“Later”** — generation is unavailable until the engine is installed; you can also place the files into `models/xtts_v2/` manually (same official source): `model.pth`, `speakers_xtts.pth`, `config.json`, `vocab.json`, `hash.md5`.
+
+The engine is downloaded only once; files that are already valid are not re-downloaded. A full portable build still ships the engine — no download is then required. By downloading the engine you accept the CPML (see below).
+
 ### First launch: XTTS v2 license screen (CPML)
 
 The XTTS v2 voice engine is distributed under the [Coqui Public Model License (CPML)](https://coqui.ai/cpml). On first launch the app shows a one-time «📜 Coqui Public Model License (CPML)» screen — press «Согласен, продолжить» (I agree, continue) to accept the license. Speech generation is unavailable until you accept: the task fails with `CoquiTosNotAgreedError` and the app shows the same consent screen on top of the main window.

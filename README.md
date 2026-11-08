@@ -210,6 +210,8 @@ Heavy optional components are installed into portable `python/xtts_env`, not sys
 The build runs on CPU immediately. For a compatible NVIDIA GPU, install the CUDA variant through **⚙ Settings → Acceleration**.
 
 > The portable archive is several gigabytes because it includes the Python environment and models. Do not install its dependencies over system Python.
+>
+> **The engine can also be downloaded separately.** If the XTTS v2 model files (~1.9 GB, `models/xtts_v2/`) are missing at startup, the app offers to download them from the official Coqui repository on HuggingFace (`coqui/XTTS-v2`, pinned revision) and verifies every file by SHA-256/exact size before use. Interrupted downloads resume. The full portable build still ships the engine for offline installs.
 
 ---
 
