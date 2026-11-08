@@ -4,6 +4,7 @@
 минимальной среде. Регрессия для issue #4: CoquiTosNotAgreedError при
 генерации, несмотря на COQUI_TOS_AGREED=1 и перезапуски.
 """
+
 import json
 import os
 

@@ -748,7 +748,9 @@ def _ensure_coqui_tos_agreed_before_startup():
         # и показываем messagebox, чтобы сбой не был молчаливым.
         err_trace = traceback.format_exc()
         _log_startup_error(f"Модуль согласия CPML недоступен: {e}\n{err_trace}")
-        print(f"[Core Setup] Модуль согласия CPML недоступен ({e}) — см. logs/startup_recovery_error.log")
+        print(
+            f"[Core Setup] Модуль согласия CPML недоступен ({e}) — см. logs/startup_recovery_error.log"
+        )
         try:
             import tkinter as tk
             from tkinter import messagebox
