@@ -113,7 +113,8 @@ It also does not promise that every reference or RVC model will sound good. The 
 - AI Conductor assigns parameters and pauses per chunk;
 - optional style rewrite;
 - AI chat with provider fallback;
-- Groq, OpenRouter, and custom OpenAI-compatible APIs;
+- a built-in catalogue of 21 providers (Groq, OpenAI, Anthropic, Gemini, DeepSeek, xAI, Mistral, OpenRouter, …) plus custom OpenAI-compatible APIs;
+- live model lists auto-loaded from each provider's `/v1/models` endpoint, cached and health-tracked per provider;
 - local GGUF models through `llama-cpp-python`.
 
 ### 🎧 Return to previous results

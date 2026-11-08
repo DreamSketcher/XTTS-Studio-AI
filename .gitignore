@@ -27,6 +27,8 @@ git_update.bat
 .llama_broken_backends.json
 gpt_settings.json
 json/gpt_settings.json
+provider_cache.json
+json/provider_cache.json
 
 # =========================
 # PYTHON
@@ -78,6 +80,8 @@ update_github.bat
 # =========================
 gpt_settings.json
 json/gpt_settings.json
+provider_cache.json
+json/provider_cache.json
 chat_history.json
 json/chat_history.json
 history.json

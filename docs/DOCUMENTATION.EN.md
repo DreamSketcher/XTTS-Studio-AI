@@ -499,6 +499,16 @@ For maximum privacy, use a local GGUF model or disable AI features.
 
 Keys are stored in `gpt_settings.json`. Providers can form a fallback chain: active → other configured built-ins → custom. Never publish `gpt_settings.json` with real API keys.
 
+### AI providers: catalogue, live model loading and state tracking
+
+The **AI Settings → Cloud and custom API providers** tab manages every AI provider in the app:
+
+- **Built-in catalogue (21 providers)**: Groq, OpenRouter, Together AI, Mistral, DeepInfra, OpenAI, Anthropic (Claude), Google Gemini, DeepSeek, xAI (Grok), Cerebras, SambaNova, Fireworks, Novita, Hyperbolic, NVIDIA NIM, Chutes AI, VseGPT, AITUNNEL, ProxyAPI and local Ollama / LM Studio. The list is **not fixed forever**: actual models are fetched automatically from each provider's `GET /v1/models` endpoint (OpenAI format `{"data":[{"id":…}]}`; the Gemini format `{"models":[{"name":…}]}` is supported as well).
+- **Automatic model loading**: opening the page, expanding a provider card or pressing «🔄 Refresh models» updates the list in the background; results are cached in `json/provider_cache.json` (24-hour TTL, timestamp always visible). If the endpoint is unreachable, the last good list is shown with an error marker. Built-in seed lists cover the fully-offline case.
+- **Provider state tracking**: every check (key/models/network) is recorded in `provider_cache.json` and shown on the card (🟢 working / 🟠 rate limit 429 / 🔴 key rejected · network unavailable · model-list error / ⬜ unchecked). «🔄 Check all» polls every configured provider via its `/models` endpoint without spending tokens.
+- **Custom providers**: «➕ Add provider» (form with URL, models, fallback, extra headers and an **optional models-list URL**) or «🌐 Catalogue» for one-click add with auto model loading. The models endpoint can be filled via «🔄 Load models from endpoint» right in the form; when empty it is derived automatically (`…/chat/completions` → `…/models`). Catalogue and custom providers join the fallback chain like built-ins.
+- `json/provider_cache.json` never contains keys — only model ids, timestamps and error texts; it is safe to delete (it will be recreated).
+
 ---
 
 ## CPU, CUDA, and performance
