@@ -940,8 +940,10 @@ def _ensure_coqui_tos_agreed_before_startup():
             pass
 
 
-_ensure_dependencies_before_startup()
+# Согласие с CPML — ДО восстановления зависимостей и импорта TTS (issue #4):
+# модуль согласия stdlib-only, лицензионное решение не может ждать сборки окружения.
 _ensure_coqui_tos_agreed_before_startup()
+_ensure_dependencies_before_startup()
 
 from engine import updater
 from engine.gui.main_window import create_main_window

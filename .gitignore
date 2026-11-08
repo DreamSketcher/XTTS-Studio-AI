@@ -38,6 +38,7 @@ __pycache__/
 *.log
 
 venv/
+.venv/
 env/
 .python/
 python/
@@ -115,5 +116,6 @@ AUDIT_REPORT.md
 
 # Git Manager PRO — runtime session logs (added automatically)
 /.git_manager_logs/
-/.git_manager_secrets.json 
+/.git_manager_secrets.json
+ 
  
