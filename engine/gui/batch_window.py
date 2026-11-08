@@ -26,6 +26,7 @@ except ImportError:
     ICON_PATH = os.path.join(str(BASE_DIR), "icon.ico")
 
 from engine.gui.colors import Colors, scaled_font_size, scaled_size
+from engine.gui.license_consent import confirm_coqui_tos
 from engine.gui.tooltip import ToolTip
 from engine.gui.widgets import CompatCTkFrame, CompatCTkButton, CompatCTkLabel
 import customtkinter as ctk
@@ -354,6 +355,8 @@ def open_batch_window():
             messagebox.showerror("❌ Ошибка", "Сначала выберите голос-референс", parent=win)
             return
         if not _files:
+            return
+        if not confirm_coqui_tos(parent=win, source="batch-dialog"):
             return
         quality_name = _quality_var.get()
         if quality_name not in _quality_params:

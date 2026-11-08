@@ -481,6 +481,55 @@ class EnvSettingsWindow(ctk.CTkToplevel):
         )
         self.btn_check.pack(anchor="w", padx=15, pady=(5, 15))
 
+        # --- Лицензия XTTS v2: доступна и после первого запуска (issue #4) ---
+        from engine.coqui_consent import is_coqui_tos_agreed
+        from engine.gui.license_consent import confirm_coqui_tos
+
+        sec_license = ctk.CTkFrame(
+            outer_frame, fg_color=bg_input, border_width=1, border_color=border_color
+        )
+        sec_license.pack(fill="x", pady=(0, 15), padx=5)
+        ctk.CTkLabel(
+            sec_license,
+            text=t("cpml_section_title"),
+            font=ctk.CTkFont(weight="bold", size=14),
+            text_color=text_main,
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+        self.lbl_cpml_status = ctk.CTkLabel(
+            sec_license,
+            text=(
+                t("cpml_status_agreed") if is_coqui_tos_agreed() else t("cpml_status_not_agreed")
+            ),
+            text_color=text_dim,
+            anchor="w",
+            justify="left",
+            wraplength=540,
+        )
+        self.lbl_cpml_status.pack(anchor="w", fill="x", padx=15, pady=2)
+
+        def review_cpml():
+            if confirm_coqui_tos(parent=self, source="settings-dialog", review=True):
+                self.lbl_cpml_status.configure(text=t("cpml_status_agreed"))
+
+        self.btn_cpml = ctk.CTkButton(
+            sec_license,
+            text=t("cpml_btn_review"),
+            command=review_cpml,
+            fg_color=btn_color,
+            hover_color=bg_hover,
+            text_color=text_main,
+        )
+        self.btn_cpml.pack(anchor="w", padx=15, pady=(5, 8))
+        ctk.CTkLabel(
+            sec_license,
+            text=t("cpml_environment_hint"),
+            text_color=text_dim,
+            font=ctk.CTkFont(size=11),
+            anchor="w",
+            justify="left",
+            wraplength=540,
+        ).pack(anchor="w", fill="x", padx=15, pady=(0, 10))
+
         # --- СЕКЦИЯ 2: Ускорение (CPU/GPU) ---
         sec_accel = ctk.CTkFrame(
             outer_frame, fg_color=bg_input, border_width=1, border_color=border_color

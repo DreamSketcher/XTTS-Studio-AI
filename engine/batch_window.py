@@ -26,6 +26,7 @@ from tkinter import filedialog, messagebox
 # не нарушает архитектурный принцип файла — сам Colors по-прежнему
 # приходит через init(), как и раньше.
 from engine.gui.colors import scaled_font_size
+from engine.gui.license_consent import confirm_coqui_tos
 from engine.task_models import Task
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -229,6 +230,8 @@ def open_batch_window():
             messagebox.showerror("❌ Ошибка", "Сначала выберите голос-референс", parent=win)
             return
         if not _files:
+            return
+        if not confirm_coqui_tos(parent=win, source="batch-dialog"):
             return
         quality_name = _quality_var.get()
         if quality_name not in _quality_params:

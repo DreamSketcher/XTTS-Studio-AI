@@ -20,6 +20,7 @@ from engine.text_tools import normalize_text
 from engine.logging_utils import write_log
 from engine.history_store import _save_history
 from engine.gui import textbox
+from engine.gui.license_consent import confirm_coqui_tos
 from engine.gui.statusbar import set_status, set_stage, set_progress
 from engine.gui.textbox import (
     lock_textbox,
@@ -306,6 +307,10 @@ def generate():
         return
     if not ref or not os.path.isfile(ref):
         messagebox.showerror("❌", t("dlg_error_no_ref"))
+        return
+    # Recover in the UI if consent was removed/corrupted after startup, rather
+    # than queueing a task that stops at get_tts() with a raw license error.
+    if not confirm_coqui_tos(parent=root, source="generation-dialog"):
         return
     current_text_snapshot = text
     # _highlight_pos живёт в engine.gui.textbox (та же переменная, что и раньше)

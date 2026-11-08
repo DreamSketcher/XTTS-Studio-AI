@@ -124,6 +124,7 @@ def mock_gen_deps(monkeypatch):
     monkeypatch.setattr(gen, "current_task", None)
     monkeypatch.setattr(gen, "model_ready", False)
     monkeypatch.setattr(gen, "PYGAME_OK", False)
+    monkeypatch.setattr(gen, "confirm_coqui_tos", MagicMock(return_value=True))
     monkeypatch.setattr(gen, "normalize_text", lambda x: x.strip())
     monkeypatch.setattr(gen, "set_status", MagicMock())
     monkeypatch.setattr(gen, "set_stage", MagicMock())
@@ -285,6 +286,36 @@ class TestGenerateAndCancel:
         monkeypatch.setattr(os.path, "isfile", lambda x: True)
         gen.generate()
         assert mock_gen_deps["task_manager"].add_task.called
+
+    def test_generate_prompts_before_queue_when_consent_is_missing(
+        self, mock_gen_deps, monkeypatch, tmp_path
+    ):
+        ref_file = tmp_path / "ref.wav"
+        ref_file.write_text("fake")
+        mock_gen_deps["ref_var"].get.return_value = str(ref_file)
+        confirm = MagicMock(return_value=False)
+        monkeypatch.setattr(gen, "confirm_coqui_tos", confirm)
+
+        gen.generate()
+
+        confirm.assert_called_once_with(parent=gen.root, source="generation-dialog")
+        mock_gen_deps["task_manager"].add_task.assert_not_called()
+        gen.lock_textbox.assert_not_called()
+        assert gen.current_task is None
+
+    def test_generate_continues_after_explicit_confirmation(
+        self, mock_gen_deps, monkeypatch, tmp_path
+    ):
+        ref_file = tmp_path / "ref.wav"
+        ref_file.write_text("fake")
+        mock_gen_deps["ref_var"].get.return_value = str(ref_file)
+        confirm = MagicMock(return_value=True)
+        monkeypatch.setattr(gen, "confirm_coqui_tos", confirm)
+
+        gen.generate()
+
+        confirm.assert_called_once_with(parent=gen.root, source="generation-dialog")
+        mock_gen_deps["task_manager"].add_task.assert_called_once()
 
     def test_generate_empty_text(self, mock_gen_deps, monkeypatch):
         mock_gen_deps["text_box"].get.return_value = "   "
