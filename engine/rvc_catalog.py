@@ -92,7 +92,7 @@ VOICE_MODELS_UA = (
 MAX_RETRIES = 4
 SEARCH_MAX_RESULTS = 30
 SEARCH_PAGES = 1  # 1 страница: меньше таймаутов/трафика; seed уже даёт базу
-VM_SEARCH_TIMEOUT = 8  # сек; voice-models часто тормозит из РФ/на медленном канале
+VM_SEARCH_TIMEOUT = 8  # сек; voice-models.dev часто отвечает медленно
 VM_SEARCH_ATTEMPTS = 1  # без ретраев: KeyRelease и так шлёт много запросов
 
 # Не долбим GitHub 4×1.5–4.5с на каждый open dropdown / search.

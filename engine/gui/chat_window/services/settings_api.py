@@ -548,10 +548,32 @@ def build_api_page(ctx):
 
             card_model_var = tk.StringVar(value=cur_model or (models[0] if models else ""))
             if models:
-                for m in models:
+                model_health_map = gpt_client.get_model_health(pid)
+                model_health_glyphs = {
+                    "ok": "🟢",
+                    "gone": "🔴",
+                    "rate_limited": "🟠",
+                    "invalid_key": "🔑",
+                    "network_error": "🌐",
+                    "error": "🔴",
+                }
+                MAX_SHOWN_MODELS = 60
+                shown_models = list(models[:MAX_SHOWN_MODELS])
+                truncated_models = len(models) - len(shown_models)
+                _current_model = card_model_var.get()
+                if (
+                    _current_model
+                    and _current_model in models
+                    and _current_model not in shown_models
+                ):
+                    shown_models = [_current_model] + shown_models[: MAX_SHOWN_MODELS - 1]
+                    truncated_models = len(models) - len(shown_models)
+                for m in shown_models:
+                    _state_name = (model_health_map.get(m) or {}).get("state") or ""
+                    _glyph = model_health_glyphs.get(_state_name, "")
                     tk.Radiobutton(
                         body,
-                        text=m,
+                        text=f"{_glyph} {m}" if _glyph else m,
                         variable=card_model_var,
                         value=m,
                         bg=_c("BG_CARD"),
@@ -562,6 +584,15 @@ def build_api_page(ctx):
                         anchor="w",
                         cursor="hand2",
                     ).pack(fill="x", anchor="w")
+                if truncated_models > 0:
+                    TkLabel(
+                        body,
+                        text=t("chat_models_more", truncated_models),
+                        bg=_c("BG_CARD"),
+                        fg=_c("TEXT_DIM"),
+                        font=("Segoe UI", 10),
+                        anchor="w",
+                    ).pack(anchor="w")
             else:
                 TkLabel(
                     body,
@@ -580,6 +611,75 @@ def build_api_page(ctx):
                 anchor="w",
             )
             card_status.pack(fill="x", pady=(8, 4))
+
+            def _probe_models(p=pid, info_label=info.get("label", pid)):
+                count = len(gpt_client.get_provider_models(p)["models"])
+                if not messagebox.askyesno(
+                    t("chat_probe_confirm_title"),
+                    t("chat_probe_confirm_msg", count, info_label),
+                    parent=win,
+                ):
+                    return
+                card_status.config(text=t("chat_probe_progress"), fg=_c("TEXT_DIM"))
+                bridge = state._ui_bridge
+                if bridge is not None:
+                    bridge.begin()
+
+                def worker():
+                    try:
+                        result = gpt_client.probe_models_availability(
+                            p, workers=8 if count > 60 else 4
+                        )
+                    except Exception as error:
+                        result = {
+                            "ok": 0,
+                            "total": 0,
+                            "gone": 0,
+                            "rate_limited": 0,
+                            "results": {},
+                            "error": str(error),
+                        }
+                    if bridge is not None:
+                        bridge.producer_done()
+
+                    def done():
+                        if not card_status.winfo_exists():
+                            return
+                        if result.get("error"):
+                            card_status.config(text=str(result["error"]), fg=_c("TEXT_ERROR"))
+                        else:
+                            card_status.config(
+                                text=t(
+                                    "chat_probe_done",
+                                    result["ok"],
+                                    result.get("gone", 0),
+                                    result.get("rate_limited", 0),
+                                    result["total"],
+                                ),
+                                fg=_c("TEXT_SUCCESS") if result["ok"] else _c("TEXT_ERROR"),
+                            )
+                        try:
+                            _rebuild_accordion()
+                        except Exception:
+                            pass
+
+                    if bridge is not None:
+                        bridge.post(done)
+                    else:
+                        _safe_after(0, done)
+
+                threading.Thread(target=worker, daemon=True).start()
+
+            _make_button(
+                models_label_row,
+                t("chat_btn_probe_models"),
+                _probe_models,
+                bg=_c("BG_INPUT"),
+                font_size=9,
+                height=1,
+                padx=6,
+                pady=1,
+            ).pack(side="right", padx=(0, 4))
 
             def _save_card(p=pid, kv=card_key_var, mv=card_model_var, st=card_status):
                 try:

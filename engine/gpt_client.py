@@ -1,32 +1,34 @@
 """
-engine/gpt_client.py — AI client for XTTS Studio AI (Groq + OpenRouter + российский OpenAI-совместимый прокси)
+engine/gpt_client.py — AI-клиент XTTS Studio AI (OpenAI-совместимые провайдеры)
 
 Provides:
   - chat(prompt, history)          — free chat with conversation history
   - improve_for_tts(text)          — rewrite text for better TTS output
   - get_api_key() / set_api_key()  — key management for active provider
-  - get_provider() / set_provider()— "groq" | "openrouter" | "proxy"
+  - get_provider() / set_provider()— id провайдера из PROVIDERS / каталога
   - get_model() / set_model()      — модель активного провайдера
 
-Зачем нужны "openrouter" и "proxy":
-  Groq (и большинство западных AI-API) недоступны из России без VPN.
+Провайдеры:
+  Все говорят по одному протоколу OpenAI /v1/chat/completions, поэтому список
+  открыт: любой совместимый сервис (OpenRouter, Mistral, DeepSeek, локальные
+  ollama / LM Studio, прокси-агрегаторы) добавляется карточкой в «Настройки AI».
 
-  "openrouter" — сам сервис OpenRouter (openrouter.ai). Его сайт и API
-  не блокируются в РФ и работают без VPN; единственное ограничение —
-  оплата российской картой может не пройти (нужна крипта/посредник),
-  на сам доступ к API это не влияет.
+  "openrouter" — агрегатор сотен моделей (openrouter.ai): один ключ, много
+  вендоров; "proxy" — любой OpenAI-совместимый агрегатор/прокси (ProxyAPI,
+  AITUNNEL, VseGPT и т. п.): достаточно поменять PROXY_BASE_URL и ключ.
 
-  "proxy" — российский OpenAI-совместимый агрегатор (ProxyAPI / AITUNNEL /
-  VseGPT — любой из них подходит, т.к. все говорят одним протоколом
-  /v1/chat/completions). Работает напрямую из РФ, без VPN, оплата в рублях.
-  Чтобы переключиться — достаточно изменить PROXY_BASE_URL ниже на адрес
-  выбранного сервиса и указать его ключ в настройках приложения.
+Доступность моделей:
+  Списки моделей подтягиваются живьём с /v1/models (кэш json/provider_cache.json),
+  probe_models_availability() проверяет доступность каждой модели одним ключом,
+  а _call_with_chain() автоматически пропускает снятые у провайдера модели.
 """
 
+import concurrent.futures
 import ipaddress
 import json
 import os
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -39,6 +41,12 @@ from engine.secret_store import is_protected, protect_secret, unprotect_secret
 
 class GroqRateLimitError(RuntimeError):
     """429 — лимит токенов/запросов на стороне провайдера для конкретной модели."""
+
+    pass
+
+
+class ModelGoneError(RuntimeError):
+    """Модель недоступна/снята у провайдера (404 / model_not_found / no endpoints found)."""
 
     pass
 
@@ -67,12 +75,12 @@ PROVIDERS = {
     "groq": {
         "label": _t("prov_groq"),
         "url": GROQ_API_URL,
-        "default_model": "llama-3.3-70b-versatile",
-        "fallback_model": "llama-3.1-8b-instant",
+        "default_model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "fallback_model": "openai/gpt-oss-20b",
         "models": [
-            "llama-3.3-70b-versatile",
-            "llama-3.1-8b-instant",
-            "mixtral-8x7b-32768",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
             "gemma2-9b-it",
         ],
         "key_hint": "https://console.groq.com/keys",
@@ -85,7 +93,7 @@ PROVIDERS = {
         "models": [
             "openai/gpt-4o-mini",
             "openai/gpt-4o",
-            "anthropic/claude-3.5-sonnet",
+            "google/gemini-2.0-flash-001",
             "deepseek/deepseek-chat",
             "meta-llama/llama-3.1-8b-instruct:free",
         ],
@@ -229,10 +237,12 @@ PROVIDER_CATALOGUE = [
         "notes": _t("cat_mistral_notes"),
         "models": [
             "mistral-large-latest",
+            "mistral-medium-2508",
             "mistral-small-latest",
             "codestral-latest",
-            "open-mixtral-8x22b",
+            "devstral-small-latest",
             "open-mistral-nemo",
+            "ministral-3b-latest",
         ],
     },
     {
@@ -670,13 +680,15 @@ def _read_cache() -> dict:
         if isinstance(data, dict):
             models = data.get("models")
             health = data.get("health")
+            model_health = data.get("models_health")
             return {
                 "models": models if isinstance(models, dict) else {},
                 "health": health if isinstance(health, dict) else {},
+                "models_health": model_health if isinstance(model_health, dict) else {},
             }
     except Exception:
         pass
-    return {"models": {}, "health": {}}
+    return {"models": {}, "health": {}, "models_health": {}}
 
 
 def _write_cache(cache: dict):
@@ -833,11 +845,251 @@ def get_provider_health(pid: str = None):
     return {k: _norm(v) for k, v in health.items()}
 
 
+MODEL_HEALTH_STATES = (
+    "ok",
+    "gone",  # модель снята/не найдена у провайдера — пропускаем в цепочке
+    "rate_limited",
+    "invalid_key",
+    "network_error",
+    "error",
+    "unknown",
+)
+_MAX_LIVE_MODELS_IN_CHAIN = 5
+
+
+def get_model_health(pid: str, model: str = None):
+    """Состояния моделей провайдера: {model: {state, detail, ts}} или одна модель."""
+    section = _read_cache()["models_health"].get(pid) or {}
+    norm = {}
+    for m, entry in section.items():
+        if not isinstance(entry, dict):
+            continue
+        norm[str(m)] = {
+            "state": entry.get("state") or "error",
+            "detail": entry.get("detail") or "",
+            "ts": entry.get("ts") if isinstance(entry.get("ts"), (int, float)) else None,
+        }
+    if model is not None:
+        return norm.get(model) or {"state": "unknown", "detail": "", "ts": None}
+    return norm
+
+
+def get_gone_models(pid: str) -> set[str]:
+    return {m for m, v in get_model_health(pid).items() if v.get("state") == "gone"}
+
+
+def record_model_states(pid: str, results: dict):
+    """results: {model: (state, detail)} — одна атомарная запись на диск."""
+    if not results:
+        return
+    cache = _read_cache()
+    section = cache["models_health"].setdefault(pid, {})
+    now = time.time()
+    for model, payload in results.items():
+        try:
+            state, detail = payload
+        except Exception:
+            state, detail = payload, ""
+        if state not in MODEL_HEALTH_STATES:
+            state = "error"
+        section[str(model)] = {
+            "state": state,
+            "detail": str(detail or "")[:300],
+            "ts": now,
+        }
+    _write_cache(cache)
+
+
+def record_model_state(pid: str, model: str, state: str, detail: str = ""):
+    record_model_states(pid, {model: (state, detail)})
+
+
+def _live_chain_models(pid: str, limit: int = _MAX_LIVE_MODELS_IN_CHAIN) -> list[str]:
+    """Живые модели из кэша для цепочки (явно снятые исключаем)."""
+    try:
+        meta = get_models_cache_meta(pid)
+    except Exception:
+        return []
+    gone = get_gone_models(pid)
+    out: list[str] = []
+    for m in meta.get("models") or []:
+        if m in gone:
+            continue
+        out.append(m)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _models_to_try(provider: str) -> list[str]:
+    """primary → fallback → до 5 живых моделей; снятые у провайдера пропускаем."""
+    primary = (get_model(provider) or "").strip()
+    fallback = (get_fallback_model(provider) or "").strip()
+    gone = get_gone_models(provider)
+    out: list[str] = []
+    seen: set[str] = set()
+    for m in [primary, fallback] + _live_chain_models(provider):
+        m = (m or "").strip()
+        if not m or m in seen or m in gone:
+            continue
+        seen.add(m)
+        out.append(m)
+    if not out:
+        # всё помечено недоступным — пробуем primary хотя бы ради осмысленной ошибки
+        for m in (primary, fallback):
+            if m:
+                out.append(m)
+                break
+    return out
+
+
+def probe_models_availability(
+    pid: str,
+    models: list = None,
+    *,
+    max_models: int = 0,
+    workers: int = 4,
+    max_tokens: int = 1,
+) -> dict:
+    """
+    Проверить доступность КАЖДОЙ модели провайдера одним ключом.
+
+    models=None → берём живой кэш (или встроенный список, если кэша нет).
+    Каждая проверка — короткий ping с max_tokens=1. На платных моделях это
+    может стоить (копейки) — вызывать только по явному запросу пользователя.
+
+    Возвращает {"ok": int, "total": int, "results": {model: state}, "error": None}.
+    """
+    if models is None:
+        models = get_provider_models(pid)["models"]
+    models = [str(m).strip() for m in dict.fromkeys(models or []) if str(m).strip()]
+    if max_models and max_models > 0:
+        models = models[:max_models]
+
+    if models and not get_api_key(pid) and pid != "local":
+        return {
+            "ok": 0,
+            "total": 0,
+            "gone": 0,
+            "rate_limited": 0,
+            "results": {},
+            "error": f"{_t('chat_probe_no_key')}",
+        }
+
+    abort = threading.Event()
+
+    def _probe(model):
+        if abort.is_set():
+            return None
+        try:
+            _call_api(
+                [{"role": "user", "content": "ping"}],
+                model=model,
+                max_tokens=max_tokens,
+                provider=pid,
+            )
+            return model, "ok", ""
+        except ModelGoneError as e:
+            return model, "gone", str(e)
+        except GroqRateLimitError as e:
+            return model, "rate_limited", str(e)
+        except GroqNetworkError as e:
+            return model, "network_error", str(e)
+        except Exception as e:
+            detail = str(e)
+            low = detail.lower()
+            state = (
+                "invalid_key"
+                if any(
+                    x in low
+                    for x in (
+                        "401",
+                        "403",
+                        "unauthorized",
+                        "forbidden",
+                        "invalid",
+                        "api key",
+                        "api-key",
+                        "apikey",
+                        "auth",
+                    )
+                )
+                else "error"
+            )
+            return model, state, detail
+
+    results: dict[str, tuple[str, str]] = {}
+    error: str | None = None
+    if models:
+        workers = max(1, min(int(workers or 1), 8))
+        aborted = False
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_probe, m): m for m in models}
+            pending = set(futures)
+            while pending:
+                done, pending = concurrent.futures.wait(
+                    pending, timeout=None, return_when=concurrent.futures.FIRST_COMPLETED
+                )
+                for fut in done:
+                    try:
+                        payload = fut.result()
+                    except Exception as e:  # защита от неожиданного падения воркера
+                        payload = (futures[fut], "error", str(e))
+                    if payload is None:  # задача отменена после срабатывания abort
+                        continue
+                    model, state, detail = payload
+                    results[model] = (state, detail)
+                # Ключ заведомо не подходит — нет смысла слать сотни запросов.
+                checked = [s for s, _d in results.values()]
+                if len(checked) >= min(4, len(models)) and all(s == "invalid_key" for s in checked):
+                    abort.set()
+                    for fut in pending:
+                        fut.cancel()
+                    aborted = True
+                    error = "Ключ не подходит: первые проверки вернули 401/403. Остальные модели не проверялись."
+                    break
+        record_model_states(pid, results)
+        if aborted:
+            record_provider_state(pid, "invalid_key", "ключ не подходит (401/403)")
+            return {
+                "ok": 0,
+                "total": len(results),
+                "results": {m: s for m, (s, _d) in results.items()},
+                "error": error,
+            }
+
+    states = [s for s, _ in results.values()]
+    ok_count = states.count("ok")
+    gone_count = states.count("gone")
+    limited_count = states.count("rate_limited")
+    if states:
+        if ok_count:
+            record_provider_state(
+                pid, "ok", f"моделей доступно: {ok_count}/{len(states)} (снято {gone_count})"
+            )
+        elif all(s == "invalid_key" for s in states):
+            record_provider_state(pid, "invalid_key", "все модели: ключ не подходит")
+        elif all(s == "network_error" for s in states):
+            record_provider_state(pid, "network_error", "сеть недоступна")
+        elif all(s == "rate_limited" for s in states):
+            record_provider_state(pid, "rate_limited", "429 rate limit")
+        else:
+            record_provider_state(pid, "error", f"доступно: {ok_count}/{len(states)}")
+    return {
+        "ok": ok_count,
+        "total": len(states),
+        "gone": gone_count,
+        "rate_limited": limited_count,
+        "results": {m: s for m, (s, _d) in results.items()},
+        "error": None,
+    }
+
+
 def clear_provider_cache(pid: str):
     """Удалить кэш моделей и health-записи провайдера (после смены url/удаления)."""
     cache = _read_cache()
     removed = False
-    for section in ("models", "health"):
+    for section in ("models", "health", "models_health"):
         if pid in cache[section]:
             del cache[section][pid]
             removed = True
@@ -1326,8 +1578,21 @@ def _call_api(
             raise GroqRateLimitError(f"{info['label']} error 429: {msg}")
         if e.code in (503, 502, 500) or ("model" in msg.lower() and "unavailable" in msg.lower()):
             raise GroqRateLimitError(f"{info['label']} error {e.code} (модель недоступна): {msg}")
-        if e.code == 404 and "no endpoints found" in msg.lower():
-            raise GroqRateLimitError(f"{info['label']} error 404 (модель снята): {msg}")
+        _model_missing = any(
+            x in msg.lower()
+            for x in (
+                "no endpoints found",
+                "model_not_found",
+                "model not found",
+                "does not exist",
+                "not a valid model",
+                "unknown model",
+                "decommissioned",
+                "no longer available",
+            )
+        )
+        if e.code == 404 or (e.code == 400 and _model_missing):
+            raise ModelGoneError(f"{info['label']} error {e.code}: {msg}")
         raise RuntimeError(f"{info['label']} error {e.code}: {msg}")
     except urllib.error.URLError as e:
         raise GroqNetworkError(
@@ -1416,11 +1681,11 @@ def get_chain_diagnostics() -> dict:
             "providers": [
                 {
                     "id": "groq",
-                    "label": "Groq (нужен VPN из РФ)",
+                    "label": "Groq",
                     "status": "active" | "in_chain" | "skipped" | "hidden",
                     "reason": "человекочитаемая причина",
                     "has_key": True/False,
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                     "builtin": True/False,
                 },
                 ...
@@ -1495,17 +1760,17 @@ def _call_with_chain(messages: list, max_tokens: int = 2048) -> str:
     total_attempts = 0
 
     for provider in chain:
-        primary = get_model(provider)
-        fallback = get_fallback_model(provider)
-        models_to_try = [primary] if primary == fallback else [primary, fallback]
-
-        for model in models_to_try:
+        for model in _models_to_try(provider):
             total_attempts += 1
             try:
                 return _call_api(messages, model=model, max_tokens=max_tokens, provider=provider)
             except GroqNetworkError as e:
                 network_failures += 1
                 print(f"[AI] {provider}/{model}: недоступен по сети ({e}), пробую дальше...")
+                continue
+            except ModelGoneError as e:
+                record_model_state(provider, model, "gone", str(e))
+                print(f"[AI] {provider}/{model}: модель недоступна у провайдера, пробую дальше...")
                 continue
             except GroqRateLimitError:
                 print(f"[AI] {provider}/{model}: лимит/недоступна, пробую дальше...")
@@ -1603,6 +1868,39 @@ def preprocess_for_tts(text: str, mode: str = "assistant") -> str:
     )
 
 
+def _ping_for_validation(provider: str, info: dict) -> tuple:
+    """Пинг для проверки ключа: пробуем default → fallback → живые модели.
+
+    Снятые у провайдера модели (404) не считаются проблемой ключа: они
+    помечаются как «gone» и мы пробуем следующую. Возвращает
+    (использованная_модель | None, последняя_ошибка_404).
+    """
+    candidates: list[str] = []
+    for m in [info.get("default_model")] + _models_to_try(provider):
+        m = (str(m) if m else "").strip()
+        if m and m not in candidates:
+            candidates.append(m)
+    if not candidates:
+        candidates = [None]
+
+    last_gone = None
+    for model in candidates:
+        try:
+            _call_api(
+                [{"role": "user", "content": "ping"}],
+                model=model,
+                max_tokens=5,
+                provider=provider,
+            )
+            return model or info.get("default_model"), None
+        except ModelGoneError as e:
+            if model:
+                record_model_state(provider, model, "gone", str(e))
+            last_gone = e
+            continue
+    return None, last_gone
+
+
 def validate_key(key: str, provider: str = None) -> tuple:
     """Test API key for given (or current) provider. Returns (ok: bool, message: str)."""
     provider = provider or get_provider()
@@ -1614,17 +1912,22 @@ def validate_key(key: str, provider: str = None) -> tuple:
     old_key = get_api_key(provider)
     set_api_key(key, provider)
     try:
-        _call_api(
-            [{"role": "user", "content": "ping"}],
-            model=info["default_model"],
-            max_tokens=5,
-            provider=provider,
-        )
+        used_model, gone_error = _ping_for_validation(provider, info)
+        if used_model is None:
+            # Ни одна модель из списка не ответила — почти всегда это устаревший
+            # список моделей, а не плохой ключ (плохой ключ даёт 401/403).
+            low = str(gone_error or "").lower()
+            if any(x in low for x in ("401", "403", "unauthorized", "forbidden")):
+                record_provider_state(provider, "invalid_key", str(gone_error))
+                return False, f"❌ {gone_error}"
+            record_provider_state(provider, "ok", "ключ принят, список моделей устарел")
+            return (
+                False,
+                "⚠️ Ключ принят, но ни одна модель из списка недоступна. "
+                "Нажмите «🔄 Обновить модели», чтобы загрузить актуальный список.",
+            )
         record_provider_state(provider, "ok", "ключ принят")
-        return (
-            True,
-            f"✅ Ключ рабочий. Провайдер: {info['label']} · Модель: {info['default_model']}",
-        )
+        return True, f"✅ Ключ рабочий. Провайдер: {info['label']} · Модель: {used_model}"
     except GroqNetworkError as e:
         record_provider_state(provider, "network_error", str(e))
         return False, f"❌ {e}"

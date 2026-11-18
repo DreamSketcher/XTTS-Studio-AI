@@ -507,7 +507,9 @@ The **AI Settings → Cloud and custom API providers** tab manages every AI prov
 - **Automatic model loading**: opening the page, expanding a provider card or pressing «🔄 Refresh models» updates the list in the background; results are cached in `json/provider_cache.json` (24-hour TTL, timestamp always visible). If the endpoint is unreachable, the last good list is shown with an error marker. Built-in seed lists cover the fully-offline case.
 - **Provider state tracking**: every check (key/models/network) is recorded in `provider_cache.json` and shown on the card (🟢 working / 🟠 rate limit 429 / 🔴 key rejected · network unavailable · model-list error / ⬜ unchecked). «🔄 Check all» polls every configured provider via its `/models` endpoint without spending tokens.
 - **Custom providers**: «➕ Add provider» (form with URL, models, fallback, extra headers and an **optional models-list URL**) or «🌐 Catalogue» for one-click add with auto model loading. The models endpoint can be filled via «🔄 Load models from endpoint» right in the form; when empty it is derived automatically (`…/chat/completions` → `…/models`). Catalogue and custom providers join the fallback chain like built-ins.
-- `json/provider_cache.json` never contains keys — only model ids, timestamps and error texts; it is safe to delete (it will be recreated).
+- **Probe ALL models with one key**: the «🔍 Probe models» button on the provider card pings every model in its list (1 token each, may cost a fraction of a cent on paid models) and marks the result 🟢/🔴/🟠. Models confirmed gone (404) are automatically skipped by the AI fallback chain.
+- **Automatic model discovery**: the AI chain (primary → fallback → up to 5 live models from the cache) skips models removed by the provider — a working model is found automatically without manual settings changes.
+- `json/provider_cache.json` never contains keys — only model ids, timestamps, health states and error texts; it is safe to delete (it will be recreated).
 
 ---
 
@@ -935,7 +937,7 @@ The scanner uses quarantine and post-move diagnostics before permanent deletion.
 
 ### A cloud AI provider does not respond
 
-Check the API key, selected model, provider availability, and VPN requirements. For a fully local workflow, select a GGUF model or disable AI.
+Check the API key, selected model and provider availability (see the live model list and status on the provider card). For a fully local workflow, select a GGUF model or disable AI.
 
 ### Generation fails with CoquiTosNotAgreedError
 

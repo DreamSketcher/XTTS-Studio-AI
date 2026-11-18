@@ -115,6 +115,7 @@ It also does not promise that every reference or RVC model will sound good. The 
 - AI chat with provider fallback;
 - a built-in catalogue of 21 providers (Groq, OpenAI, Anthropic, Gemini, DeepSeek, xAI, Mistral, OpenRouter, …) plus custom OpenAI-compatible APIs;
 - live model lists auto-loaded from each provider's `/v1/models` endpoint, cached and health-tracked per provider;
+- one-key availability check of every model («🔍 Проверить модели») with automatic discovery of a working model — removed/dead models are skipped automatically;
 - local GGUF models through `llama-cpp-python`.
 
 ### 🎧 Return to previous results
