@@ -13,7 +13,7 @@
    `.pre-commit-config.yaml`):
 
    ```bash
-   pip install ruff==0.6.9 black==24.10.0 pytest pytest-timeout cryptography==49.0.0
+   pip install ruff==0.6.9 black==24.10.0 pytest pytest-timeout cryptography==50.0.0
    ```
 4. Запустите тесты:
 

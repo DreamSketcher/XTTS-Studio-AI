@@ -11,11 +11,13 @@ Depending on enabled features, the application may store:
 - voice reference files and processed references;
 - generated WAV/MP3 files;
 - generation and chat history;
+- the CPML license consent flag (`json/cpml_consent.json`);
 - pronunciation rules, presets and UI settings;
 - downloaded XTTS, RVC and GGUF models;
 - model previews and caches;
 - diagnostic logs;
-- AI provider configuration and credentials.
+- AI provider configuration and credentials (`json/gpt_settings.json`);
+- live model-list cache and provider health state (`json/provider_cache.json`; no credentials).
 
 These files remain on the user's computer unless the user uploads, synchronizes or shares them. Portable folders may be copied by backup and cloud-sync software configured by the user.
 

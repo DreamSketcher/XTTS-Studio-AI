@@ -27,6 +27,8 @@ git_update.bat
 .llama_broken_backends.json
 gpt_settings.json
 json/gpt_settings.json
+provider_cache.json
+json/provider_cache.json
 
 # =========================
 # PYTHON
@@ -38,6 +40,7 @@ __pycache__/
 *.log
 
 venv/
+.venv/
 env/
 .python/
 python/
@@ -77,6 +80,8 @@ update_github.bat
 # =========================
 gpt_settings.json
 json/gpt_settings.json
+provider_cache.json
+json/provider_cache.json
 chat_history.json
 json/chat_history.json
 history.json
@@ -95,6 +100,8 @@ python/runtime/
 temp/
 tmp/
 cache/
+# Пользовательские данные (согласие с лицензией, правила замены слов)
+json/cpml_consent.json
 word_rules_backups/
 json/word_rules_backups/
 
@@ -113,5 +120,6 @@ AUDIT_REPORT.md
 
 # Git Manager PRO — runtime session logs (added automatically)
 /.git_manager_logs/
-/.git_manager_secrets.json 
+/.git_manager_secrets.json
+ 
  

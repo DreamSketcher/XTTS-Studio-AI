@@ -20,6 +20,7 @@ from engine.text_tools import normalize_text
 from engine.logging_utils import write_log
 from engine.history_store import _save_history
 from engine.gui import textbox
+from engine.gui.license_consent import confirm_coqui_tos
 from engine.gui.statusbar import set_status, set_stage, set_progress
 from engine.gui.textbox import (
     lock_textbox,
@@ -35,6 +36,7 @@ from engine.gui.textbox import (
 # clean_path, task_manager, quality_params, text_box, update_gen_btn,
 # set_ai_pulse, update_queue_view, save_settings, refresh_voice_list
 root = None
+_engine_offer_active = False  # True, пока открыто окно предложения/загрузки движка
 PYGAME_OK = False
 ref_var = None
 lang_var = None
@@ -209,6 +211,26 @@ def _on_task_done(task: Task):
     messagebox.showinfo(t("dlg_done_title"), t("dlg_done_msg", task.output_path))
 
 
+# ── CPML (Coqui Public Model License) ──────────────────────────────
+# Генерация падает с CoquiTosNotAgreedError, если пользователь ещё не
+# подтвердил лицензию. Раньше ошибка показывалась голым traceback'ом, и
+# в основном окне не было никакого контроля принятия лицензии (issue #4).
+# Теперь показываем тот же экран согласия, что и при старте.
+_COQUI_TOS_MARKERS = (
+    "CoquiTosNotAgreedError",
+    "COQUI_TOS_AGREED",
+    "set_coqui_tos_agreed",
+    "cpml_consent",
+    "Coqui Public Model License",
+)
+
+
+def _is_coqui_tos_error(error_text) -> bool:
+    if not error_text:
+        return False
+    return any(marker in str(error_text) for marker in _COQUI_TOS_MARKERS)
+
+
 def _on_task_error(task: Task):
     global current_task
     if current_task and current_task.id == task.id:
@@ -217,7 +239,81 @@ def _on_task_error(task: Task):
     unlock_textbox()
     _restore_raw_text(task)
     write_log(task.error or "Unknown error")
+    if _is_coqui_tos_error(task.error):
+        if confirm_coqui_tos(parent=root, source="generation-error-dialog"):
+            try:
+                messagebox.showinfo(
+                    "📜 Coqui Public Model License (CPML)",
+                    "Согласие с CPML сохранено. Нажмите «Generate» ещё раз — "
+                    "генерация должна запуститься.",
+                    parent=root,
+                )
+            except Exception:
+                pass
+        return
+    if _engine_missing():
+        # Понятная подсказка + повторное предложение вместо сырой ошибки TTS
+        try:
+            messagebox.showinfo(t("engine_dlg_title"), t("engine_missing_hint"), parent=root)
+        except Exception:
+            pass
+        _request_engine_offer()
+        return
     messagebox.showerror(t("dlg_error_title"), task.error or "Неизвестная ошибка")
+
+
+def _request_engine_offer():
+    """Открывает диалог «Скачать движок XTTS?» (один раз за раз)."""
+    global _engine_offer_active
+    if _engine_offer_active:
+        return
+    _engine_offer_active = True
+
+    def _open():
+        try:
+            from engine.gui import engine_download
+
+            engine_download.offer_engine_download(
+                parent=root,
+                on_installed=_on_engine_installed,
+                on_closed=_on_engine_offer_closed,
+            )
+        except Exception as e:
+            globals()["_engine_offer_active"] = False
+            print(f"[Preload] Диалог загрузки движка недоступен: {e}")
+
+    try:
+        if root is not None:
+            root.after(0, _open)
+        else:
+            _open()
+    except Exception:
+        _open()
+
+
+def _on_engine_installed():
+    global _engine_offer_active
+    _engine_offer_active = False
+    print("[Preload] Движок XTTS установлен — перезапускаю предзагрузку модели.")
+    try:
+        threading.Thread(target=_preload_model, daemon=True).start()
+    except Exception as e:
+        print(f"[Preload] Не удалось перезапустить предзагрузку: {e}")
+
+
+def _on_engine_offer_closed():
+    global _engine_offer_active
+    _engine_offer_active = False
+
+
+def _engine_missing() -> bool:
+    """True, если файлы движка XTTS отсутствуют/неполные (дёшево: только stat)."""
+    try:
+        from engine import xtts_engine
+
+        return not xtts_engine.engine_ready()
+    except Exception:
+        return False  # проверка недоступна — не блокируем привычный путь
 
 
 def _preload_model():
@@ -255,6 +351,20 @@ def _preload_model():
     except Exception as e:
         print(f"[Preload] Ошибка проверки режима обновления: {e}")
 
+    if _engine_missing():
+        # Движок — обязательный компонент: предлагаем скачать (официальный
+        # источник, проверка SHA-256 после загрузки). Окно — немодальное по
+        # отношению к главному GUI-потоку (открывается через root.after).
+        model_ready = False
+        set_stage("IDLE")
+        set_status(t("status_engine_missing"))
+        write_log(
+            "[Preload] Файлы движка XTTS (models/xtts_v2) отсутствуют/неполные — "
+            "показываю предложение скачать."
+        )
+        _request_engine_offer()
+        return
+
     try:
         from engine.tts_runner import get_tts
 
@@ -268,7 +378,13 @@ def _preload_model():
         print(f"[Preload] Модель будет загружена при генерации. ({e})")
         model_ready = False
         set_stage("IDLE")
-        set_status(t("status_waiting"))
+        if _is_coqui_tos_error(e) or _is_coqui_tos_error(repr(e)):
+            # Пользователь увидит экран согласия при первой генерации
+            # (см. _on_task_error); здесь — явная подсказка в строке статуса
+            # вместо молчаливого «Waiting».
+            set_status("⚠️ Требуется согласие с CPML — откроется при первой генерации")
+        else:
+            set_status(t("status_waiting"))
 
 
 def start_preload_thread():
@@ -306,6 +422,10 @@ def generate():
         return
     if not ref or not os.path.isfile(ref):
         messagebox.showerror("❌", t("dlg_error_no_ref"))
+        return
+    # Предполётная проверка CPML: не ставим заведомо обречённую задачу в
+    # очередь без явного согласия (issue #4). Отказ — генерация не начнётся.
+    if not confirm_coqui_tos(parent=root, source="generation-dialog"):
         return
     current_text_snapshot = text
     # _highlight_pos живёт в engine.gui.textbox (та же переменная, что и раньше)

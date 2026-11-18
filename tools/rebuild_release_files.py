@@ -41,6 +41,8 @@ SELF_GENERATED = {
     "json/version.json.sig",
     "checksums.txt",
 }
+# User-specific runtime state must never be distributed as application payload.
+USER_DATA = {"json/cpml_consent.json"}
 
 
 def git_paths() -> list[str]:
@@ -55,7 +57,7 @@ def git_paths() -> list[str]:
 
 def included(relative: str) -> bool:
     path = relative.replace("\\", "/")
-    if path in SELF_GENERATED:
+    if path in SELF_GENERATED or path in USER_DATA:
         return False
     if path in ROOT_FILES or path in DOCS_ROOT_LEGACY:
         return True

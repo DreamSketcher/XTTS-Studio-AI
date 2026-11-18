@@ -98,11 +98,11 @@ REM =============================================
 "%PY%" -c "import cryptography" >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo [SETUP] Installing required security package cryptography==49.0.0...
+    echo [SETUP] Installing required security package cryptography==50.0.0...
     if exist "%ROOT%\python\xtts_env\Lib\site-packages" (
-        "%PY%" -m pip install cryptography==49.0.0 --target "%ROOT%\python\xtts_env\Lib\site-packages" --upgrade
+        "%PY%" -m pip install cryptography==50.0.0 --target "%ROOT%\python\xtts_env\Lib\site-packages" --upgrade
     ) else (
-        "%PY%" -m pip install cryptography==49.0.0
+        "%PY%" -m pip install cryptography==50.0.0
     )
     if errorlevel 1 (
         echo [ERROR] Failed to install cryptography. Signature tests cannot run.
