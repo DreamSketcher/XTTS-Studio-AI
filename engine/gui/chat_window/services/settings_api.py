@@ -7,6 +7,7 @@ from __future__ import annotations
 """
 
 import threading
+import time
 import tkinter as tk
 import webbrowser
 from tkinter import messagebox
@@ -14,14 +15,9 @@ from tkinter import messagebox
 from i18n import t
 import engine.gui.chat_window.state as state
 from engine.gui.chat_window.custom_widgets import (
-    CTK_AVAILABLE,
-    CTkFrame,
-    CTkLabel,
-    CTkButton,
     TkFrame,
     TkLabel,
     TkButton,
-    TkRawFrame,
 )
 from engine.gui.chat_window.ui_utils import (
     _c,
@@ -230,6 +226,7 @@ def build_api_page(ctx):
     ).pack(anchor="w", pady=(0, 15))
 
     accordion_state = {"expanded": gpt_client.get_ui_state().get("expanded_provider")}
+    auto_refresh_state = {"started": False}
     accordion_container = TkFrame(container, bg=_c("BG_CARD"))
     accordion_container.pack(fill="x")
 
@@ -244,10 +241,124 @@ def build_api_page(ctx):
             entries.append((p.get("id"), p, True))
         return entries
 
+    HEALTH_GLYPHS = {
+        "ok": "🟢",
+        "invalid_key": "🔴",
+        "rate_limited": "🟠",
+        "network_error": "🔴",
+        "models_error": "🔴",
+        "error": "🔴",
+        "unchecked": "⬜",
+    }
+
+    def _health_caption(pid):
+        health = gpt_client.get_provider_health(pid)
+        state_name = health.get("state") or "unchecked"
+        text = t(f"chat_health_{state_name}")
+        ts = health.get("ts")
+        if ts:
+            try:
+                text = f"{text} · {time.strftime('%H:%M', time.localtime(ts))}"
+            except Exception:
+                pass
+        return text
+
+    def _deliver(callback):
+        bridge = state._ui_bridge
+        if bridge is not None:
+            bridge.post(callback)
+        else:
+            _safe_after(0, callback)
+
+    def _start_models_refresh(pid, force=True):
+        """Фоновое обновление списка моделей; карточки перестроятся по завершении."""
+        bridge = state._ui_bridge
+        if bridge is not None:
+            bridge.begin()
+
+        def worker():
+            try:
+                gpt_client.refresh_provider_models(pid, force=force)
+            except Exception as error:
+                print(f"[AI] Не удалось обновить модели провайдера {pid}: {error}")
+            finally:
+                if bridge is not None:
+                    bridge.producer_done()
+
+            def done():
+                try:
+                    _rebuild_accordion()
+                except Exception:
+                    pass
+
+            _deliver(done)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _refresh_all_in_background():
+        """Проверить все видимые провайдеры с ключом и loopback (TTL-gated)."""
+        targets = []
+        for pid, _info, _is_custom in _all_provider_entries():
+            try:
+                has_key = bool(gpt_client.get_api_key(pid))
+            except Exception:
+                has_key = False
+            url = ""
+            try:
+                url = (gpt_client.effective_models_url(pid) or "").lower()
+            except Exception:
+                url = ""
+            is_loopback = ("localhost" in url) or ("127.0.0.1" in url)
+            if not has_key and not is_loopback:
+                continue
+            try:
+                meta = gpt_client.get_models_cache_meta(pid)
+                ts = meta.get("ts")
+                fresh = ts and (time.time() - ts < gpt_client.MODELS_CACHE_TTL)
+                if fresh:
+                    continue
+            except Exception:
+                pass
+            targets.append(pid)
+        if not targets:
+            return
+        bridge = state._ui_bridge
+        if bridge is not None:
+            bridge.begin()
+
+        def worker():
+            for pid in targets:
+                try:
+                    gpt_client.refresh_provider_models(pid)
+                except Exception as error:
+                    print(f"[AI] Фоновая проверка {pid} не удалась: {error}")
+            if bridge is not None:
+                bridge.producer_done()
+
+            def done():
+                try:
+                    _rebuild_accordion()
+                except Exception:
+                    pass
+
+            _deliver(done)
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def _toggle_card(pid):
         accordion_state["expanded"] = None if accordion_state["expanded"] == pid else pid
         gpt_client.set_ui_state(expanded_provider=accordion_state["expanded"])
         _rebuild_accordion()
+        if accordion_state["expanded"] == pid:
+            # Только что раскрыт — подтягиваем живые модели, если кэш протух
+            try:
+                meta = gpt_client.get_models_cache_meta(pid)
+                ts = meta.get("ts")
+                fresh = ts and (time.time() - ts < gpt_client.MODELS_CACHE_TTL)
+                if not fresh:
+                    _start_models_refresh(pid, force=True)
+            except Exception:
+                pass
 
     def _rebuild_accordion():
         for child in accordion_container.winfo_children():
@@ -296,7 +407,12 @@ def build_api_page(ctx):
 
             cur_model = gpt_client.get_model(pid)
             has_key = bool(gpt_client.get_api_key(pid))
-            sub = f"{t('chat_key_set') if has_key else t('chat_key_none')} · {cur_model or '—'}"
+            try:
+                health_state = gpt_client.get_provider_health(pid).get("state") or "unchecked"
+            except Exception:
+                health_state = "unchecked"
+            health_glyph = HEALTH_GLYPHS.get(health_state, "⬜")
+            sub = f"{health_glyph} · {t('chat_key_set') if has_key else t('chat_key_none')} · {cur_model or '—'}"
             tk.Label(
                 title_box,
                 text=sub,
@@ -386,15 +502,50 @@ def build_api_page(ctx):
                 link_lbl.pack(fill="x", pady=(3, 8))
                 link_lbl.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
 
+            models_label_row = tk.Frame(body, bg=_c("BG_CARD"))
+            models_label_row.pack(fill="x", pady=(4, 0))
             TkLabel(
-                body,
+                models_label_row,
                 text=t("chat_model_label"),
                 bg=_c("BG_CARD"),
                 fg=_c("TEXT_MAIN"),
                 font=("Segoe UI", 12),
                 anchor="w",
-            ).pack(fill="x", pady=(4, 4))
-            models = list(info.get("models", []) or [])
+            ).pack(side="left")
+            _make_button(
+                models_label_row,
+                t("chat_btn_refresh_models"),
+                lambda p=pid: _start_models_refresh(p, force=True),
+                bg=_c("BG_INPUT"),
+                font_size=9,
+                height=1,
+                padx=6,
+                pady=1,
+            ).pack(side="right")
+
+            models_info = gpt_client.get_provider_models(pid)
+            models = list(models_info["models"])
+            if models_info["source"] == "live":
+                try:
+                    _age = time.strftime("%H:%M", time.localtime(models_info["ts"]))
+                except Exception:
+                    _age = "—"
+                source_text = t("chat_models_live", _age)
+            elif models_info["source"] == "builtin":
+                source_text = t("chat_models_builtin")
+            else:
+                source_text = t("chat_models_source_none")
+            if models_info.get("error"):
+                source_text = f"⚠ {models_info['error']}"
+            TkLabel(
+                body,
+                text=source_text,
+                bg=_c("BG_CARD"),
+                fg=_c("TEXT_DIM") if not models_info.get("error") else _c("TEXT_ERROR"),
+                font=("Segoe UI", 10),
+                anchor="w",
+            ).pack(fill="x", pady=(0, 4))
+
             card_model_var = tk.StringVar(value=cur_model or (models[0] if models else ""))
             if models:
                 for m in models:
@@ -422,7 +573,7 @@ def build_api_page(ctx):
 
             card_status = TkLabel(
                 body,
-                text="",
+                text=t("chat_health_caption", _health_caption(pid)),
                 bg=_c("BG_CARD"),
                 fg=_c("TEXT_DIM"),
                 font=("Segoe UI", 11),
@@ -532,7 +683,7 @@ def build_api_page(ctx):
             if is_custom:
 
                 def _edit_this(p=pid):
-                    _open_provider_form(edit_pid=p)
+                    _open_provider_form_internal(ctx, win, edit_pid=p)
 
                 def _delete_this(p=pid, lbl=info.get("label", pid)):
                     if messagebox.askyesno(
@@ -592,156 +743,146 @@ def build_api_page(ctx):
     btn_row_f = TkFrame(container, bg=_c("BG_CARD"))
     btn_row_f.pack(fill="x", pady=(15, 0))
 
-    def _open_provider_form(edit_pid=None):
-        is_edit = edit_pid is not None
-        existing = {}
-        if is_edit:
-            for p in gpt_client.list_custom_providers():
-                if p.get("id") == edit_pid:
-                    existing = p
-                    break
+    def _check_all_providers():
+        check_status.config(text=t("chat_checking_all"), fg=_c("TEXT_DIM"))
+        bridge = state._ui_bridge
+        if bridge is not None:
+            bridge.begin()
 
-        form = tk.Toplevel(win)
-        _set_dark_titlebar(form)
-        form.title(t("chat_provider_edit") if is_edit else t("chat_provider_add"))
-        form.geometry("480x540")
-        form.configure(bg=_c("BG_CARD"))
-        form.transient(win)
-        form.grab_set()
+        def worker():
+            targets = []
+            for pid, _info, _is_custom in _all_provider_entries():
+                try:
+                    has_key = bool(gpt_client.get_api_key(pid))
+                except Exception:
+                    has_key = False
+                url = ""
+                try:
+                    url = (gpt_client.effective_models_url(pid) or "").lower()
+                except Exception:
+                    url = ""
+                if has_key or ("localhost" in url) or ("127.0.0.1" in url):
+                    targets.append(pid)
+            ok_count = 0
+            for pid in targets:
+                try:
+                    _, err = gpt_client.refresh_provider_models(pid, force=True)
+                    if err is None:
+                        ok_count += 1
+                except Exception as error:
+                    print(f"[AI] Проверка {pid} не удалась: {error}")
+            if bridge is not None:
+                bridge.producer_done()
 
-        def _f(p, l, i="", h=1):
-            TkLabel(
-                p,
-                text=l,
-                bg=_c("BG_CARD"),
-                fg=_c("TEXT_MAIN"),
-                font=("Segoe UI", 12),
-                anchor="w",
-            ).pack(fill="x", padx=16, pady=(10, 3))
-            if h == 1:
-                v = tk.StringVar(value=i)
-                e = tk.Entry(
-                    p,
-                    textvariable=v,
-                    bg=_c("BG_INPUT"),
-                    fg=_c("TEXT_MAIN"),
-                    insertbackground=_c("TEXT_MAIN"),
-                    relief="flat",
-                    highlightthickness=1,
-                    highlightbackground=_c("BORDER"),
-                    highlightcolor=_c("ACCENT"),
-                    font=("Segoe UI", 12),
-                )
-                e.pack(fill="x", padx=16, ipady=5)
-                _bind_text_hotkeys(e)
-                return v, e
-            else:
-                fr = TkFrame(p, bg=_c("BORDER"), padx=1, pady=1)
-                fr.pack(fill="x", padx=16)
-                in_ = TkFrame(fr, bg=_c("BG_INPUT"))
-                in_.pack(fill="x")
-                t_ = tk.Text(
-                    in_,
-                    height=h,
-                    wrap="word",
-                    bg=_c("BG_INPUT"),
-                    fg=_c("TEXT_MAIN"),
-                    insertbackground=_c("TEXT_MAIN"),
-                    relief="flat",
-                    highlightthickness=0,
-                    font=("Segoe UI", 12),
-                    padx=6,
-                    pady=6,
-                )
-                t_.insert("1.0", i)
-                t_.pack(fill="x")
-                _bind_text_hotkeys(t_)
-                return t_, t_
-
-        l_v, _ = _f(form, t("chat_field_label"), existing.get("label", ""))
-        u_v, _ = _f(form, t("chat_field_url"), existing.get("url", ""))
-        m_i = "\n".join(existing.get("models", []))
-        m_t, _ = _f(form, t("chat_field_models"), m_i, h=4)
-        f_v, _ = _f(form, t("chat_field_fallback"), existing.get("fallback_model", ""))
-        h_i = "\n".join(f"{k}: {v}" for k, v in (existing.get("extra_headers") or {}).items())
-        h_t, _ = _f(form, t("chat_field_headers"), h_i, h=3)
-
-        st = TkLabel(
-            form,
-            text="",
-            bg=_c("BG_CARD"),
-            fg=_c("TEXT_DIM"),
-            font=("Segoe UI", 12),
-            anchor="w",
-        )
-        st.pack(fill="x", padx=16, pady=(8, 0))
-
-        def save():
-            lbl = (l_v.get() if isinstance(l_v, tk.StringVar) else l_v).strip()
-            url = (u_v.get() if isinstance(u_v, tk.StringVar) else u_v).strip()
-            raw_m = m_t.get("1.0", "end-1c") if isinstance(m_t, tk.Text) else ""
-            mods = [m.strip() for m in raw_m.splitlines() if m.strip()]
-            fb = (f_v.get() if isinstance(f_v, tk.StringVar) else f_v).strip()
-            raw_h = h_t.get("1.0", "end-1c") if isinstance(h_t, tk.Text) else ""
-            ext_h = {
-                k.strip(): v.strip()
-                for line in raw_h.splitlines()
-                if ":" in line
-                for k, _, v in [line.partition(":")]
-            }
-
-            if not url:
-                st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR"))
-                return
-            if not mods:
-                st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR"))
-                return
-
-            try:
-                if is_edit:
-                    gpt_client.update_custom_provider(
-                        edit_pid,
-                        label=lbl,
-                        url=url,
-                        models=mods,
-                        fallback_model=fb,
-                        extra_headers=ext_h,
+            def done():
+                try:
+                    check_status.config(
+                        text=t("chat_check_all_done", ok_count, len(targets)),
+                        fg=_c("TEXT_SUCCESS"),
                     )
-                else:
-                    pid = lbl.lower().replace(" ", "_")
-                    import re
+                    _rebuild_accordion()
+                except Exception:
+                    pass
 
-                    pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
-                    gpt_client.add_custom_provider(pid, lbl, url, mods, fb or mods[0], ext_h)
-                form.destroy()
-                build_api_page(ctx)
-            except Exception as e:
-                st.config(text=str(e), fg=_c("TEXT_ERROR"))
+            _deliver(done)
 
-        br = TkFrame(form, bg=_c("BG_CARD"))
-        br.pack(fill="x", padx=16, pady=(6, 16))
-        _make_button(
-            br,
-            t("chat_btn_cancel_x"),
-            lambda: form.destroy(),
-            bg=_c("BG_INPUT"),
-            font_size=11,
-            height=1,
-            padx=6,
-            pady=3,
-        ).pack(side="right", padx=(4, 0))
-        _make_button(
-            br,
-            t("chat_btn_save"),
-            save,
-            bg=_c("BG_ACTIVE"),
-            font_size=11,
-            height=1,
-            padx=6,
-            pady=3,
-        ).pack(side="right")
+        threading.Thread(target=worker, daemon=True).start()
+
+    check_row = TkFrame(btn_row_f, bg=_c("BG_CARD"))
+    check_row.pack(fill="x")
+    _make_button(
+        check_row,
+        t("chat_btn_add_provider"),
+        lambda: _open_provider_form_internal(ctx, win),
+        bg=_c("BG_INPUT"),
+        font_size=11,
+        height=1,
+        padx=6,
+        pady=3,
+    ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+    _make_button(
+        check_row,
+        t("chat_btn_catalogue"),
+        lambda: _open_catalogue_internal(ctx, win),
+        bg=_c("BG_INPUT"),
+        font_size=11,
+        height=1,
+        padx=6,
+        pady=3,
+    ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+    _make_button(
+        check_row,
+        t("chat_btn_check_all"),
+        _check_all_providers,
+        bg=_c("BG_INPUT"),
+        font_size=11,
+        height=1,
+        padx=6,
+        pady=3,
+    ).pack(side="left", fill="x", expand=True)
+    check_status = TkLabel(
+        btn_row_f,
+        text="",
+        bg=_c("BG_CARD"),
+        fg=_c("TEXT_DIM"),
+        font=("Segoe UI", 10),
+        anchor="w",
+    )
+    check_status.pack(fill="x", pady=(4, 0))
+
+    # Тихое фоновое автопродление живых списков моделей при открытии страницы
+    # (TTL-gated, только для провайдеров с ключом или loopback).
+    if not auto_refresh_state["started"]:
+        auto_refresh_state["started"] = True
+        _safe_after(150, _refresh_all_in_background)
 
     return container
+
+
+def _start_background_refresh_for(ctx, pid):
+    """Фоново подтянуть live-список моделей (после добавления провайдера)."""
+    if not pid:
+        return
+    gpt_client = ctx.gpt_client
+    bridge = state._ui_bridge
+
+    def deliver(callback):
+        if bridge is not None:
+            bridge.post(callback)
+        else:
+            _safe_after(0, callback)
+
+    if bridge is not None:
+        bridge.begin()
+
+    def worker():
+        try:
+            gpt_client.refresh_provider_models(pid, force=True)
+        except Exception as error:
+            print(f"[AI] Не удалось подтянуть модели {pid}: {error}")
+        finally:
+            if bridge is not None:
+                bridge.producer_done()
+
+        def done():
+            _safe_show_page(ctx, "api")
+
+        deliver(done)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
+def _safe_show_page(ctx, page_id):
+    """Инвалидировать и перерисовать страницу AI-настроек (после сохранения)."""
+    try:
+        invalidate = getattr(ctx, "invalidate_page", None)
+        show = getattr(ctx, "show_page", None)
+        if callable(invalidate):
+            invalidate(page_id)
+        if callable(show):
+            show(page_id)
+    except Exception as e:
+        print(f"[AI] Не удалось обновить страницу настроек: {e}")
 
 
 def _open_provider_form_internal(ctx, parent, edit_pid=None):
@@ -757,7 +898,7 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
     form = tk.Toplevel(parent)
     _set_dark_titlebar(form)
     form.title(t("chat_provider_edit") if is_edit else t("chat_provider_add"))
-    form.geometry("480x540")
+    form.geometry("480x640")
     form.configure(bg=_c("BG_CARD"))
     form.transient(parent)
     form.grab_set()
@@ -808,6 +949,21 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
 
     l_v, _ = _f(form, t("chat_field_label"), existing.get("label", ""))
     u_v, _ = _f(form, t("chat_field_url"), existing.get("url", ""))
+    mu_v, _ = _f(form, t("chat_field_models_url"), existing.get("models_url", "") or "")
+
+    load_row = TkFrame(form, bg=_c("BG_CARD"))
+    load_row.pack(fill="x", padx=16, pady=(4, 0))
+    _make_button(
+        load_row,
+        t("chat_btn_load_models"),
+        lambda: _load_models(),
+        bg=_c("BG_INPUT"),
+        font_size=10,
+        height=1,
+        padx=6,
+        pady=2,
+    ).pack(side="left")
+
     m_i = "\n".join(existing.get("models", []))
     m_t, _ = _f(form, t("chat_field_models"), m_i, h=4)
     f_v, _ = _f(form, t("chat_field_fallback"), existing.get("fallback_model", ""))
@@ -815,9 +971,50 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
     h_t, _ = _f(form, t("chat_field_headers"), h_i, h=3)
 
     st = TkLabel(
-        form, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 12), anchor="w"
+        form, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w"
     )
     st.pack(fill="x", padx=16, pady=(8, 0))
+
+    def _load_models():
+        mu = mu_v.get().strip() or gpt_client.derive_models_url(u_v.get().strip()) or ""
+        if not mu:
+            st.config(text=t("chat_url_empty"), fg=_c("TEXT_ERROR"))
+            return
+        api_key = ""
+        if edit_pid:
+            try:
+                api_key = gpt_client.get_api_key(edit_pid) or ""
+            except Exception:
+                api_key = ""
+        st.config(text=t("chat_loading_models"), fg=_c("TEXT_DIM"))
+        bridge = state._ui_bridge
+        if bridge is not None:
+            bridge.begin()
+
+        def worker():
+            try:
+                ok, msg, models = gpt_client.validate_provider_models_url(mu, api_key)
+            except Exception as error:
+                ok, msg, models = False, str(error), []
+            if bridge is not None:
+                bridge.producer_done()
+
+            def done():
+                if not form.winfo_exists():
+                    return
+                if ok:
+                    m_t.delete("1.0", "end")
+                    m_t.insert("1.0", "\n".join(models))
+                    st.config(text=t("chat_models_url_ok", len(models)), fg=_c("TEXT_SUCCESS"))
+                else:
+                    st.config(text=t("chat_models_url_err", msg), fg=_c("TEXT_ERROR"))
+
+            if bridge is not None:
+                bridge.post(done)
+            else:
+                _safe_after(0, done)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def save():
         lbl = (l_v.get() if isinstance(l_v, tk.StringVar) else l_v).strip()
@@ -840,6 +1037,7 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
             st.config(text=t("chat_need_model"), fg=_c("TEXT_ERROR"))
             return
 
+        models_url = mu_v.get().strip()
         try:
             if is_edit:
                 gpt_client.update_custom_provider(
@@ -849,15 +1047,19 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
                     models=mods,
                     fallback_model=fb,
                     extra_headers=ext_h,
+                    models_url=models_url,
                 )
             else:
                 pid = lbl.lower().replace(" ", "_")
                 import re
 
                 pid = re.sub(r"[^a-z0-9_]", "", pid) or "custom"
-                gpt_client.add_custom_provider(pid, lbl, url, mods, fb or mods[0], ext_h)
+                entry = gpt_client.add_custom_provider(
+                    pid, lbl, url, mods, fb or mods[0], ext_h, models_url=models_url
+                )
+                _start_background_refresh_for(ctx, entry.get("id"))
             form.destroy()
-            build_api_page(ctx)
+            _safe_show_page(ctx, "api")
         except Exception as e:
             st.config(text=str(e), fg=_c("TEXT_ERROR"))
 
@@ -880,11 +1082,11 @@ def _open_provider_form_internal(ctx, parent, edit_pid=None):
 
 def _open_catalogue_internal(ctx, parent):
     gpt_client = ctx.gpt_client
-    cat = gpt_client.PROVIDER_CATALOGUE
+    cat = list(gpt_client.PROVIDER_CATALOGUE)
     dlg = tk.Toplevel(parent)
     _set_dark_titlebar(dlg)
     dlg.title(t("chat_catalogue_win"))
-    dlg.geometry("560x520")
+    dlg.geometry("580x560")
     dlg.configure(bg=_c("BG_CARD"))
     dlg.transient(parent)
     dlg.grab_set()
@@ -895,8 +1097,42 @@ def _open_catalogue_internal(ctx, parent):
         fg=_c("TEXT_MAIN"),
         font=("Segoe UI", 13, "bold"),
     ).pack(anchor="w", padx=16, pady=(14, 6))
+
+    search_var = tk.StringVar()
+    search_entry = tk.Entry(
+        dlg,
+        textvariable=search_var,
+        bg=_c("BG_INPUT"),
+        fg=_c("TEXT_MAIN"),
+        insertbackground=_c("TEXT_MAIN"),
+        relief="flat",
+        highlightthickness=1,
+        highlightbackground=_c("BORDER"),
+        highlightcolor=_c("ACCENT"),
+        font=("Segoe UI", 12),
+    )
+    search_entry.pack(fill="x", padx=16, ipady=5)
+    search_entry.insert(0, t("chat_catalogue_search"))
+    search_entry.config(fg=_c("TEXT_DIM"))
+
+    def _search_focus_in(_e):
+        if search_entry.get() == t("chat_catalogue_search"):
+            search_entry.delete(0, tk.END)
+            search_entry.config(fg=_c("TEXT_MAIN"))
+            return "break"
+        return None
+
+    def _search_focus_out(_e):
+        if not search_entry.get().strip():
+            search_entry.insert(0, t("chat_catalogue_search"))
+            search_entry.config(fg=_c("TEXT_DIM"))
+
+    search_entry.bind("<FocusIn>", _search_focus_in)
+    search_entry.bind("<FocusOut>", _search_focus_out)
+    _bind_text_hotkeys(search_entry)
+
     lo = TkFrame(dlg, bg=_c("BORDER"), padx=1, pady=1)
-    lo.pack(fill="both", expand=True, padx=16)
+    lo.pack(fill="both", expand=True, padx=16, pady=(8, 0))
     sc = tk.Scrollbar(lo)
     sc.pack(side="right", fill="y")
     lb = tk.Listbox(
@@ -913,31 +1149,89 @@ def _open_catalogue_internal(ctx, parent):
     )
     lb.pack(fill="both", expand=True)
     sc.config(command=lb.yview)
-    # id уже добавленных провайдеров (кроме "local" и скрытых) + кастомные.
-    # Раньше здесь вызывалась вложенная _all_provider_entries() из другой
-    # функции — она недоступна в этой области видимости, поэтому набор
-    # собирается напрямую через gpt_client.
-    _hidden = gpt_client.get_hidden_providers()
-    already = {pid for pid in gpt_client.PROVIDERS if pid != "local" and pid not in _hidden}
-    already.update(p.get("id") for p in gpt_client.list_custom_providers())
-    for e in cat:
-        lb.insert(tk.END, f"{e['label']}{'  ✓' if e['id'] in already else ''}  —  {e['notes']}")
+
+    detail = TkLabel(
+        dlg, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 10), anchor="w"
+    )
+    detail.pack(fill="x", padx=16, pady=(6, 0))
+
+    def _already_ids():
+        hidden = gpt_client.get_hidden_providers()
+        ids = {pid for pid in gpt_client.PROVIDERS if pid != "local" and pid not in hidden}
+        ids.update(p.get("id") for p in gpt_client.list_custom_providers())
+        return ids
+
+    visible: list[int] = []
+
+    def refresh_list(*_):
+        query = search_var.get().strip().lower()
+        if query == t("chat_catalogue_search").lower():
+            query = ""
+        already = _already_ids()
+        visible.clear()
+        lb.delete(0, tk.END)
+        for i, e in enumerate(cat):
+            hay = f"{e['label']} {e['id']} {e.get('notes', '')}".lower()
+            if query and query not in hay:
+                continue
+            suffix = ""
+            if e["id"] in already:
+                suffix = (
+                    f"  ✓ {t('chat_builtin_badge')}" if e["id"] in gpt_client.PROVIDERS else "  ✓"
+                )
+            cached = gpt_client.get_cached_models(e["id"])
+            cached_txt = f" · {t('chat_catalogue_cached', len(cached))}" if cached else ""
+            lb.insert(tk.END, f"{e['label']}{suffix}{cached_txt}")
+            visible.append(i)
+        detail.config(text=f"{len(visible)} / {len(cat)}")
+        return None
+
+    search_var.trace_add("write", refresh_list)
+
+    def _on_select(_event=None):
+        sel = lb.curselection()
+        if not sel or sel[0] >= len(visible):
+            detail.config(text="")
+            return None
+        e = cat[visible[sel[0]]]
+        note = e.get("notes", "")
+        hint = e.get("key_hint") or "—"
+        detail.config(text=f"{note}  |  {t('chat_key_hint', e['id'], hint)}")
+        return None
+
+    lb.bind("<<ListboxSelect>>", _on_select)
+
+    status = TkLabel(
+        dlg, text="", bg=_c("BG_CARD"), fg=_c("TEXT_DIM"), font=("Segoe UI", 11), anchor="w"
+    )
+    status.pack(fill="x", padx=16, pady=(4, 0))
 
     def add():
         sel = lb.curselection()
-        if not sel:
+        if not sel or sel[0] >= len(visible):
+            status.config(text=t("chat_select_provider"), fg=_c("TEXT_DIM"))
             return
-        e = cat[sel[0]]
-        gpt_client.add_custom_provider(
-            e["id"],
-            e["label"],
-            e["url"],
-            e["models"],
-            e["models"][0] if e["models"] else "",
-            e.get("extra_headers", {}),
-        )
-        dlg.destroy()
-        build_api_page(ctx)
+        e = cat[visible[sel[0]]]
+        if e["id"] in _already_ids():
+            status.config(text=t("chat_provider_exists", e["label"]), fg=_c("TEXT_ERROR"))
+            return
+        try:
+            entry = gpt_client.add_custom_provider(
+                e["id"],
+                e["label"],
+                e["url"],
+                list(e["models"]),
+                e["models"][0] if e["models"] else "",
+                dict(e.get("extra_headers") or {}),
+                models_url=str(e.get("models_url") or ""),
+            )
+        except Exception as exc:
+            status.config(text=str(exc), fg=_c("TEXT_ERROR"))
+            return
+        status.config(text=t("chat_loading_models"), fg=_c("TEXT_DIM"))
+        # Живая загрузка /v1/models в фоне; страница настроек перерисуется сама
+        _start_background_refresh_for(ctx, entry["id"])
+        dlg.after(150, dlg.destroy)
 
     br = TkFrame(dlg, bg=_c("BG_CARD"))
     br.pack(fill="x", padx=16, pady=(8, 16))
@@ -954,4 +1248,5 @@ def _open_catalogue_internal(ctx, parent):
     _make_button(
         br, t("chat_btn_add"), add, bg=_c("BG_ACTIVE"), font_size=11, height=1, padx=6, pady=3
     ).pack(side="right")
-    lb.bind("<Double-Button-1>", add)
+    lb.bind("<Double-Button-1>", lambda _e: add())
+    refresh_list()
